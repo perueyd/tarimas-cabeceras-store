@@ -1,0 +1,13 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cabeceraBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8e8e8"/>
+      <stop offset="100%" stop-color="#bdbdbd"/>
+    </linearGradient>
+  </defs>
+  <rect x="80" y="60" width="440" height="260" rx="28" fill="url(#cabeceraBody)"/>
+  <rect x="80" y="60" width="440" height="260" rx="28" fill="#ffffff" opacity="0.10"/>
+  <rect x="120" y="100" width="120" height="180" rx="18" fill="#ffffff" opacity="0.16"/>
+  <rect x="260" y="100" width="120" height="180" rx="18" fill="#ffffff" opacity="0.16"/>
+  <rect x="400" y="100" width="80" height="180" rx="18" fill="#ffffff" opacity="0.16"/>
+</svg>
