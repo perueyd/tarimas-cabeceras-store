@@ -19,7 +19,14 @@ export const storeConfig = {
 ```
 
 - Pon tu número en `whatsapp` y aparecerá un **botón flotante de WhatsApp** en toda la web.
+  El mismo número se usa para el botón **"Cotizar envío por WhatsApp"** de los pedidos a provincia.
 - Si mejoras tus tiempos de producción, cambia `leadTime` y `deliveryMinDays`.
+
+**Zonas de entrega:** el checkout tiene dos flujos automáticos:
+- **Lima Metropolitana**: dirección + mapa con pin (el cliente puede usar su ubicación GPS)
+  + fecha y rango de horario. El link de Google Maps del pin llega junto con el pago.
+- **Provincia**: sin pago directo — el cliente arma su cotización de envío por WhatsApp
+  (el envío corre por su cuenta) y su carrito queda guardado para completar después.
 
 ---
 
