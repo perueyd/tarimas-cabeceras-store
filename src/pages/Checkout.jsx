@@ -84,7 +84,7 @@ export default function Checkout() {
 
     window.Culqi.publicKey = CULQI_PUBLIC_KEY;
     window.Culqi.settings({
-      title: 'Tarimas & Cabeceras Perú',
+      title: 'Espacios y Diseño',
       currency: 'PEN',
       amount: Math.round(totalAmount * 100), // Culqi trabaja en céntimos
     });

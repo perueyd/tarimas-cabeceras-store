@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         currency_code: 'PEN',
         email,
         source_id: token,
-        description: `Pedido Tarimas & Cabeceras - ${nombre || ''}`.trim(),
+        description: `Pedido Espacios y Diseño - ${nombre || ''}`.trim(),
         metadata: { nombre, telefono, zona, direccion, ubicacion, entrega, items: JSON.stringify(items || []) },
       }),
     });
