@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import ShowcaseMarquee from '../components/ShowcaseMarquee.jsx';
 import { categories, colors } from '../data/catalog.js';
 
 // Colores que se muestran como chips interactivos en el hero.
@@ -135,21 +136,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= CINTA DE CATEGORÍAS ================= */}
-      <div className="overflow-hidden border-b border-neutral-200 bg-ink py-3 text-white">
-        <div className="marquee flex w-max items-center gap-10 whitespace-nowrap text-sm tracking-wide">
-          {[...Array(2)].map((_, copy) => (
-            <span key={copy} className="flex items-center gap-10" aria-hidden={copy === 1}>
-              {categories.map((c) => (
-                <span key={c.id} className="flex items-center gap-10">
-                  <span>{c.label}</span>
-                  <span className="text-neutral-500">◆</span>
-                </span>
-              ))}
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* ================= SHOWCASE ANIMADO DE CATEGORÍAS ================= */}
+      <ShowcaseMarquee />
 
       {/* ================= CATEGORÍAS ================= */}
       <section className="mx-auto max-w-6xl px-4 py-16">
