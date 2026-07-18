@@ -1,24 +1,64 @@
+// ============================================================
+//  CATÁLOGO DE LA TIENDA — ESTE ES EL ÚNICO ARCHIVO QUE NECESITAS
+//  EDITAR PARA AGREGAR CATEGORÍAS, PRODUCTOS, PRECIOS Y COLORES.
+//  Lee la guía completa en GUIA-EDICION.md (raíz del proyecto).
+// ============================================================
+
+// ---------- CATEGORÍAS ----------
+// active: true  -> se muestra en la tienda
+// active: false -> aparece como "Próximamente" en la portada
+export const categories = [
+  { id: 'tarimas', label: 'Tarimas', active: true },
+  { id: 'cabeceras', label: 'Cabeceras', active: true },
+  { id: 'melamina', label: 'Muebles de Melamina', active: false },
+  { id: 'salas', label: 'Salas y Comedores', active: false },
+  { id: 'sofas-cama', label: 'Sofás Cama', active: false },
+];
+
+// ---------- TAMAÑOS ----------
+// Un producto solo muestra los tamaños que tengan precio en su sizePricing.
+// 'unico' sirve para muebles que no van por plazas (ej. un ropero de melamina).
 export const sizes = [
   { id: '1.5plaza', label: '1 Plaza y Media', dims: '135 x 190 cm' },
   { id: '2plazas', label: '2 Plazas', dims: '150 x 200 cm' },
   { id: 'queen', label: 'Queen', dims: '160 x 200 cm' },
   { id: 'king', label: 'King', dims: '200 x 200 cm' },
+  { id: 'unico', label: 'Tamaño único', dims: 'Ver especificaciones' },
 ];
 
+// ---------- COLORES ----------
+// hex = color con el que se tiñe la imagen base (foto en tonos grises).
 export const colors = [
   { id: 'gris', label: 'Gris', hex: '#8b8d91' },
   { id: 'beige', label: 'Beige', hex: '#d9c9a8' },
   { id: 'negro', label: 'Negro', hex: '#2b2b2b' },
   { id: 'azul', label: 'Azul Petróleo', hex: '#3b5a70' },
   { id: 'vino', label: 'Vino', hex: '#6e2a35' },
+  // Acabados típicos de melamina (agrega los que uses):
+  { id: 'roble', label: 'Roble', hex: '#b08a5a' },
+  { id: 'nogal', label: 'Nogal', hex: '#7a5638' },
+  { id: 'blanco', label: 'Blanco', hex: '#f2f0ec' },
 ];
 
+// ---------- PRODUCTOS ----------
+// Campos de cada producto:
+//   id              texto único, sin espacios (se usa en la URL)
+//   category        debe coincidir con un id de `categories`
+//   name            nombre visible
+//   baseImage       ruta de la imagen dentro de public/ (ej. '/images/mi-foto.jpg')
+//   tintable        true  -> la imagen se tiñe con el color elegido (foto gris)
+//                   false -> la foto se muestra tal cual (foto ya con su color)
+//   shortDescription  texto corto para la tarjeta
+//   specs           pares "Etiqueta: valor" que se muestran como tabla
+//   sizePricing     precio en soles por tamaño (solo los que apliquen)
+//   availableColors ids de `colors` disponibles para este producto
 export const products = [
   {
     id: 'tarima-clasica',
     category: 'tarimas',
     name: 'Tarima Clásica Tapizada',
     baseImage: '/images/tarima-base.svg',
+    tintable: true,
     shortDescription: 'Tarima box tapizada en tela chenille, estructura reforzada de madera de pino.',
     specs: {
       Material: 'Madera de pino tratada + tapizado chenille',
@@ -35,6 +75,7 @@ export const products = [
     category: 'tarimas',
     name: 'Tarima Premium con Baúl',
     baseImage: '/images/tarima-base.svg',
+    tintable: true,
     shortDescription: 'Tarima con espacio de almacenaje tipo baúl, ideal para dormitorios pequeños.',
     specs: {
       Material: 'MDP enchapado + tapizado tela linera',
@@ -51,6 +92,7 @@ export const products = [
     category: 'cabeceras',
     name: 'Cabecera Recta Minimalista',
     baseImage: '/images/cabecera-base.svg',
+    tintable: true,
     shortDescription: 'Cabecera de líneas rectas, tapizada y acolchada, fácil de instalar en la pared.',
     specs: {
       Material: 'Estructura de madera + espuma D18 + tapizado chenille',
@@ -66,6 +108,7 @@ export const products = [
     category: 'cabeceras',
     name: 'Cabecera Capitoné',
     baseImage: '/images/cabecera-base.svg',
+    tintable: true,
     shortDescription: 'Cabecera con acolchado capitoné en rombos, acabado premium para tu dormitorio.',
     specs: {
       Material: 'Estructura de madera + espuma alta densidad + tapizado velvet',
@@ -76,8 +119,47 @@ export const products = [
     sizePricing: { '1.5plaza': 279, '2plazas': 319, queen: 359, king: 419 },
     availableColors: ['gris', 'beige', 'negro', 'vino'],
   },
+
+  // ============================================================
+  // PLANTILLAS — copia, pega y edita cuando tengas fotos y precios.
+  // Quita los /* */ para activarlas y cambia active:true en su categoría.
+  // ============================================================
+  /*
+  {
+    id: 'ropero-melamina-6-puertas',
+    category: 'melamina',
+    name: 'Ropero de Melamina 6 Puertas',
+    baseImage: '/images/ropero-6-puertas.jpg',  // sube tu foto a public/images/
+    tintable: false,                            // foto real con su acabado -> false
+    shortDescription: 'Ropero amplio de melamina de 18 mm con 6 puertas y 2 cajones.',
+    specs: {
+      Material: 'Melamina 18 mm',
+      Medidas: '180 x 55 x 200 cm (ancho x fondo x alto)',
+      Garantía: '12 meses',
+    },
+    sizePricing: { unico: 899 },                // muebles sin plazas usan 'unico'
+    availableColors: ['roble', 'nogal', 'blanco'],
+  },
+  {
+    id: 'sofa-cama-basico',
+    category: 'sofas-cama',
+    name: 'Sofá Cama Reclinable',
+    baseImage: '/images/sofa-cama-gris.jpg',    // foto en tono gris -> tintable true
+    tintable: true,
+    shortDescription: 'Sofá cama tapizado, se convierte en cama de 2 plazas.',
+    specs: {
+      Material: 'Estructura de metal + tapizado linera',
+      'Como sofá': '180 x 90 cm',
+      'Como cama': '180 x 110 cm',
+      Garantía: '12 meses',
+    },
+    sizePricing: { unico: 749 },
+    availableColors: ['gris', 'beige', 'azul', 'vino'],
+  },
+  */
 ];
 
+// ---------- FUNCIONES AUXILIARES (no tocar) ----------
 export function getProductById(id) {
   return products.find((p) => p.id === id);
 }

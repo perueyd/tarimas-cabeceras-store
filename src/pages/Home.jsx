@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard.jsx';
-import { products } from '../data/catalog.js';
+import { categories, products } from '../data/catalog.js';
 
+// Las pestañas se generan solas desde `categories` (catalog.js):
+// al activar una categoría nueva, aparece aquí automáticamente.
 const TABS = [
   { id: 'todos', label: 'Todos' },
-  { id: 'tarimas', label: 'Tarimas' },
-  { id: 'cabeceras', label: 'Cabeceras' },
+  ...categories.filter((c) => c.active).map(({ id, label }) => ({ id, label })),
 ];
 
 export default function Home() {

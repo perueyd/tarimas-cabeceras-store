@@ -16,6 +16,7 @@ export default function ProductCard({ product }) {
         colorHex={defaultColor.hex}
         alt={product.name}
         className="aspect-[4/3] w-full"
+        tintable={product.tintable !== false}
       />
       <div className="p-4">
         <h3 className="text-base font-medium">{product.name}</h3>

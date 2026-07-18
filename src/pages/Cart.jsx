@@ -31,6 +31,7 @@ export default function Cart() {
                 colorHex={color.hex}
                 alt={item.productName}
                 className="h-20 w-24 flex-shrink-0 rounded-lg"
+                tintable={item.tintable !== false}
               />
               <div className="flex flex-1 flex-col justify-between">
                 <div className="flex justify-between gap-2">

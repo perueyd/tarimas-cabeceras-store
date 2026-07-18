@@ -36,6 +36,7 @@ export default function ProductDetail() {
       productId: product.id,
       productName: product.name,
       baseImage: product.baseImage,
+      tintable: product.tintable !== false,
       sizeId,
       colorId,
       qty,
@@ -60,6 +61,7 @@ export default function ProductDetail() {
           colorHex={selectedColor.hex}
           alt={product.name}
           className="aspect-[4/3] w-full rounded-xl"
+          tintable={product.tintable !== false}
         />
 
         <div>

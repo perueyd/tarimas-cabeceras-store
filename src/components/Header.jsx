@@ -11,10 +11,13 @@ export default function Header() {
           Tarimas &amp; Cabeceras <span className="text-neutral-400">Perú</span>
         </Link>
         <nav className="flex items-center gap-6 text-sm">
-          <Link to="/?categoria=tarimas" className="hidden hover:text-neutral-500 sm:inline">
+          <Link to="/tienda" className="hidden hover:text-neutral-500 sm:inline">
+            Tienda
+          </Link>
+          <Link to="/tienda?categoria=tarimas" className="hidden hover:text-neutral-500 sm:inline">
             Tarimas
           </Link>
-          <Link to="/?categoria=cabeceras" className="hidden hover:text-neutral-500 sm:inline">
+          <Link to="/tienda?categoria=cabeceras" className="hidden hover:text-neutral-500 sm:inline">
             Cabeceras
           </Link>
           <Link to="/carrito" className="relative flex items-center gap-1">
