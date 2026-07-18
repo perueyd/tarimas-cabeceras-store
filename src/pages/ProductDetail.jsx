@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import { useCart } from '../context/CartContext.jsx';
-import { colors, currencyFormatter, getProductById, sizes } from '../data/catalog.js';
+import { colors, currencyFormatter, getProductById, sizes, storeConfig } from '../data/catalog.js';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -123,6 +123,11 @@ export default function ProductDetail() {
               Comprar ahora
             </button>
           </div>
+
+          <p className="mt-4 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
+            🚚 Fabricado a pedido — entrega en <span className="font-medium">{storeConfig.leadTime}</span>.
+            Al pagar eliges la fecha y el rango de horario que te acomode.
+          </p>
 
           <div className="mt-10">
             <h2 className="mb-3 text-sm font-medium text-neutral-700">Especificaciones</h2>

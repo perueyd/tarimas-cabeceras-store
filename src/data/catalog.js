@@ -4,6 +4,21 @@
 //  Lee la guía completa en GUIA-EDICION.md (raíz del proyecto).
 // ============================================================
 
+// ---------- DATOS DE LA TIENDA ----------
+// whatsapp: tu número con código de país, sin espacios ni "+" (ej. '51987654321').
+//           Si lo dejas vacío, el botón de WhatsApp no se muestra.
+// leadTime: texto del tiempo de fabricación/entrega que ve el cliente.
+// deliveryMinDays: días mínimos desde hoy para elegir fecha de entrega en el checkout.
+export const storeConfig = {
+  whatsapp: '',
+  leadTime: '3 a 4 días hábiles',
+  deliveryMinDays: 4,
+  deliverySlots: [
+    { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
+    { id: 'tarde', label: 'Tarde (2:00 p.m. – 6:00 p.m.)' },
+  ],
+};
+
 // ---------- CATEGORÍAS ----------
 // active: true  -> se muestra en la tienda
 // active: false -> aparece como "Próximamente" en la portada

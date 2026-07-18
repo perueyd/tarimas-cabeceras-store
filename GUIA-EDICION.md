@@ -5,6 +5,24 @@ Todo lo editable vive en **un solo archivo**: `src/data/catalog.js`.
 
 ---
 
+## 0. Datos de la tienda (WhatsApp, tiempos de entrega)
+
+Al inicio de `catalog.js` está `storeConfig`:
+
+```js
+export const storeConfig = {
+  whatsapp: '51987654321',        // tu número con 51 adelante, sin espacios ni +
+  leadTime: '3 a 4 días hábiles', // texto que ve el cliente
+  deliveryMinDays: 4,             // días mínimos para elegir fecha de entrega
+  deliverySlots: [ ... ],         // rangos de horario que ofrece el checkout
+};
+```
+
+- Pon tu número en `whatsapp` y aparecerá un **botón flotante de WhatsApp** en toda la web.
+- Si mejoras tus tiempos de producción, cambia `leadTime` y `deliveryMinDays`.
+
+---
+
 ## 1. Agregar una categoría nueva
 
 En la lista `categories`, cambia `active: false` a `active: true` cuando tengas

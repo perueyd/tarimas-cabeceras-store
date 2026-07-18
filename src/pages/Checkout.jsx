@@ -1,14 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
-import { currencyFormatter } from '../data/catalog.js';
+import { currencyFormatter, storeConfig } from '../data/catalog.js';
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
+
+// Fecha mínima de entrega: hoy + días de fabricación.
+function minDeliveryDate() {
+  const d = new Date(Date.now() + storeConfig.deliveryMinDays * 86400000);
+  return d.toISOString().split('T')[0];
+}
 
 export default function Checkout() {
   const { items, totalAmount, clearCart } = useCart();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', direccion: '', distrito: '' });
+  const [form, setForm] = useState({
+    nombre: '',
+    email: '',
+    telefono: '',
+    direccion: '',
+    distrito: '',
+    referencia: '',
+    entregaFecha: '',
+    entregaHorario: '',
+  });
   const [status, setStatus] = useState('idle'); // idle | paying | error
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -39,12 +54,20 @@ export default function Checkout() {
   }
 
   function isFormValid() {
-    return form.nombre && form.email && form.telefono && form.direccion && form.distrito;
+    return (
+      form.nombre &&
+      form.email &&
+      form.telefono &&
+      form.direccion &&
+      form.distrito &&
+      form.entregaFecha &&
+      form.entregaHorario
+    );
   }
 
   function abrirCulqi() {
     if (!isFormValid()) {
-      setErrorMsg('Completa todos los campos antes de pagar.');
+      setErrorMsg('Completa todos los campos (incluida la fecha y el horario de entrega) antes de pagar.');
       return;
     }
     if (!CULQI_PUBLIC_KEY) {
@@ -71,6 +94,7 @@ export default function Checkout() {
   async function procesarPago(token) {
     setStatus('paying');
     try {
+      const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
       const res = await fetch('/api/create-charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,7 +104,8 @@ export default function Checkout() {
           email: form.email,
           nombre: form.nombre,
           telefono: form.telefono,
-          direccion: `${form.direccion}, ${form.distrito}`,
+          direccion: `${form.direccion}, ${form.distrito}${form.referencia ? ` (Ref: ${form.referencia})` : ''}`,
+          entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
         }),
       });
@@ -89,7 +114,14 @@ export default function Checkout() {
         throw new Error(data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
       }
       clearCart();
-      navigate('/gracias', { state: { chargeId: data.id, monto: totalAmount } });
+      navigate('/gracias', {
+        state: {
+          chargeId: data.id,
+          monto: totalAmount,
+          entregaFecha: form.entregaFecha,
+          entregaHorario: slot ? slot.label : '',
+        },
+      });
     } catch (err) {
       setStatus('error');
       setErrorMsg(err.message);
@@ -103,9 +135,51 @@ export default function Checkout() {
       <form className="grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
         <Field label="Nombre completo" name="nombre" value={form.nombre} onChange={handleChange} full />
         <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} />
-        <Field label="Teléfono" name="telefono" value={form.telefono} onChange={handleChange} />
+        <Field label="Teléfono / WhatsApp" name="telefono" value={form.telefono} onChange={handleChange} />
         <Field label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} full />
-        <Field label="Distrito / Ciudad" name="distrito" value={form.distrito} onChange={handleChange} full />
+        <Field label="Distrito / Ciudad" name="distrito" value={form.distrito} onChange={handleChange} />
+        <Field
+          label="Referencia (opcional)"
+          name="referencia"
+          value={form.referencia}
+          onChange={handleChange}
+          required={false}
+          placeholder="Ej. portón negro, frente al parque"
+        />
+
+        <div className="sm:col-span-2 mt-2 rounded-lg border border-neutral-200 bg-white p-4">
+          <p className="text-sm font-medium">Entrega</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Cada mueble se fabrica a pedido: el tiempo de fabricación y entrega es de{' '}
+            <span className="font-medium text-neutral-700">{storeConfig.leadTime}</span>.
+            Elige desde cuándo podemos entregarte y en qué horario estarás en casa.
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field
+              label="Fecha de entrega preferida"
+              name="entregaFecha"
+              type="date"
+              value={form.entregaFecha}
+              onChange={handleChange}
+              min={minDeliveryDate()}
+            />
+            <label className="text-sm">
+              <span className="mb-1 block text-neutral-700">Rango de horario</span>
+              <select
+                name="entregaHorario"
+                value={form.entregaHorario}
+                onChange={handleChange}
+                required
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
+              >
+                <option value="">Selecciona un horario</option>
+                {storeConfig.deliverySlots.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
       </form>
 
       <div className="mt-6 flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
@@ -132,7 +206,7 @@ export default function Checkout() {
   );
 }
 
-function Field({ label, name, value, onChange, type = 'text', full = false }) {
+function Field({ label, name, value, onChange, type = 'text', full = false, required = true, placeholder, min }) {
   return (
     <label className={`text-sm ${full ? 'sm:col-span-2' : ''}`}>
       <span className="mb-1 block text-neutral-700">{label}</span>
@@ -141,7 +215,9 @@ function Field({ label, name, value, onChange, type = 'text', full = false }) {
         name={name}
         value={value}
         onChange={onChange}
-        required
+        required={required}
+        placeholder={placeholder}
+        min={min}
         className="w-full rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink"
       />
     </label>

@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { token, amount, email, nombre, telefono, direccion, items } = req.body || {};
+  const { token, amount, email, nombre, telefono, direccion, entrega, items } = req.body || {};
   const secretKey = process.env.CULQI_SECRET_KEY;
 
   if (!secretKey) {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         email,
         source_id: token,
         description: `Pedido Tarimas & Cabeceras - ${nombre || ''}`.trim(),
-        metadata: { nombre, telefono, direccion, items: JSON.stringify(items || []) },
+        metadata: { nombre, telefono, direccion, entrega, items: JSON.stringify(items || []) },
       }),
     });
 

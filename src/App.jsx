@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
+import WhatsAppButton from './components/WhatsAppButton.jsx';
 import Landing from './pages/Landing.jsx';
 import Home from './pages/Home.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
@@ -23,6 +24,7 @@ export default function App() {
         </Routes>
       </div>
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 }
