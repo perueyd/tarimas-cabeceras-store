@@ -28,15 +28,25 @@ body {
   to { transform: translateX(-50%); }
 }
 
-/* El marquee de paneles (ShowcaseMarquee) se anima por JavaScript con física propia.
-   Cada panel además flota suavemente con ritmo propio. */
-.ed-panel {
+/* El marquee (ShowcaseMarquee) se anima por JavaScript (rueda 3D + física).
+   .ed-float: cada panel flota suave; al pasar el cursor se mece como un barco. */
+.ed-float {
   transform: rotate(var(--rot, 0deg));
   animation: panel-float 6s ease-in-out infinite alternate;
+}
+.ed-float:hover {
+  animation: boat-rock 1.6s ease-in-out infinite;
 }
 @keyframes panel-float {
   from { transform: translateY(-7px) rotate(var(--rot, 0deg)); }
   to { transform: translateY(7px) rotate(var(--rot, 0deg)); }
+}
+@keyframes boat-rock {
+  0% { transform: translateY(2px) rotate(calc(var(--rot, 0deg) - 4deg)); }
+  25% { transform: translateY(-5px) rotate(var(--rot, 0deg)); }
+  50% { transform: translateY(2px) rotate(calc(var(--rot, 0deg) + 4deg)); }
+  75% { transform: translateY(-3px) rotate(var(--rot, 0deg)); }
+  100% { transform: translateY(2px) rotate(calc(var(--rot, 0deg) - 4deg)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -46,7 +56,7 @@ body {
     transition: none;
   }
   .marquee,
-  .ed-panel {
+  .ed-float {
     animation: none;
   }
 }

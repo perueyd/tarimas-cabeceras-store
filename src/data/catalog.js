@@ -10,7 +10,7 @@
 // leadTime: texto del tiempo de fabricación/entrega que ve el cliente.
 // deliveryMinDays: días mínimos desde hoy para elegir fecha de entrega en el checkout.
 export const storeConfig = {
-  whatsapp: '',
+  whatsapp: '51951278010',
   leadTime: '3 a 4 días hábiles',
   deliveryMinDays: 4,
   deliverySlots: [
