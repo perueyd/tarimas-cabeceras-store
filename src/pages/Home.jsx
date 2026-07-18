@@ -26,7 +26,7 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <section className="mb-10">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          Tarimas y cabeceras a tu medida
+          {(tab === 'todos' ? 'Muebles' : TABS.find((t) => t.id === tab)?.label || 'Muebles')} a tu medida
         </h1>
         <p className="mt-2 max-w-2xl text-neutral-500">
           Elige el tamaño y el color, y visualiza el cambio al instante. Envíos a todo el Perú.

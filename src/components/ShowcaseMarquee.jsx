@@ -1,21 +1,43 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
-// Marquee "líquido" con física:
-//  - Se desliza solo y es ARRASTRABLE en ambas direcciones (mouse o dedo), con inercia.
-//  - Al soltar, mantiene la dirección del arrastre y vuelve suave a su velocidad crucero.
-//  - La pista se ESTIRA y se inclina según la velocidad (efecto de succión al frenar/acelerar).
-//  - Un filtro SVG de turbulencia hace que los BORDES ondulen como agua; la distorsión
-//    se intensifica cuanto más rápido se mueve (efecto "se derrite").
+// Marquee "líquido" estilo slide-mask (inspirado en los marquees de papel rasgado):
+//  - Fondo claro con formas orgánicas tipo papel rasgado deslizándose.
+//  - Texto gigante con mix-blend-difference: se ve negro sobre el fondo claro y se
+//    invierte de color cuando cada panel pasa por detrás.
+//  - Arrastrable en ambas direcciones con inercia; al soltar mantiene la dirección.
+//  - La pista se estira/inclina con la velocidad y los bordes ondulan como agua
+//    (más intenso cuanto más rápido, sutil en reposo).
+//  - Cada panel flota suavemente, con ritmos distintos.
 const PANELS = [
-  { img: '/images/tarima-base.svg', label: 'Tarimas', color: '#3b5a70', cat: 'tarimas', radius: '58% 42% 50% 50% / 46% 54% 46% 54%', rot: '-2deg' },
-  { img: '/images/cabecera-base.svg', label: 'Cabeceras', color: '#6e2a35', cat: 'cabeceras', radius: '44% 56% 52% 48% / 55% 45% 55% 45%', rot: '2deg' },
-  { img: '/images/sofa-base.svg', label: 'Sofás Cama', color: '#7a5638', cat: 'sofas-cama', radius: '52% 48% 44% 56% / 48% 52% 48% 52%', rot: '-1.5deg' },
-  { img: '/images/comedor-base.svg', label: 'Sala y Comedor', color: '#8b8d91', cat: 'salas', radius: '46% 54% 58% 42% / 52% 48% 52% 48%', rot: '1.5deg' },
-  { img: '/images/ropero-base.svg', label: 'Melamina', color: '#b08a5a', cat: 'melamina', radius: '55% 45% 46% 54% / 44% 56% 44% 56%', rot: '-2.5deg' },
+  {
+    img: '/images/tarima-base.svg', color: '#3b5a70', cat: 'tarimas', label: 'Tarimas',
+    size: 'h-64 w-56', rot: '-2deg', delay: '0s',
+    clip: 'polygon(48% 2%, 68% 6%, 84% 15%, 95% 33%, 98% 55%, 91% 74%, 77% 90%, 56% 98%, 35% 95%, 17% 86%, 5% 68%, 2% 45%, 9% 25%, 24% 9%)',
+  },
+  {
+    img: '/images/cabecera-base.svg', color: '#6e2a35', cat: 'cabeceras', label: 'Cabeceras',
+    size: 'h-56 w-48', rot: '2deg', delay: '-1.6s',
+    clip: 'polygon(42% 4%, 63% 2%, 82% 10%, 94% 26%, 97% 48%, 93% 68%, 82% 86%, 62% 97%, 40% 98%, 20% 90%, 6% 73%, 2% 50%, 6% 28%, 20% 12%)',
+  },
+  {
+    img: '/images/sofa-base.svg', color: '#7a5638', cat: 'sofas-cama', label: 'Sofás Cama',
+    size: 'h-72 w-60', rot: '-1.5deg', delay: '-3.2s',
+    clip: 'polygon(50% 1%, 72% 8%, 88% 20%, 96% 38%, 97% 58%, 89% 78%, 73% 92%, 52% 98%, 30% 96%, 12% 84%, 3% 64%, 2% 42%, 10% 22%, 28% 7%)',
+  },
+  {
+    img: '/images/comedor-base.svg', color: '#8b8d91', cat: 'salas', label: 'Sala y Comedor',
+    size: 'h-56 w-52', rot: '1.5deg', delay: '-2.4s',
+    clip: 'polygon(45% 3%, 66% 4%, 85% 13%, 95% 30%, 98% 52%, 92% 72%, 79% 88%, 58% 97%, 37% 97%, 18% 88%, 5% 70%, 2% 47%, 8% 26%, 23% 10%)',
+  },
+  {
+    img: '/images/ropero-base.svg', color: '#b08a5a', cat: 'melamina', label: 'Melamina',
+    size: 'h-64 w-52', rot: '-2.5deg', delay: '-4s',
+    clip: 'polygon(47% 2%, 69% 7%, 86% 17%, 96% 35%, 97% 57%, 90% 76%, 75% 91%, 54% 98%, 33% 94%, 15% 84%, 4% 66%, 3% 43%, 10% 23%, 26% 8%)',
+  },
 ];
 
-const CRUISE = 0.8; // velocidad crucero en px por frame (~48 px/s)
+const CRUISE = 0.7; // velocidad crucero en px por frame (~42 px/s)
 
 export default function ShowcaseMarquee() {
   const sectionRef = useRef(null);
@@ -81,9 +103,9 @@ export default function ShowcaseMarquee() {
 
       if (!s.dragging) {
         if (reduced) {
-          s.v *= 0.9; // sin animación automática: solo inercia del arrastre
+          s.v *= 0.9; // sin animación automática: solo la inercia del arrastre
         } else {
-          s.v += (CRUISE * s.dir - s.v) * 0.03; // vuelve suave a velocidad crucero
+          s.v += (CRUISE * s.dir - s.v) * 0.025; // vuelve suave a velocidad crucero
         }
         s.pos += s.v;
       }
@@ -92,18 +114,19 @@ export default function ShowcaseMarquee() {
       const x = -(((s.pos % halfW) + halfW) % halfW);
 
       // Estiramiento + inclinación proporcionales a la velocidad (succión).
-      const stretch = Math.min(Math.abs(s.v) * 0.012, 0.18);
-      const skew = Math.max(-14, Math.min(14, s.v * 0.9));
+      const stretch = Math.min(Math.abs(s.v) * 0.010, 0.14);
+      const skew = Math.max(-12, Math.min(12, s.v * 0.7));
       track.style.transform = `translate3d(${x}px,0,0) skewX(${-skew}deg) scaleX(${1 + stretch})`;
 
-      // Agua: la ondulación respira sola y se derrite más cuanto más rápido va.
+      // Agua: sutil en reposo, se derrite con la velocidad (con tope elegante).
       if (dispRef.current) {
-        const waterScale = reduced ? 0 : 6 + Math.min(Math.abs(s.v) * 7, 70);
-        dispRef.current.setAttribute('scale', String(Math.round(waterScale)));
+        const waterScale = reduced ? 0 : 5 + Math.min(Math.abs(s.v) * 5, 40);
+        dispRef.current.setAttribute('scale', waterScale.toFixed(1));
       }
-      if (turbRef.current && !reduced && s.t % 4 === 0) {
-        const bf = 0.010 + Math.sin(s.t * 0.008) * 0.004;
-        turbRef.current.setAttribute('baseFrequency', `${bf.toFixed(4)} 0.028`);
+      // La ondulación respira continua y suave (sin saltos).
+      if (turbRef.current && !reduced) {
+        const bf = 0.011 + Math.sin(s.t * 0.006) * 0.003;
+        turbRef.current.setAttribute('baseFrequency', `${bf.toFixed(4)} 0.026`);
       }
 
       raf = requestAnimationFrame(frame);
@@ -125,7 +148,7 @@ export default function ShowcaseMarquee() {
     <section
       ref={sectionRef}
       aria-label="Categorías destacadas — arrastra para explorar"
-      className="relative select-none overflow-hidden border-y border-neutral-200 bg-ink py-12"
+      className="relative select-none overflow-hidden border-y border-neutral-200 bg-paper py-16"
       style={{ cursor: 'grab', touchAction: 'pan-y' }}
       onClickCapture={(e) => {
         if (suppressClick.current) {
@@ -139,53 +162,57 @@ export default function ShowcaseMarquee() {
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
           <filter id="ed-liquid" x="-25%" y="-25%" width="150%" height="150%">
-            <feTurbulence ref={turbRef} type="fractalNoise" baseFrequency="0.010 0.028" numOctaves="2" seed="7" result="noise" />
-            <feDisplacementMap ref={dispRef} in="SourceGraphic" in2="noise" scale="8" xChannelSelector="R" yChannelSelector="G" />
+            <feTurbulence ref={turbRef} type="fractalNoise" baseFrequency="0.011 0.026" numOctaves="2" seed="7" result="noise" />
+            <feDisplacementMap ref={dispRef} in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
           </filter>
         </defs>
       </svg>
 
       <div
         ref={trackRef}
-        className="flex w-max items-center gap-8 pl-8 will-change-transform"
+        className="flex w-max items-center gap-10 pl-10 will-change-transform"
         style={{ filter: 'url(#ed-liquid)', transformOrigin: 'center' }}
       >
         {[...Array(2)].map((_, copy) => (
-          <div key={copy} className="flex items-center gap-8" aria-hidden={copy === 1}>
+          <div key={copy} className="flex items-center gap-10" aria-hidden={copy === 1}>
             {PANELS.map((p) => (
               <Link
                 key={`${copy}-${p.cat}`}
                 to={`/tienda?categoria=${p.cat}`}
+                aria-label={p.label}
+                title={p.label}
                 tabIndex={copy === 1 ? -1 : 0}
                 draggable={false}
-                className="group relative block h-64 w-52 shrink-0 overflow-hidden"
-                style={{ backgroundColor: p.color, borderRadius: p.radius, transform: `rotate(${p.rot})` }}
+                className={`ed-panel relative block shrink-0 overflow-hidden ${p.size}`}
+                style={{
+                  '--rot': p.rot,
+                  backgroundColor: p.color,
+                  clipPath: p.clip,
+                  animationDelay: p.delay,
+                }}
               >
                 <img
                   src={p.img}
-                  alt={p.label}
+                  alt=""
                   draggable={false}
-                  className="absolute inset-0 h-full w-full object-contain p-6 mix-blend-multiply opacity-90"
+                  className="absolute inset-0 h-full w-full object-contain p-7 mix-blend-multiply opacity-90"
                 />
-                <span className="absolute inset-x-0 bottom-4 text-center text-xs font-medium uppercase tracking-widest text-white/90">
-                  {p.label}
-                </span>
               </Link>
             ))}
           </div>
         ))}
       </div>
 
-      {/* Succión en los bordes: degradados que "tragan" los paneles al entrar y salir */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-ink to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-ink to-transparent" />
+      {/* Succión en los bordes */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-paper to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-paper to-transparent" />
 
-      {/* Texto gigante: invierte el color sobre los paneles al pasar */}
-      <h2 className="pointer-events-none absolute inset-0 flex items-center justify-center text-[15vw] font-bold uppercase leading-none tracking-tighter text-white mix-blend-difference sm:text-[10vw]">
+      {/* Texto gigante: negro sobre el fondo claro, se invierte al pasar cada panel */}
+      <h2 className="pointer-events-none absolute inset-0 flex items-center justify-center text-[16vw] font-extrabold uppercase leading-none tracking-tighter text-white mix-blend-difference sm:text-[11vw]">
         Espacios
       </h2>
 
-      <p className="pointer-events-none absolute bottom-3 left-0 right-0 text-center text-[11px] uppercase tracking-[0.3em] text-white/40">
+      <p className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-[11px] uppercase tracking-[0.3em] text-neutral-400">
         ⇠ arrastra ⇢
       </p>
     </section>

@@ -28,7 +28,16 @@ body {
   to { transform: translateX(-50%); }
 }
 
-/* El marquee de paneles (ShowcaseMarquee) se anima por JavaScript con física propia. */
+/* El marquee de paneles (ShowcaseMarquee) se anima por JavaScript con física propia.
+   Cada panel además flota suavemente con ritmo propio. */
+.ed-panel {
+  transform: rotate(var(--rot, 0deg));
+  animation: panel-float 6s ease-in-out infinite alternate;
+}
+@keyframes panel-float {
+  from { transform: translateY(-7px) rotate(var(--rot, 0deg)); }
+  to { transform: translateY(7px) rotate(var(--rot, 0deg)); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .reveal {
@@ -36,7 +45,8 @@ body {
     transform: none;
     transition: none;
   }
-  .marquee {
+  .marquee,
+  .ed-panel {
     animation: none;
   }
 }
