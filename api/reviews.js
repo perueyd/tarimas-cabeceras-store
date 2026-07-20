@@ -55,6 +55,40 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, saved: true, review });
   }
 
+  // PUT: el dueño edita una reseña (estrellas y/o comentario).
+  if (req.method === 'PUT') {
+    if (!adminKey || req.query.key !== adminKey) {
+      return res.status(401).json({ error: 'Clave incorrecta.' });
+    }
+    if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
+    const productId = s(req.body?.productId, 60);
+    const id = s(req.body?.id, 40);
+    const comentario = s(req.body?.comentario, 500).trim();
+    const estrellas = Math.min(Math.max(parseInt(req.body?.estrellas, 10) || 0, 1), 5);
+    if (!productId || !id || !comentario) {
+      return res.status(400).json({ error: 'Datos inválidos.' });
+    }
+    async function editarEnLista(listKey) {
+      const data = await redisCmd(['LRANGE', listKey, '0', '499']);
+      const list = data.result || [];
+      for (let i = 0; i < list.length; i++) {
+        try {
+          const r = JSON.parse(list[i]);
+          if (r.id === id) {
+            const actualizada = { ...r, estrellas, comentario, editado: true };
+            await redisCmd(['LSET', listKey, String(i), JSON.stringify(actualizada)]);
+            return actualizada;
+          }
+        } catch { /* sigue buscando */ }
+      }
+      return null;
+    }
+    const actualizada = await editarEnLista(`reviews:${productId}`);
+    await editarEnLista('reviews:all');
+    if (!actualizada) return res.status(404).json({ error: 'Reseña no encontrada.' });
+    return res.status(200).json({ ok: true, review: actualizada });
+  }
+
   if (req.method === 'DELETE') {
     if (!adminKey || req.query.key !== adminKey) {
       return res.status(401).json({ error: 'Clave incorrecta.' });

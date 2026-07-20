@@ -1,6 +1,19 @@
 import { Link, useLocation } from 'react-router-dom';
 import { currencyFormatter } from '../data/catalog.js';
 
+// Evento de calendario pre-llenado para el cliente (día completo de la entrega).
+function buildCalendarUrl(state) {
+  const inicio = state.entregaFecha.replace(/-/g, '');
+  const sig = new Date(`${state.entregaFecha}T12:00:00`);
+  sig.setDate(sig.getDate() + 1);
+  const fin = sig.toISOString().slice(0, 10).replace(/-/g, '');
+  const text = encodeURIComponent('🚚 Entrega de mi pedido — E|D Espacios y Diseño');
+  const details = encodeURIComponent(
+    `Pedido: ${state.orderCode || ''}\nHorario: ${state.entregaHorario || 'por confirmar'}\nMonto: ${state.monto != null ? currencyFormatter.format(state.monto) : ''}`
+  );
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${inicio}/${fin}&details=${details}`;
+}
+
 export default function ThankYou() {
   const { state } = useLocation();
   const porVerificar = state?.porVerificar;
@@ -29,11 +42,21 @@ export default function ThankYou() {
         </p>
       )}
       {state?.entregaFecha && (
-        <p className="mx-auto mt-6 max-w-md rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-600">
-          Entrega programada a partir del <span className="font-medium">{state.entregaFecha}</span>
-          {state.entregaHorario ? <> en el horario de <span className="font-medium">{state.entregaHorario}</span></> : null}.
-          Te contactaremos para confirmar el día exacto.
-        </p>
+        <>
+          <p className="mx-auto mt-6 max-w-md rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-600">
+            Entrega programada a partir del <span className="font-medium">{state.entregaFecha}</span>
+            {state.entregaHorario ? <> en el horario de <span className="font-medium">{state.entregaHorario}</span></> : null}.
+            Te contactaremos para confirmar el día exacto.
+          </p>
+          <a
+            href={buildCalendarUrl(state)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-block rounded-lg border border-neutral-300 px-5 py-2.5 text-sm font-medium transition hover:border-ink"
+          >
+            📅 Agregar la entrega a mi Google Calendar
+          </a>
+        </>
       )}
       <Link
         to="/"

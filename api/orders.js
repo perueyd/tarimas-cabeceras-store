@@ -1,5 +1,7 @@
-import { listOrders, newOrderCode, saveOrder } from './_store.js';
+import { hasDB, listOrders, newOrderCode, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
+
+const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado'];
 
 // POST  -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
 // GET   -> lista los pedidos del negocio. Protegido con ?key=<ORDERS_ADMIN_KEY>.
@@ -60,6 +62,33 @@ export default async function handler(req, res) {
     } catch (err) {
       return res.status(500).json({ error: 'Error al leer los pedidos.' });
     }
+  }
+
+  // PATCH: el dueño cambia el estado de un pedido (confirmar pago, marcar entregado).
+  if (req.method === 'PATCH') {
+    const adminKey = process.env.ORDERS_ADMIN_KEY;
+    if (!adminKey || (req.query.key || '') !== adminKey) {
+      return res.status(401).json({ error: 'Clave incorrecta.' });
+    }
+    if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
+    const code = s(req.body?.code, 30);
+    const estado = s(req.body?.estado, 30);
+    if (!code || !ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({ error: 'Datos inválidos (code, estado).' });
+    }
+    const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
+    const list = data.result || [];
+    for (let i = 0; i < list.length; i++) {
+      try {
+        const order = JSON.parse(list[i]);
+        if (order.code === code) {
+          order.estado = estado;
+          await redisCmd(['LSET', 'pedidos', String(i), JSON.stringify(order)]);
+          return res.status(200).json({ ok: true, order });
+        }
+      } catch { /* sigue buscando */ }
+    }
+    return res.status(404).json({ error: 'Pedido no encontrado.' });
   }
 
   return res.status(405).json({ error: 'Método no permitido' });
