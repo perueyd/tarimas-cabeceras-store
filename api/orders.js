@@ -1,27 +1,36 @@
 import { listOrders, newOrderCode, saveOrder } from './_store.js';
+import { priceOrder, s } from './_pricing.js';
 
 // POST  -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
 // GET   -> lista los pedidos del negocio. Protegido con ?key=<ORDERS_ADMIN_KEY>.
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { metodo, monto, nombre, email, telefono, zona, direccion, ubicacion, entrega, items } = req.body || {};
-    if (!metodo || !monto || !nombre || !telefono) {
-      return res.status(400).json({ error: 'Faltan datos del pedido (metodo, monto, nombre, telefono).' });
+    const body = req.body || {};
+    const metodo = s(body.metodo, 40);
+    const nombre = s(body.nombre, 120);
+    const telefono = s(body.telefono, 30);
+    if (!metodo || !nombre || !telefono) {
+      return res.status(400).json({ error: 'Faltan datos del pedido (metodo, nombre, telefono).' });
+    }
+    // SEGURIDAD: el monto se recalcula desde el catálogo; se ignora el del navegador.
+    const priced = priceOrder(body.items);
+    if (!priced) {
+      return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
     }
     const order = {
       code: newOrderCode(),
       fecha: new Date().toISOString(),
       estado: 'Pago por verificar',
       metodo,
-      monto,
+      monto: priced.total,
       nombre,
-      email: email || '',
+      email: s(body.email, 120),
       telefono,
-      zona: zona || '',
-      direccion: direccion || '',
-      ubicacion: ubicacion || '',
-      entrega: entrega || '',
-      items: Array.isArray(items) ? items : [],
+      zona: s(body.zona, 60),
+      direccion: s(body.direccion, 300),
+      ubicacion: s(body.ubicacion, 200),
+      entrega: s(body.entrega, 120),
+      items: priced.items,
     };
     try {
       const saved = await saveOrder(order);

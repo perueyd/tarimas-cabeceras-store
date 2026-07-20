@@ -1,13 +1,17 @@
-// Almacén de pedidos usando Upstash Redis (REST, sin dependencias).
-// Se activa al conectar la integración "Upstash Redis" (gratis) en Vercel:
-// el proyecto recibe las variables UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
-// (o KV_REST_API_URL / KV_REST_API_TOKEN) automáticamente.
-// Si aún no está conectada, los pedidos quedan en los logs de Vercel como respaldo.
+// Almacén de pedidos usando Upstash Redis (REST, sin dependencias) + copia a
+// Google Sheets vía webhook de Apps Script (variable SHEETS_WEBHOOK_URL).
+// - Redis se activa al conectar la integración "Upstash Redis" (gratis) en Vercel.
+// - La hoja de Google se activa pegando la URL del Apps Script en SHEETS_WEBHOOK_URL
+//   (instrucciones en GUIA-EDICION.md).
+// Si nada está configurado, los pedidos quedan en los logs de Vercel como respaldo.
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+const SHEETS_URL = process.env.SHEETS_WEBHOOK_URL;
 
-async function redis(command) {
+export const hasDB = Boolean(REDIS_URL && REDIS_TOKEN);
+
+export async function redisCmd(command) {
   const res = await fetch(REDIS_URL, {
     method: 'POST',
     headers: {
@@ -25,22 +29,41 @@ export function newOrderCode() {
   return `ED-${Date.now().toString(36).toUpperCase()}${rand}`;
 }
 
-export async function saveOrder(order) {
-  if (!REDIS_URL || !REDIS_TOKEN) {
-    // Respaldo: queda en los logs de la función en Vercel.
-    console.log('PEDIDO (BD no configurada):', JSON.stringify(order));
-    return false;
+async function sendToSheet(order) {
+  if (!SHEETS_URL) return;
+  try {
+    await fetch(SHEETS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    });
+  } catch (err) {
+    console.log('No se pudo enviar el pedido a Google Sheets:', err?.message);
   }
-  await redis(['LPUSH', 'pedidos', JSON.stringify(order)]);
-  return true;
+}
+
+export async function saveOrder(order) {
+  let saved = false;
+  if (hasDB) {
+    try {
+      await redisCmd(['LPUSH', 'pedidos', JSON.stringify(order)]);
+      saved = true;
+    } catch (err) {
+      console.log('PEDIDO (error Redis):', JSON.stringify(order));
+    }
+  } else {
+    console.log('PEDIDO (BD no configurada):', JSON.stringify(order));
+  }
+  await sendToSheet(order); // copia a la hoja de Google (si está configurada)
+  return saved;
 }
 
 export async function listOrders(limit = 200) {
-  if (!REDIS_URL || !REDIS_TOKEN) return null;
-  const data = await redis(['LRANGE', 'pedidos', '0', String(limit - 1)]);
+  if (!hasDB) return null;
+  const data = await redisCmd(['LRANGE', 'pedidos', '0', String(limit - 1)]);
   return (data.result || [])
-    .map((s) => {
-      try { return JSON.parse(s); } catch { return null; }
+    .map((raw) => {
+      try { return JSON.parse(raw); } catch { return null; }
     })
     .filter(Boolean);
 }

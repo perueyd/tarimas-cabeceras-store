@@ -1,0 +1,32 @@
+import { products } from '../src/data/catalog.js';
+
+// SEGURIDAD: el total SIEMPRE se recalcula en el servidor a partir del catálogo.
+// Nunca se confía en los precios que envíe el navegador (un atacante podría
+// manipularlos). Si un item no existe o no tiene precio, el pedido se rechaza.
+export function priceOrder(rawItems) {
+  if (!Array.isArray(rawItems) || rawItems.length === 0 || rawItems.length > 20) return null;
+  let total = 0;
+  const items = [];
+  for (const it of rawItems) {
+    const p = products.find((x) => x.id === it?.productId);
+    if (!p) return null;
+    const unitPrice = p.sizePricing?.[it.sizeId];
+    if (unitPrice == null) return null;
+    const qty = Math.min(Math.max(parseInt(it.qty, 10) || 0, 1), 20);
+    total += unitPrice * qty;
+    items.push({
+      productId: p.id,
+      productName: p.name,
+      sizeId: String(it.sizeId).slice(0, 30),
+      colorId: String(it.colorId || '').slice(0, 30),
+      qty,
+      unitPrice,
+    });
+  }
+  return { total, items };
+}
+
+// Recorta un texto a un largo máximo (contra payloads gigantes).
+export function s(value, max) {
+  return String(value ?? '').slice(0, max);
+}

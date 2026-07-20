@@ -121,3 +121,61 @@ Vercel detecta el cambio y publica la web actualizada sola en ~1 minuto.
 | La foto no aparece | El nombre del archivo no coincide exacto (mayúsculas incluidas) o no está en public/images/ |
 | El producto no aparece | Su `category` no existe o la categoría tiene `active: false` |
 | El tamaño no aparece | Ese tamaño no tiene precio en `sizePricing` |
+
+---
+
+## Registro de pedidos en Google Sheets (hoja de cálculo)
+
+Cada pedido puede guardarse automáticamente en una hoja de Google tuya:
+
+1. Entra a https://sheets.new y crea una hoja llamada "Pedidos ED".
+2. En la primera fila escribe estos encabezados:
+   `Fecha | Código | Estado | Método | Monto | Nombre | Teléfono | Email | Zona | Dirección | Ubicación | Entrega | Productos`
+3. Menú **Extensiones → Apps Script**. Borra lo que haya y pega esto:
+
+```js
+function doPost(e) {
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var o = JSON.parse(e.postData.contents);
+  var items = (o.items || []).map(function(i){
+    return i.productName + ' x' + i.qty + ' (' + i.sizeId + ', ' + i.colorId + ')';
+  }).join(' | ');
+  hoja.appendRow([o.fecha, o.code, o.estado, o.metodo, o.monto, o.nombre,
+    o.telefono, o.email, o.zona, o.direccion, o.ubicacion, o.entrega, items]);
+  return ContentService.createTextOutput('ok');
+}
+```
+
+4. Botón **Implementar → Nueva implementación → Aplicación web**:
+   - "Ejecutar como": **Tú** (tu correo)
+   - "Quién tiene acceso": **Cualquier persona**
+   - Autoriza los permisos cuando Google te los pida.
+5. Copia la **URL de la aplicación web** (termina en `/exec`).
+6. En Vercel → Settings → Environment Variables agrega
+   `SHEETS_WEBHOOK_URL` = esa URL, y haz **Redeploy**.
+
+Desde ese momento, **todos los pedidos** (Culqi, Yape/Plin y transferencia)
+se agregan como una fila nueva en tu hoja, además del panel `/pedidos`.
+
+---
+
+## Panel del negocio (/pedidos)
+
+- Entra a `tudominio.vercel.app/pedidos` con la clave que definiste en la
+  variable `ORDERS_ADMIN_KEY` de Vercel.
+- Verás: ventas confirmadas, montos por verificar, ventas de hoy, calificación
+  promedio, la lista completa de pedidos (con link al pin del mapa) y las
+  reseñas de clientes (con opción de eliminar las inapropiadas).
+- Para que el panel y las reseñas funcionen necesitas la base de datos gratuita:
+  Vercel → Storage → Marketplace → **Upstash Redis** (plan gratis) → conectar al
+  proyecto → Redeploy.
+
+## Seguridad incluida
+
+- El **precio siempre se recalcula en el servidor** desde el catálogo: aunque
+  alguien manipule la página, no puede pagar menos del precio real.
+- Cabeceras de seguridad (anti-clickjacking, anti-sniffing, HSTS).
+- Textos de clientes recortados y validados contra datos maliciosos.
+- La llave secreta de Culqi y tu clave de administrador viven SOLO en Vercel,
+  nunca en el código ni en el navegador.
+- Nada es 100% inhackeable: mantén tus claves largas y no las compartas.

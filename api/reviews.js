@@ -1,0 +1,84 @@
+import { products } from '../src/data/catalog.js';
+import { hasDB, redisCmd } from './_store.js';
+import { s } from './_pricing.js';
+
+// Reseñas de productos (comentarios + estrellas).
+// GET  ?product=<id>          -> reseñas públicas de un producto
+// GET  ?all=1&key=<admin>     -> todas las reseñas (panel admin)
+// POST {productId, nombre, estrellas, comentario} -> crea una reseña
+// DELETE ?key=<admin>&product=<id>&id=<reviewId>  -> elimina una reseña (admin)
+export default async function handler(req, res) {
+  const adminKey = process.env.ORDERS_ADMIN_KEY;
+
+  if (req.method === 'GET') {
+    if (req.query.all) {
+      if (!adminKey || req.query.key !== adminKey) {
+        return res.status(401).json({ error: 'Clave incorrecta.' });
+      }
+      if (!hasDB) return res.status(200).json({ reviews: [], saved: false });
+      const data = await redisCmd(['LRANGE', 'reviews:all', '0', '499']);
+      return res.status(200).json({ reviews: parseAll(data) });
+    }
+    const productId = s(req.query.product, 60);
+    if (!products.some((p) => p.id === productId)) {
+      return res.status(400).json({ error: 'Producto inválido.' });
+    }
+    if (!hasDB) return res.status(200).json({ reviews: [] });
+    const data = await redisCmd(['LRANGE', `reviews:${productId}`, '0', '99']);
+    return res.status(200).json({ reviews: parseAll(data) });
+  }
+
+  if (req.method === 'POST') {
+    const body = req.body || {};
+    const productId = s(body.productId, 60);
+    const nombre = s(body.nombre, 60).trim();
+    const comentario = s(body.comentario, 500).trim();
+    const estrellas = Math.min(Math.max(parseInt(body.estrellas, 10) || 0, 1), 5);
+    if (!products.some((p) => p.id === productId) || !nombre || !comentario) {
+      return res.status(400).json({ error: 'Completa tu nombre y comentario.' });
+    }
+    const review = {
+      id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      productId,
+      nombre,
+      estrellas,
+      comentario,
+      fecha: new Date().toISOString(),
+    };
+    if (!hasDB) {
+      console.log('RESEÑA (BD no configurada):', JSON.stringify(review));
+      return res.status(200).json({ ok: true, saved: false, review });
+    }
+    const raw = JSON.stringify(review);
+    await redisCmd(['LPUSH', `reviews:${productId}`, raw]);
+    await redisCmd(['LPUSH', 'reviews:all', raw]);
+    return res.status(200).json({ ok: true, saved: true, review });
+  }
+
+  if (req.method === 'DELETE') {
+    if (!adminKey || req.query.key !== adminKey) {
+      return res.status(401).json({ error: 'Clave incorrecta.' });
+    }
+    if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
+    const productId = s(req.query.product, 60);
+    const id = s(req.query.id, 40);
+    const data = await redisCmd(['LRANGE', `reviews:${productId}`, '0', '499']);
+    const raw = (data.result || []).find((r) => {
+      try { return JSON.parse(r).id === id; } catch { return false; }
+    });
+    if (!raw) return res.status(404).json({ error: 'Reseña no encontrada.' });
+    await redisCmd(['LREM', `reviews:${productId}`, '0', raw]);
+    await redisCmd(['LREM', 'reviews:all', '0', raw]);
+    return res.status(200).json({ ok: true });
+  }
+
+  return res.status(405).json({ error: 'Método no permitido' });
+}
+
+function parseAll(data) {
+  return (data.result || [])
+    .map((raw) => {
+      try { return JSON.parse(raw); } catch { return null; }
+    })
+    .filter(Boolean);
+}

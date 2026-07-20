@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
@@ -142,6 +142,141 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <ReviewsSection productId={product.id} />
     </main>
+  );
+}
+
+export function Stars({ n, size = 'text-base' }) {
+  return (
+    <span className={`${size} leading-none`} aria-label={`${n} de 5 estrellas`}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} className={i <= n ? 'text-amber-500' : 'text-neutral-300'}>★</span>
+      ))}
+    </span>
+  );
+}
+
+// Reseñas del producto: promedio, lista de comentarios y formulario con estrellas.
+function ReviewsSection({ productId }) {
+  const [reviews, setReviews] = useState([]);
+  const [form, setForm] = useState({ nombre: '', estrellas: 5, comentario: '' });
+  const [msg, setMsg] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/reviews?product=${encodeURIComponent(productId)}`)
+      .then((r) => r.json())
+      .then((d) => setReviews(d.reviews || []))
+      .catch(() => {});
+  }, [productId]);
+
+  const promedio = reviews.length
+    ? (reviews.reduce((sum, r) => sum + r.estrellas, 0) / reviews.length).toFixed(1)
+    : null;
+
+  async function enviar(e) {
+    e.preventDefault();
+    if (!form.nombre.trim() || !form.comentario.trim()) {
+      setMsg('Completa tu nombre y comentario.');
+      return;
+    }
+    setSending(true);
+    setMsg('');
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, ...form }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'No se pudo enviar tu reseña.');
+      setReviews([data.review, ...reviews]);
+      setForm({ nombre: '', estrellas: 5, comentario: '' });
+      setMsg(data.saved ? '¡Gracias por tu opinión! ⭐' : 'Gracias — tu opinión se registró y aparecerá pronto.');
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <section className="mt-16 border-t border-neutral-200 pt-10">
+      <div className="flex flex-wrap items-center gap-4">
+        <h2 className="text-xl font-semibold tracking-tight">Opiniones</h2>
+        {promedio ? (
+          <span className="flex items-center gap-2 text-sm text-neutral-600">
+            <Stars n={Math.round(promedio)} /> {promedio} de 5 · {reviews.length} opinión{reviews.length !== 1 ? 'es' : ''}
+          </span>
+        ) : (
+          <span className="text-sm text-neutral-400">Sé el primero en opinar</span>
+        )}
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
+        <div className="space-y-4">
+          {reviews.length === 0 && (
+            <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
+              Este producto aún no tiene opiniones.
+            </p>
+          )}
+          {reviews.map((r) => (
+            <div key={r.id} className="rounded-lg border border-neutral-200 bg-white p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">{r.nombre}</p>
+                <Stars n={r.estrellas} size="text-sm" />
+              </div>
+              <p className="mt-2 text-sm text-neutral-600">{r.comentario}</p>
+              <p className="mt-2 text-xs text-neutral-400">{new Date(r.fecha).toLocaleDateString('es-PE')}</p>
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={enviar} className="h-fit rounded-xl border border-neutral-200 bg-white p-5">
+          <p className="text-sm font-medium">Deja tu opinión</p>
+          <div className="mt-3">
+            <p className="mb-1 text-xs text-neutral-500">Tu calificación</p>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setForm({ ...form, estrellas: i })}
+                  className={`text-2xl transition ${i <= form.estrellas ? 'text-amber-500' : 'text-neutral-300 hover:text-amber-300'}`}
+                  aria-label={`${i} estrellas`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+          <input
+            type="text"
+            placeholder="Tu nombre"
+            value={form.nombre}
+            onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+            maxLength={60}
+            className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+          />
+          <textarea
+            placeholder="Cuéntanos qué te pareció el producto"
+            value={form.comentario}
+            onChange={(e) => setForm({ ...form, comentario: e.target.value })}
+            maxLength={500}
+            rows={4}
+            className="mt-3 w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+          />
+          {msg && <p className="mt-2 text-xs text-neutral-500">{msg}</p>}
+          <button
+            disabled={sending}
+            className="mt-3 w-full rounded-lg bg-ink px-6 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+          >
+            {sending ? 'Enviando...' : 'Publicar opinión'}
+          </button>
+        </form>
+      </div>
+    </section>
   );
 }

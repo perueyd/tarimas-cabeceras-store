@@ -1,4 +1,5 @@
 import { newOrderCode, saveOrder } from './_store.js';
+import { priceOrder, s } from './_pricing.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -7,15 +8,31 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { token, amount, email, nombre, telefono, zona, direccion, ubicacion, entrega, items } = req.body || {};
+  const body = req.body || {};
+  const token = body.token;
+  const email = s(body.email, 120);
+  const nombre = s(body.nombre, 120);
+  const telefono = s(body.telefono, 30);
+  const zona = s(body.zona, 60);
+  const direccion = s(body.direccion, 300);
+  const ubicacion = s(body.ubicacion, 200);
+  const entrega = s(body.entrega, 120);
   const secretKey = process.env.CULQI_SECRET_KEY;
 
   if (!secretKey) {
     return res.status(500).json({ error: 'CULQI_SECRET_KEY no está configurada en el servidor.' });
   }
-  if (!token || !amount || !email) {
-    return res.status(400).json({ error: 'Faltan datos para procesar el pago (token, amount, email).' });
+  if (!token || !email) {
+    return res.status(400).json({ error: 'Faltan datos para procesar el pago (token, email).' });
   }
+
+  // SEGURIDAD: el monto se recalcula aquí desde el catálogo; se ignora el del navegador.
+  const priced = priceOrder(body.items);
+  if (!priced) {
+    return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
+  }
+  const amount = Math.round(priced.total * 100);
+  const items = priced.items;
 
   try {
     const culqiRes = await fetch('https://api.culqi.com/v2/charges', {
