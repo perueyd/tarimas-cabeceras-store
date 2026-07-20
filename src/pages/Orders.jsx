@@ -23,6 +23,35 @@ export function calendarUrl(o) {
 
 const esVenta = (o) => o.estado === 'Pagado' || o.estado === 'Entregado';
 
+// Descarga todos los pedidos como hoja de cálculo (CSV compatible con Excel y
+// Google Sheets, con BOM UTF-8 y separador ";" para Excel en español).
+function descargarHoja(orders) {
+  const headers = ['Fecha', 'Código', 'Estado', 'Método', 'Monto', 'Nombre', 'Teléfono', 'Email', 'Zona', 'Dirección', 'Ubicación', 'Entrega', 'Productos'];
+  const rows = orders.map((o) => [
+    new Date(o.fecha).toLocaleString('es-PE'),
+    o.code,
+    o.estado,
+    o.metodo,
+    o.monto,
+    o.nombre,
+    o.telefono,
+    o.email,
+    o.zona,
+    o.direccion,
+    o.ubicacion,
+    o.entrega,
+    (o.items || []).map((i) => `${i.productName} x${i.qty}`).join(' | '),
+  ]);
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = '﻿' + [headers, ...rows].map((r) => r.map(esc).join(';')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `pedidos-ED-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 export default function Orders() {
   const [key, setKey] = useState(() => localStorage.getItem('ed-orders-key') || '');
   const [input, setInput] = useState('');
@@ -148,9 +177,18 @@ export default function Orders() {
     <main className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Panel del negocio</h1>
-        <button onClick={() => cargar(key)} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-ink">
-          {loading ? 'Actualizando...' : '↻ Actualizar'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => descargarHoja(orders)}
+            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-ink"
+            title="Descarga todos los pedidos como hoja de cálculo (se abre en Excel o Google Sheets)"
+          >
+            ⬇️ Descargar hoja de cálculo
+          </button>
+          <button onClick={() => cargar(key)} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-ink">
+            {loading ? 'Actualizando...' : '↻ Actualizar'}
+          </button>
+        </div>
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
