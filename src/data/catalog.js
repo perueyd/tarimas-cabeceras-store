@@ -11,6 +11,12 @@
 // deliveryMinDays: días mínimos desde hoy para elegir fecha de entrega en el checkout.
 export const storeConfig = {
   whatsapp: '51951278010',
+  // Número que recibe Yape/Plin directo (se muestra al cliente en el checkout).
+  yape: '951 278 010',
+  yapeTitular: 'E|D Espacios y Diseño',
+  // Cuentas bancarias para transferencia. Agrega las tuyas:
+  // { banco: 'BCP', titular: 'Nombre Apellido', cuenta: '191-xxxxxxx-x-xx', cci: '00219100xxxxxxxxxx' },
+  banks: [],
   leadTime: '3 a 4 días hábiles',
   deliveryMinDays: 4,
   deliverySlots: [

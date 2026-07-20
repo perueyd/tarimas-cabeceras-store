@@ -29,6 +29,7 @@ export default function Checkout() {
     entregaHorario: '',
   });
   const [ubicacion, setUbicacion] = useState(null); // {lat, lng} del mapa
+  const [metodoPago, setMetodoPago] = useState('culqi'); // 'culqi' | 'yape-plin' | 'transferencia'
   const [status, setStatus] = useState('idle'); // idle | paying | error
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -124,6 +125,7 @@ export default function Checkout() {
       navigate('/gracias', {
         state: {
           chargeId: data.id,
+          orderCode: data.orderCode,
           monto: totalAmount,
           entregaFecha: form.entregaFecha,
           entregaHorario: slot ? slot.label : '',
@@ -132,6 +134,59 @@ export default function Checkout() {
     } catch (err) {
       setStatus('error');
       setErrorMsg(err.message);
+    }
+  }
+
+  // Registra un pedido con pago manual (Yape/Plin directo o transferencia):
+  // queda como "Pago por verificar" y se abre WhatsApp para enviar el comprobante.
+  async function registrarPedidoManual(metodoLabel) {
+    if (!isFormValid()) {
+      setErrorMsg('Completa todos los campos (incluida la fecha y el horario de entrega) antes de continuar.');
+      return;
+    }
+    setErrorMsg('');
+    setStatus('paying');
+    const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metodo: metodoLabel,
+          monto: totalAmount,
+          nombre: form.nombre,
+          email: form.email,
+          telefono: form.telefono,
+          zona: 'Lima Metropolitana',
+          direccion: `${form.direccion}, ${form.distrito}${form.referencia ? ` (Ref: ${form.referencia})` : ''}`,
+          ubicacion: ubicacion ? `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lng}` : '',
+          entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
+          items,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.code) throw new Error(data?.error || 'No se pudo registrar el pedido.');
+
+      if (storeConfig.whatsapp) {
+        const msg = encodeURIComponent(
+          `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(totalAmount)}. Aquí envío mi comprobante:`
+        );
+        window.open(`https://wa.me/${storeConfig.whatsapp}?text=${msg}`, '_blank');
+      }
+      clearCart();
+      navigate('/gracias', {
+        state: {
+          orderCode: data.code,
+          metodo: metodoLabel,
+          porVerificar: true,
+          monto: totalAmount,
+          entregaFecha: form.entregaFecha,
+          entregaHorario: slot ? slot.label : '',
+        },
+      });
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err.message + ' También puedes escribirnos por WhatsApp para confirmar tu pedido.');
     }
   }
 
@@ -236,24 +291,114 @@ export default function Checkout() {
             <span className="text-lg font-semibold">{currencyFormatter.format(totalAmount)}</span>
           </div>
 
+          {/* ===== Método de pago ===== */}
+          <p className="mb-2 mt-6 text-sm font-medium text-neutral-700">¿Cómo quieres pagar?</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <MetodoBtn
+              active={metodoPago === 'culqi'}
+              onClick={() => setMetodoPago('culqi')}
+              title="Tarjeta o Yape"
+              subtitle="Confirmación automática (Culqi)"
+            />
+            <MetodoBtn
+              active={metodoPago === 'yape-plin'}
+              onClick={() => setMetodoPago('yape-plin')}
+              title="Yape / Plin directo"
+              subtitle="Envía tu comprobante"
+            />
+            <MetodoBtn
+              active={metodoPago === 'transferencia'}
+              onClick={() => setMetodoPago('transferencia')}
+              title="Transferencia"
+              subtitle="Cuenta bancaria"
+            />
+          </div>
+
+          {metodoPago === 'yape-plin' && (
+            <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-950">
+              <p className="font-medium">Paga con Yape o Plin al número:</p>
+              <p className="mt-2 text-2xl font-bold tracking-wide">{storeConfig.yape}</p>
+              <p className="text-xs text-purple-800">{storeConfig.yapeTitular}</p>
+              <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
+                <li>Abre tu app de Yape o Plin y envía {currencyFormatter.format(totalAmount)} a ese número.</li>
+                <li>Guarda la captura de tu pago.</li>
+                <li>Toca el botón de abajo: registramos tu pedido y se abre WhatsApp para que nos envíes tu comprobante.</li>
+              </ol>
+              <p className="mt-2 text-xs text-purple-800">
+                Tu pedido queda «por verificar» y lo confirmamos apenas revisemos el pago.
+              </p>
+            </div>
+          )}
+
+          {metodoPago === 'transferencia' && (
+            <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+              <p className="font-medium">Transferencia bancaria</p>
+              {storeConfig.banks.length > 0 ? (
+                <div className="mt-2 space-y-3">
+                  {storeConfig.banks.map((b) => (
+                    <div key={b.cci || b.cuenta} className="rounded-md bg-white/70 p-3 text-xs">
+                      <p className="font-semibold">{b.banco} — {b.titular}</p>
+                      <p className="mt-1">Cuenta: <span className="font-mono">{b.cuenta}</span></p>
+                      <p>CCI: <span className="font-mono">{b.cci}</span></p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs">
+                  Escríbenos por WhatsApp y te enviamos los datos de la cuenta al instante.
+                </p>
+              )}
+              <p className="mt-3 text-xs text-sky-800">
+                Después de transferir {currencyFormatter.format(totalAmount)}, toca el botón de abajo:
+                registramos tu pedido y nos envías tu constancia por WhatsApp.
+              </p>
+            </div>
+          )}
+
           {errorMsg && (
             <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{errorMsg}</p>
           )}
 
-          <button
-            onClick={abrirCulqi}
-            disabled={status === 'paying'}
-            className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
-          >
-            {status === 'paying' ? 'Procesando pago...' : 'Pagar con Culqi'}
-          </button>
-
-          <p className="mt-3 text-center text-xs text-neutral-400">
-            Pago seguro procesado por Culqi. No almacenamos los datos de tu tarjeta.
-          </p>
+          {metodoPago === 'culqi' ? (
+            <>
+              <button
+                onClick={abrirCulqi}
+                disabled={status === 'paying'}
+                className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+              >
+                {status === 'paying' ? 'Procesando pago...' : 'Pagar con tarjeta o Yape'}
+              </button>
+              <p className="mt-3 text-center text-xs text-neutral-400">
+                Pago seguro procesado por Culqi. No almacenamos los datos de tu tarjeta.
+              </p>
+            </>
+          ) : (
+            <button
+              onClick={() => registrarPedidoManual(metodoPago === 'yape-plin' ? 'Yape/Plin' : 'Transferencia bancaria')}
+              disabled={status === 'paying'}
+              className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+            >
+              {status === 'paying' ? 'Registrando pedido...' : 'Ya pagué — registrar pedido y enviar comprobante'}
+            </button>
+          )}
         </>
       )}
     </main>
+  );
+}
+
+function MetodoBtn({ active, onClick, title, subtitle }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border px-4 py-3 text-left transition ${
+        active ? 'border-ink bg-ink text-white' : 'border-neutral-300 hover:border-neutral-500'
+      }`}
+    >
+      <span className="block text-sm font-medium">{title}</span>
+      <span className={`block text-xs ${active ? 'text-white/70' : 'text-neutral-500'}`}>{subtitle}</span>
+    </button>
   );
 }
 

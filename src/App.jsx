@@ -8,6 +8,7 @@ import ProductDetail from './pages/ProductDetail.jsx';
 import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
 import ThankYou from './pages/ThankYou.jsx';
+import Orders from './pages/Orders.jsx';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/gracias" element={<ThankYou />} />
+          <Route path="/pedidos" element={<Orders />} />
         </Routes>
       </div>
       <Footer />

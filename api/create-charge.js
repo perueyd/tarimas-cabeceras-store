@@ -1,3 +1,5 @@
+import { newOrderCode, saveOrder } from './_store.js';
+
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
 export default async function handler(req, res) {
@@ -38,7 +40,31 @@ export default async function handler(req, res) {
       return res.status(culqiRes.status).json(data);
     }
 
-    return res.status(200).json(data);
+    // Pago aprobado: registra el pedido (si falla el registro, el pago no se ve afectado).
+    let orderCode = null;
+    try {
+      orderCode = newOrderCode();
+      await saveOrder({
+        code: orderCode,
+        fecha: new Date().toISOString(),
+        estado: 'Pagado',
+        metodo: 'Tarjeta/Yape (Culqi)',
+        chargeId: data.id,
+        monto: amount / 100,
+        nombre,
+        email,
+        telefono,
+        zona,
+        direccion,
+        ubicacion,
+        entrega,
+        items: Array.isArray(items) ? items : [],
+      });
+    } catch (err) {
+      console.log('No se pudo registrar el pedido (pago OK):', err?.message);
+    }
+
+    return res.status(200).json({ ...data, orderCode });
   } catch (err) {
     return res.status(500).json({ error: 'Error al conectar con Culqi.' });
   }
