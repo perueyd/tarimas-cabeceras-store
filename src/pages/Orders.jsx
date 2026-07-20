@@ -90,14 +90,14 @@ export default function Orders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function cambiarEstado(o, estado) {
+  async function actualizarPedido(o, cambios) {
     try {
       const res = await fetch(`/api/orders?key=${encodeURIComponent(key)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: o.code, estado }),
+        body: JSON.stringify({ code: o.code, ...cambios }),
       });
-      if (res.ok) setOrders(orders.map((x) => (x.code === o.code ? { ...x, estado } : x)));
+      if (res.ok) setOrders(orders.map((x) => (x.code === o.code ? { ...x, ...cambios } : x)));
     } catch { /* no-op */ }
   }
 
@@ -251,7 +251,7 @@ export default function Orders() {
               </p>
             )}
             {visibles.map((o) => (
-              <PedidoCard key={o.code} o={o} onEstado={cambiarEstado} />
+              <PedidoCard key={o.code} o={o} onUpdate={actualizarPedido} />
             ))}
           </div>
         </>
@@ -330,7 +330,7 @@ export default function Orders() {
   );
 }
 
-function PedidoCard({ o, onEstado }) {
+function PedidoCard({ o, onUpdate }) {
   const cal = calendarUrl(o);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}` : null;
@@ -366,17 +366,31 @@ function PedidoCard({ o, onEstado }) {
         </ul>
       )}
       {/* Acciones rápidas de productividad */}
-      <div className="mt-3 flex flex-wrap gap-2 border-t border-neutral-100 pt-3 text-xs">
-        {o.estado === 'Pago por verificar' && (
-          <button onClick={() => onEstado(o, 'Pagado')} className="rounded-lg bg-green-600 px-3 py-1.5 font-medium text-white hover:bg-green-700">
-            ✓ Confirmar pago
-          </button>
-        )}
-        {o.estado === 'Pagado' && (
-          <button onClick={() => onEstado(o, 'Entregado')} className="rounded-lg bg-sky-600 px-3 py-1.5 font-medium text-white hover:bg-sky-700">
-            📦 Marcar entregado
-          </button>
-        )}
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-xs">
+        <label className="flex items-center gap-1.5">
+          <span className="text-neutral-500">Estado:</span>
+          <select
+            value={o.estado}
+            onChange={(e) => onUpdate(o, { estado: e.target.value })}
+            className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
+          >
+            <option>Pago por verificar</option>
+            <option>Pagado</option>
+            <option>Entregado</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-1.5">
+          <span className="text-neutral-500">Método:</span>
+          <select
+            value={o.metodo}
+            onChange={(e) => onUpdate(o, { metodo: e.target.value })}
+            className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
+          >
+            <option>Yape/Plin</option>
+            <option>Transferencia bancaria</option>
+            <option>Tarjeta/Yape (Culqi)</option>
+          </select>
+        </label>
         {wa && (
           <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">
             WhatsApp al cliente

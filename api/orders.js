@@ -2,6 +2,7 @@ import { hasDB, listOrders, newOrderCode, redisCmd, saveOrder } from './_store.j
 import { priceOrder, s } from './_pricing.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado'];
+const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
 
 // POST  -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
 // GET   -> lista los pedidos del negocio. Protegido con ?key=<ORDERS_ADMIN_KEY>.
@@ -72,9 +73,16 @@ export default async function handler(req, res) {
     }
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const code = s(req.body?.code, 30);
-    const estado = s(req.body?.estado, 30);
-    if (!code || !ESTADOS_VALIDOS.includes(estado)) {
-      return res.status(400).json({ error: 'Datos inválidos (code, estado).' });
+    const estado = req.body?.estado != null ? s(req.body.estado, 30) : null;
+    const metodo = req.body?.metodo != null ? s(req.body.metodo, 40) : null;
+    if (!code || (!estado && !metodo)) {
+      return res.status(400).json({ error: 'Datos inválidos (code y estado o metodo).' });
+    }
+    if (estado && !ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({ error: 'Estado inválido.' });
+    }
+    if (metodo && !METODOS_VALIDOS.includes(metodo)) {
+      return res.status(400).json({ error: 'Método inválido.' });
     }
     const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
     const list = data.result || [];
@@ -82,7 +90,8 @@ export default async function handler(req, res) {
       try {
         const order = JSON.parse(list[i]);
         if (order.code === code) {
-          order.estado = estado;
+          if (estado) order.estado = estado;
+          if (metodo) order.metodo = metodo;
           await redisCmd(['LSET', 'pedidos', String(i), JSON.stringify(order)]);
           return res.status(200).json({ ok: true, order });
         }
