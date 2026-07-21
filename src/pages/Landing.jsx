@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ShowcaseMarquee from '../components/ShowcaseMarquee.jsx';
-import { categories, colors } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 // Colores que se muestran como chips interactivos en el hero.
 const HERO_COLORS = ['gris', 'beige', 'azul', 'vino', 'negro'];
 
 export default function Landing() {
-  const [heroColor, setHeroColor] = useState(colors.find((c) => c.id === 'azul'));
+  const { categories, colors } = useCatalog();
+  const [heroColor, setHeroColor] = useState(() => colors.find((c) => c.id === 'azul') || colors[0]);
   const sceneRef = useRef(null);
   const revealRefs = useRef([]);
 

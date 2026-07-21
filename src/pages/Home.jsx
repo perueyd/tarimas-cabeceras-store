@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard.jsx';
-import { categories, products, storeConfig } from '../data/catalog.js';
-
-// Las pestañas se generan solas desde `categories` (catalog.js):
-// al activar una categoría nueva, aparece aquí automáticamente.
-const TABS = [
-  { id: 'todos', label: 'Todos' },
-  ...categories.filter((c) => c.active).map(({ id, label }) => ({ id, label })),
-];
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 export default function Home() {
+  const { categories, products, storeConfig } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('categoria') || 'todos';
   const [tab, setTab] = useState(initialTab);
+
+  // Las pestañas se generan solas desde `categories` (editable desde el panel):
+  // al activar una categoría nueva, aparece aquí automáticamente.
+  const TABS = [
+    { id: 'todos', label: 'Todos' },
+    ...categories.filter((c) => c.active).map(({ id, label }) => ({ id, label })),
+  ];
 
   const visibleProducts = products.filter((p) => tab === 'todos' || p.category === tab);
 

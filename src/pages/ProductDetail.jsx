@@ -3,12 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import { useCart } from '../context/CartContext.jsx';
-import { colors, currencyFormatter, getProductById, sizes, storeConfig } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { colors, currencyFormatter, sizes, storeConfig, getProductById } = useCatalog();
   const product = getProductById(id);
   const { addItem } = useCart();
 

@@ -1,5 +1,6 @@
 import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
+import { getCatalog } from './_catalog.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
@@ -18,8 +19,9 @@ export default async function handler(req, res) {
     if (!metodo || !nombre || !telefono) {
       return res.status(400).json({ error: 'Faltan datos del pedido (metodo, nombre, telefono).' });
     }
-    // SEGURIDAD: el monto se recalcula desde el catálogo; se ignora el del navegador.
-    const priced = priceOrder(body.items);
+    // SEGURIDAD: el monto se recalcula desde el catálogo ACTUAL; se ignora el del navegador.
+    const { products } = await getCatalog();
+    const priced = priceOrder(products, body.items);
     if (!priced) {
       return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
     }

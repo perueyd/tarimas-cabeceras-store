@@ -1,7 +1,8 @@
-import { storeConfig } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 // Botón flotante de WhatsApp. Solo aparece si storeConfig.whatsapp tiene un número.
 export default function WhatsAppButton() {
+  const { storeConfig } = useCatalog();
   if (!storeConfig.whatsapp) return null;
 
   const mensaje = encodeURIComponent('Hola, vengo de la página web y quiero hacer una consulta.');

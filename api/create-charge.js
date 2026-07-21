@@ -1,5 +1,6 @@
 import { newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
+import { getCatalog } from './_catalog.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -26,8 +27,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Faltan datos para procesar el pago (token, email).' });
   }
 
-  // SEGURIDAD: el monto se recalcula aquí desde el catálogo; se ignora el del navegador.
-  const priced = priceOrder(body.items);
+  // SEGURIDAD: el monto se recalcula aquí desde el catálogo ACTUAL; se ignora el del navegador.
+  const { products } = await getCatalog();
+  const priced = priceOrder(products, body.items);
   if (!priced) {
     return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
   }

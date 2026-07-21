@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import ProductImage from './ProductImage.jsx';
-import { colors, currencyFormatter } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 export default function ProductCard({ product }) {
-  const defaultColor = colors.find((c) => c.id === product.availableColors[0]);
+  const { colors, currencyFormatter } = useCatalog();
+  const defaultColor = colors.find((c) => c.id === product.availableColors[0]) || colors[0];
   const minPrice = Math.min(...Object.values(product.sizePricing));
 
   return (

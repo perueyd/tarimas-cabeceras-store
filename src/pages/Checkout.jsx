@@ -2,19 +2,20 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import { useCart } from '../context/CartContext.jsx';
-import { currencyFormatter, getColorById, getSizeById, storeConfig } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 
 // Fecha mínima de entrega: hoy + días de fabricación.
-function minDeliveryDate() {
-  const d = new Date(Date.now() + storeConfig.deliveryMinDays * 86400000);
+function minDeliveryDate(deliveryMinDays) {
+  const d = new Date(Date.now() + deliveryMinDays * 86400000);
   return d.toISOString().split('T')[0];
 }
 
 export default function Checkout() {
   const { items, totalAmount, clearCart } = useCart();
+  const { storeConfig, currencyFormatter, getColorById, getSizeById } = useCatalog();
   const navigate = useNavigate();
   const [zona, setZona] = useState('lima'); // 'lima' | 'provincia'
   const [form, setForm] = useState({
@@ -274,7 +275,7 @@ export default function Checkout() {
                   type="date"
                   value={form.entregaFecha}
                   onChange={handleChange}
-                  min={minDeliveryDate()}
+                  min={minDeliveryDate(storeConfig.deliveryMinDays)}
                 />
                 <label className="text-sm">
                   <span className="mb-1 block text-neutral-700">Rango de horario</span>

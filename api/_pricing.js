@@ -1,9 +1,8 @@
-import { products } from '../src/data/catalog.js';
-
-// SEGURIDAD: el total SIEMPRE se recalcula en el servidor a partir del catálogo.
+// SEGURIDAD: el total SIEMPRE se recalcula en el servidor a partir del catálogo
+// ACTUAL (Redis si está editado, o el estático como respaldo — ver _catalog.js).
 // Nunca se confía en los precios que envíe el navegador (un atacante podría
 // manipularlos). Si un item no existe o no tiene precio, el pedido se rechaza.
-export function priceOrder(rawItems) {
+export function priceOrder(products, rawItems) {
   if (!Array.isArray(rawItems) || rawItems.length === 0 || rawItems.length > 20) return null;
   let total = 0;
   const items = [];

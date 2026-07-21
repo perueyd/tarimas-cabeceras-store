@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { currencyFormatter, getColorById, getSizeById, getProductById } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 import { Stars } from './ProductDetail.jsx';
+import CatalogEditor from './CatalogEditor.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
 // Link "agregar a Google Calendar" para una entrega (sin API ni permisos:
 // abre el evento pre-llenado y el dueño solo confirma con "Guardar").
-export function calendarUrl(o) {
+export function calendarUrl(o, currencyFormatter) {
   const m = (o.entrega || '').match(/\d{4}-\d{2}-\d{2}/);
   if (!m) return null;
   const inicio = m[0].replace(/-/g, '');
@@ -53,6 +54,7 @@ function descargarHoja(orders) {
 }
 
 export default function Orders() {
+  const { currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
   const [key, setKey] = useState(() => localStorage.getItem('ed-orders-key') || '');
   const [input, setInput] = useState('');
   const [orders, setOrders] = useState(null);
@@ -215,6 +217,7 @@ export default function Orders() {
           { id: 'resumen', label: 'Resumen' },
           { id: 'pedidos', label: `Pedidos (${orders.length})` },
           { id: 'resenas', label: `Reseñas (${reviews.length})` },
+          { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
           <button
             key={t.id}
@@ -230,8 +233,8 @@ export default function Orders() {
 
       {tab === 'resumen' && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <GraficaVentasPorDia orders={orders} />
-          <GraficaVentasPorProducto orders={orders} />
+          <GraficaVentasPorDia orders={orders} currencyFormatter={currencyFormatter} />
+          <GraficaVentasPorProducto orders={orders} currencyFormatter={currencyFormatter} />
         </div>
       )}
 
@@ -264,7 +267,15 @@ export default function Orders() {
               </p>
             )}
             {visibles.map((o) => (
-              <PedidoCard key={o.code} o={o} onUpdate={actualizarPedido} onDelete={eliminarPedido} />
+              <PedidoCard
+                key={o.code}
+                o={o}
+                onUpdate={actualizarPedido}
+                onDelete={eliminarPedido}
+                currencyFormatter={currencyFormatter}
+                getColorById={getColorById}
+                getSizeById={getSizeById}
+              />
             ))}
           </div>
         </>
@@ -339,12 +350,14 @@ export default function Orders() {
           ))}
         </div>
       )}
+
+      {tab === 'editar' && <CatalogEditor adminKey={key} />}
     </main>
   );
 }
 
-function PedidoCard({ o, onUpdate, onDelete }) {
-  const cal = calendarUrl(o);
+function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, getSizeById }) {
+  const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const waMsg = encodeURIComponent(
     `Hola ${o.nombre}, te escribimos de E|D Espacios y Diseño sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: https://tarimas-cabeceras-store.vercel.app/seguimiento?codigo=${o.code}`
@@ -437,7 +450,7 @@ function PedidoCard({ o, onUpdate, onDelete }) {
 }
 
 // Gráfica de barras: ventas confirmadas por día (últimos 14 días).
-function GraficaVentasPorDia({ orders }) {
+function GraficaVentasPorDia({ orders, currencyFormatter }) {
   const data = useMemo(() => {
     return [...Array(14)].map((_, i) => {
       const d = new Date();
@@ -482,7 +495,7 @@ function GraficaVentasPorDia({ orders }) {
 }
 
 // Gráfica de barras horizontales: ingresos por producto (ventas confirmadas).
-function GraficaVentasPorProducto({ orders }) {
+function GraficaVentasPorProducto({ orders, currencyFormatter }) {
   const rows = useMemo(() => {
     const agg = {};
     for (const o of orders) {

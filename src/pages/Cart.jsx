@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
-import { currencyFormatter, getColorById, getSizeById } from '../data/catalog.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 export default function Cart() {
   const { items, updateQty, removeItem, totalAmount, lineKey } = useCart();
+  const { currencyFormatter, getColorById, getSizeById } = useCatalog();
   const navigate = useNavigate();
 
   if (items.length === 0) {
