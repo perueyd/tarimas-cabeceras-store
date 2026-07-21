@@ -1,5 +1,50 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+
+// Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
+// (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
+function UploadButton({ adminKey, onUploaded, label = '📷 Subir' }) {
+  const inputRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      alert('La foto pesa más de 4 MB. Redúcela un poco (1200 px de ancho es suficiente) e intenta de nuevo.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/upload?key=${encodeURIComponent(adminKey)}&filename=${encodeURIComponent(file.name)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'No se pudo subir la foto.');
+      onUploaded(data.url);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFile} />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={busy}
+        className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium transition hover:border-ink disabled:opacity-60"
+      >
+        {busy ? 'Subiendo...' : label}
+      </button>
+    </>
+  );
+}
 
 // Panel "Editar página": agrega/edita/elimina productos, categorías, colores
 // y los datos de la tienda (WhatsApp, cuentas bancarias, horarios de entrega)
@@ -56,7 +101,7 @@ export default function CatalogEditor({ adminKey }) {
         ))}
       </div>
 
-      {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
@@ -156,7 +201,7 @@ const PRODUCTO_VACIO = {
   colorImages: {},
 };
 
-function ProductosTab({ catalog, api, flash }) {
+function ProductosTab({ catalog, api, flash, adminKey }) {
   const [editando, setEditando] = useState(null); // producto en edición, o null
 
   async function guardar(producto) {
@@ -183,6 +228,7 @@ function ProductosTab({ catalog, api, flash }) {
         initial={editando}
         onCancel={() => setEditando(null)}
         onSave={guardar}
+        adminKey={adminKey}
       />
     );
   }
@@ -236,7 +282,7 @@ function ProductosTab({ catalog, api, flash }) {
   );
 }
 
-function ProductForm({ catalog, initial, onCancel, onSave }) {
+function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
   const [p, setP] = useState(initial);
   const [saving, setSaving] = useState(false);
   const isNew = !catalog.products.some((x) => x.id === initial.id);
@@ -313,12 +359,18 @@ function ProductForm({ catalog, initial, onCancel, onSave }) {
             ))}
           </select>
         </label>
-        <Field
-          label="URL de la imagen"
-          value={p.baseImage}
-          onChange={(v) => set('baseImage', v)}
-          placeholder="/images/mi-foto.jpg o https://..."
-        />
+        <label className="text-sm">
+          <span className="mb-1 block font-medium text-neutral-700">Imagen del producto</span>
+          <div className="flex gap-2">
+            <input
+              value={p.baseImage}
+              onChange={(e) => set('baseImage', e.target.value)}
+              placeholder="Sube una foto o pega una URL"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink"
+            />
+            <UploadButton adminKey={adminKey} onUploaded={(url) => set('baseImage', url)} />
+          </div>
+        </label>
       </div>
 
       <label className="mt-4 flex items-center gap-2 text-sm">
@@ -422,9 +474,10 @@ function ProductForm({ catalog, initial, onCancel, onSave }) {
                   <input
                     value={p.colorImages?.[colorId] || ''}
                     onChange={(e) => setColorImage(colorId, e.target.value)}
-                    placeholder="(vacío = usar imagen base) /images/modelo-roble.jpg"
+                    placeholder="(vacío = usar imagen base) Sube o pega la URL"
                     className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                   />
+                  <UploadButton adminKey={adminKey} onUploaded={(url) => setColorImage(colorId, url)} />
                 </div>
               );
             })}
