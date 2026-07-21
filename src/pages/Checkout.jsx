@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { currencyFormatter, getColorById, getSizeById, storeConfig } from '../data/catalog.js';
+import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 
@@ -35,7 +36,9 @@ export default function Checkout() {
 
   useEffect(() => {
     if (items.length === 0) navigate('/carrito');
-  }, [items, navigate]);
+    else trackBeginCheckout(totalAmount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Callback global que Culqi invoca tras cerrar su modal con un token.
@@ -122,6 +125,7 @@ export default function Checkout() {
         throw new Error(data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
       }
       clearCart();
+      trackPurchase(data.orderCode || data.id, totalAmount);
       navigate('/gracias', {
         state: {
           chargeId: data.id,
@@ -174,6 +178,7 @@ export default function Checkout() {
         window.open(`https://wa.me/${storeConfig.whatsapp}?text=${msg}`, '_blank');
       }
       clearCart();
+      trackPurchase(data.code, totalAmount);
       navigate('/gracias', {
         state: {
           orderCode: data.code,

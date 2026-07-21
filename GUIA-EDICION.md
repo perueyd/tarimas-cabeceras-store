@@ -254,3 +254,32 @@ pedir autorización de nuevo.
 - La llave secreta de Culqi y tu clave de administrador viven SOLO en Vercel,
   nunca en el código ni en el navegador.
 - Nada es 100% inhackeable: mantén tus claves largas y no las compartas.
+
+---
+
+## Analíticas (Google Analytics + Meta Pixel)
+
+Ambas son opcionales y gratis. No hacen nada hasta que agregues tus IDs en
+Vercel → Settings → Environment Variables:
+
+**Google Analytics 4** (saber cuánta gente visita, qué páginas ven, de dónde vienen):
+1. Entra a https://analytics.google.com → Admin → Crear propiedad.
+2. Copia tu "ID de medición" (empieza con `G-...`).
+3. En Vercel agrega `VITE_GA_MEASUREMENT_ID` = ese ID → Redeploy.
+
+**Meta Pixel** (para anuncios en Facebook/Instagram y remarketing):
+1. Entra a https://business.facebook.com/events_manager → Conectar orígenes de datos → Web → Meta Pixel.
+2. Copia tu "ID de píxel" (solo números).
+3. En Vercel agrega `VITE_META_PIXEL_ID` = ese ID → Redeploy.
+
+Una vez configurados, la web reporta automáticamente: vistas de página,
+**agregar al carrito**, **iniciar checkout** y **compra completada** — así ves
+en qué paso del embudo se van los visitantes que no terminan comprando.
+
+## Vista previa al compartir el link
+
+Ya está configurada: al pegar el link de tu tienda en WhatsApp, Facebook o
+donde sea, se muestra una tarjeta con el logo E|D y el nombre de la tienda
+(`public/og-image.png`). Cuando tengas fotos reales de tus muebles, puedes
+reemplazar esa imagen por una foto de tu mejor producto — se ve mucho más
+atractivo que un texto en fondo plano.

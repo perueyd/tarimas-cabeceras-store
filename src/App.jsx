@@ -1,4 +1,6 @@
-import { Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import { initAnalytics, trackPageView } from './lib/analytics.js';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import WhatsAppButton from './components/WhatsAppButton.jsx';
@@ -11,9 +13,24 @@ import ThankYou from './pages/ThankYou.jsx';
 import Orders from './pages/Orders.jsx';
 import Track from './pages/Track.jsx';
 
+function AnalyticsTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <div className="flex min-h-screen flex-col">
+      <AnalyticsTracker />
       <Header />
       <div className="flex-1">
         <Routes>

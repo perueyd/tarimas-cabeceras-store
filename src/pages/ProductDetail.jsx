@@ -4,6 +4,7 @@ import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { colors, currencyFormatter, getProductById, sizes, storeConfig } from '../data/catalog.js';
+import { trackAddToCart } from '../lib/analytics.js';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -32,7 +33,7 @@ export default function ProductDetail() {
   }
 
   function handleAddToCart() {
-    addItem({
+    const item = {
       productId: product.id,
       productName: product.name,
       baseImage: product.baseImage,
@@ -41,7 +42,9 @@ export default function ProductDetail() {
       colorId,
       qty,
       unitPrice,
-    });
+    };
+    addItem(item);
+    trackAddToCart(item);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
