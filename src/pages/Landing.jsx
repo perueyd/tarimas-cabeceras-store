@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ShowcaseMarquee from '../components/ShowcaseMarquee.jsx';
-import { useCatalog } from '../context/CatalogContext.jsx';
+import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 
 // Colores que se muestran como chips interactivos en el hero.
 const HERO_COLORS = ['gris', 'beige', 'azul', 'vino', 'negro'];
@@ -55,6 +55,7 @@ export default function Landing() {
   }, [products.length]);
   const heroProduct = products.length ? products[heroIdx % products.length] : null;
   const heroMin = heroProduct ? Math.min(...Object.values(heroProduct.sizePricing || { 0: 0 })) : 0;
+  const heroImg = heroProduct ? resolveProductImage(heroProduct, heroColor.id) : null;
 
   // Parallax sutil con el mouse (desactivado si el usuario prefiere menos movimiento).
   useEffect(() => {
@@ -156,11 +157,11 @@ export default function Landing() {
                 <div key={heroProduct.id} className="hero-slide relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
                   <div className="relative aspect-[4/3] w-full">
                     <img
-                      src={heroProduct.baseImage}
+                      src={heroImg.src}
                       alt={heroProduct.name}
                       className="absolute inset-0 h-full w-full object-contain p-6"
                     />
-                    {heroProduct.tintable !== false && (
+                    {heroImg.tintable && (
                       <>
                         <div
                           className="absolute inset-0 mix-blend-multiply transition-colors duration-200"

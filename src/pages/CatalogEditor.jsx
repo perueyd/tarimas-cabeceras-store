@@ -153,6 +153,7 @@ const PRODUCTO_VACIO = {
   specs: [],
   sizePricing: {},
   availableColors: [],
+  colorImages: {},
 };
 
 function ProductosTab({ catalog, api, flash }) {
@@ -267,6 +268,14 @@ function ProductForm({ catalog, initial, onCancel, onSave }) {
         ? prev.availableColors.filter((c) => c !== colorId)
         : [...prev.availableColors, colorId],
     }));
+  }
+  function setColorImage(colorId, url) {
+    setP((prev) => {
+      const ci = { ...(prev.colorImages || {}) };
+      if (url.trim() === '') delete ci[colorId];
+      else ci[colorId] = url.trim();
+      return { ...prev, colorImages: ci };
+    });
   }
 
   async function handleSave() {
@@ -390,6 +399,38 @@ function ProductForm({ catalog, initial, onCancel, onSave }) {
           ))}
         </div>
       </div>
+
+      {/* Foto propia por color (opcional) */}
+      {p.availableColors.length > 0 && (
+        <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+          <p className="text-sm font-medium text-neutral-700">Foto propia por color (opcional)</p>
+          <p className="mb-3 mt-1 text-xs text-neutral-500">
+            Para diseños que vienen en colores específicos con su propia foto real (ej. un modelo
+            que solo existe en roble y en blanco). Si un color tiene foto aquí, el selector mostrará
+            ESA foto tal cual, sin teñirla. Los colores sin foto usan la imagen base
+            {p.tintable ? ' teñida automáticamente' : ' tal cual'}.
+          </p>
+          <div className="space-y-2">
+            {p.availableColors.map((colorId) => {
+              const c = catalog.colors.find((x) => x.id === colorId);
+              return (
+                <div key={colorId} className="flex items-center gap-2">
+                  <span className="flex w-32 shrink-0 items-center gap-1.5 text-xs">
+                    <span className="h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: c?.hex }} />
+                    {c?.label || colorId}
+                  </span>
+                  <input
+                    value={p.colorImages?.[colorId] || ''}
+                    onChange={(e) => setColorImage(colorId, e.target.value)}
+                    placeholder="(vacío = usar imagen base) /images/modelo-roble.jpg"
+                    className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 flex gap-2">
         <button onClick={handleSave} disabled={saving} className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import ProductImage from './ProductImage.jsx';
-import { useCatalog } from '../context/CatalogContext.jsx';
+import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 
 export default function ProductCard({ product }) {
   const { colors, currencyFormatter } = useCatalog();
   const defaultColor = colors.find((c) => c.id === product.availableColors[0]) || colors[0];
   const minPrice = Math.min(...Object.values(product.sizePricing));
+  const img = resolveProductImage(product, defaultColor.id);
 
   return (
     <Link
@@ -13,11 +14,11 @@ export default function ProductCard({ product }) {
       className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-neutral-400"
     >
       <ProductImage
-        baseImage={product.baseImage}
+        baseImage={img.src}
         colorHex={defaultColor.hex}
         alt={product.name}
         className="aspect-[4/3] w-full"
-        tintable={product.tintable !== false}
+        tintable={img.tintable}
       />
       <div className="p-4">
         <h3 className="text-base font-medium">{product.name}</h3>

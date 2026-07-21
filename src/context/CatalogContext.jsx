@@ -74,3 +74,13 @@ export function useCatalog() {
   if (!ctx) throw new Error('useCatalog debe usarse dentro de CatalogProvider');
   return ctx;
 }
+
+// Resuelve qué imagen mostrar para un producto según el color elegido:
+// 1. Si ese color tiene su PROPIA foto (colorImages) -> se muestra tal cual, sin teñir.
+// 2. Si no, y el producto es tintable -> se tiñe la imagen base con el color.
+// 3. Si no es tintable -> imagen base tal cual.
+export function resolveProductImage(product, colorId) {
+  const especifica = product.colorImages?.[colorId];
+  if (especifica) return { src: especifica, tintable: false };
+  return { src: product.baseImage, tintable: product.tintable !== false };
+}

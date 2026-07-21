@@ -4,7 +4,7 @@ import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
-import { useCatalog } from '../context/CatalogContext.jsx';
+import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
 
 export default function ProductDetail() {
@@ -24,6 +24,8 @@ export default function ProductDetail() {
 
   const selectedColor = colors.find((c) => c.id === colorId);
   const unitPrice = useMemo(() => (product ? product.sizePricing[sizeId] : 0), [product, sizeId]);
+  // Imagen según el color: foto propia del color si existe, o imagen base teñida.
+  const img = product ? resolveProductImage(product, colorId) : null;
 
   if (!product) {
     return (
@@ -35,11 +37,13 @@ export default function ProductDetail() {
   }
 
   function handleAddToCart() {
+    // Se guarda la imagen ya resuelta para el color elegido, así el carrito
+    // muestra la foto correcta (propia del color o base teñida).
     const item = {
       productId: product.id,
       productName: product.name,
-      baseImage: product.baseImage,
-      tintable: product.tintable !== false,
+      baseImage: img.src,
+      tintable: img.tintable,
       sizeId,
       colorId,
       qty,
@@ -62,11 +66,11 @@ export default function ProductDetail() {
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <ProductImage
-          baseImage={product.baseImage}
+          baseImage={img.src}
           colorHex={selectedColor.hex}
           alt={product.name}
           className="aspect-[4/3] w-full rounded-xl"
-          tintable={product.tintable !== false}
+          tintable={img.tintable}
         />
 
         <div>
