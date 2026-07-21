@@ -3,6 +3,7 @@ import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
+import { getEffectivePrice } from '../lib/pricing.js';
 
 export default function Cart() {
   const { items, updateQty, removeItem, totalAmount, lineKey } = useCart();
@@ -26,6 +27,8 @@ export default function Cart() {
         {items.map((item) => {
           const color = getColorById(item.colorId);
           const size = getSizeById(item.sizeId);
+          const product = getProductByIdSafe(item.productId);
+          const priceInfo = product ? getEffectivePrice(product, item.sizeId) : null;
           return (
             <div key={lineKey(item)} className="flex gap-4 p-4">
               <ProductImage
@@ -43,7 +46,14 @@ export default function Cart() {
                       {size.label} · {color.label}
                     </p>
                   </div>
-                  <p className="font-medium">{currencyFormatter.format(item.unitPrice * item.qty)}</p>
+                  <div className="text-right">
+                    <p className="font-medium">{currencyFormatter.format(item.unitPrice * item.qty)}</p>
+                    {priceInfo?.discountPercent > 0 && (
+                      <p className="text-xs text-neutral-400 line-through">
+                        {currencyFormatter.format(priceInfo.original * item.qty)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center rounded-lg border border-neutral-300">
