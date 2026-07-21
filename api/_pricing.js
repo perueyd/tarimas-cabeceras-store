@@ -1,5 +1,8 @@
+import { getEffectivePrice } from '../src/lib/pricing.js';
+
 // SEGURIDAD: el total SIEMPRE se recalcula en el servidor a partir del catálogo
-// ACTUAL (Redis si está editado, o el estático como respaldo — ver _catalog.js).
+// ACTUAL (Redis si está editado, o el estático como respaldo — ver _catalog.js),
+// aplicando el mismo descuento de oferta que ve el cliente (getEffectivePrice).
 // Nunca se confía en los precios que envíe el navegador (un atacante podría
 // manipularlos). Si un item no existe o no tiene precio, el pedido se rechaza.
 export function priceOrder(products, rawItems) {
@@ -9,8 +12,9 @@ export function priceOrder(products, rawItems) {
   for (const it of rawItems) {
     const p = products.find((x) => x.id === it?.productId);
     if (!p) return null;
-    const unitPrice = p.sizePricing?.[it.sizeId];
-    if (unitPrice == null) return null;
+    const priceInfo = getEffectivePrice(p, it.sizeId);
+    if (!priceInfo) return null;
+    const unitPrice = priceInfo.final;
     const qty = Math.min(Math.max(parseInt(it.qty, 10) || 0, 1), 20);
     total += unitPrice * qty;
     items.push({
@@ -22,7 +26,7 @@ export function priceOrder(products, rawItems) {
       unitPrice,
     });
   }
-  return { total, items };
+  return { total: Math.round(total * 100) / 100, items };
 }
 
 // Recorta un texto a un largo máximo (contra payloads gigantes).

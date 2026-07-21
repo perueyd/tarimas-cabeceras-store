@@ -1,6 +1,7 @@
 import { newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
+import { registerPromoUsage, validatePromo } from './_promo.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -33,7 +34,22 @@ export default async function handler(req, res) {
   if (!priced) {
     return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
   }
-  const amount = Math.round(priced.total * 100);
+
+  // Código promocional (opcional) — se revalida aquí igual que en /api/orders.
+  let montoFinal = priced.total;
+  let promoCode = null;
+  let promoDescuento = 0;
+  const promoInput = s(body.promoCode, 30);
+  if (promoInput) {
+    const promoResult = await validatePromo(promoInput, priced.total);
+    if (promoResult.valid) {
+      promoDescuento = promoResult.descuento;
+      montoFinal = Math.round((priced.total - promoDescuento) * 100) / 100;
+      promoCode = promoResult.promo.code;
+    }
+  }
+
+  const amount = Math.round(montoFinal * 100);
   const items = priced.items;
 
   try {
@@ -70,6 +86,8 @@ export default async function handler(req, res) {
         metodo: 'Tarjeta/Yape (Culqi)',
         chargeId: data.id,
         monto: amount / 100,
+        promoCode,
+        promoDescuento,
         nombre,
         email,
         telefono,
@@ -79,6 +97,7 @@ export default async function handler(req, res) {
         entrega,
         items: Array.isArray(items) ? items : [],
       });
+      if (promoCode) registerPromoUsage(promoCode).catch(() => {});
     } catch (err) {
       console.log('No se pudo registrar el pedido (pago OK):', err?.message);
     }

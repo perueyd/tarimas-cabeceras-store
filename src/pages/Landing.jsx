@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ShowcaseMarquee from '../components/ShowcaseMarquee.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
+import { getEffectivePrice } from '../lib/pricing.js';
 
 // Colores que se muestran como chips interactivos en el hero.
 const HERO_COLORS = ['gris', 'beige', 'azul', 'vino', 'negro'];
@@ -54,7 +55,11 @@ export default function Landing() {
     return () => clearInterval(timer);
   }, [products.length]);
   const heroProduct = products.length ? products[heroIdx % products.length] : null;
-  const heroMin = heroProduct ? Math.min(...Object.values(heroProduct.sizePricing || { 0: 0 })) : 0;
+  const heroCheapestSizeId = heroProduct
+    ? Object.entries(heroProduct.sizePricing || {}).sort((a, b) => a[1] - b[1])[0]?.[0]
+    : null;
+  const heroPrice = heroProduct && heroCheapestSizeId ? getEffectivePrice(heroProduct, heroCheapestSizeId) : null;
+  const heroMin = heroPrice?.final ?? 0;
   const heroImg = heroProduct ? resolveProductImage(heroProduct, heroColor.id) : null;
 
   // Parallax sutil con el mouse (desactivado si el usuario prefiere menos movimiento).
@@ -201,7 +206,14 @@ export default function Landing() {
                   <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10 text-white">
                     <div>
                       <p className="text-sm font-medium">{heroProduct.name}</p>
-                      <p className="text-xs opacity-80">Desde {currencyFormatter.format(heroMin)}</p>
+                      <p className="text-xs opacity-80">
+                        Desde {currencyFormatter.format(heroMin)}
+                        {heroPrice?.discountPercent > 0 && (
+                          <span className="ml-1.5 rounded-full bg-red-500/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            -{heroPrice.discountPercent}%
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <span className="rounded-full bg-white/90 px-4 py-1.5 text-xs font-medium text-ink transition group-hover:bg-white">
                       Ver producto →

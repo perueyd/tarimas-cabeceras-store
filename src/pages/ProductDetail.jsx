@@ -6,6 +6,7 @@ import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
+import { getEffectivePrice } from '../lib/pricing.js';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -23,7 +24,11 @@ export default function ProductDetail() {
   const [added, setAdded] = useState(false);
 
   const selectedColor = colors.find((c) => c.id === colorId);
-  const unitPrice = useMemo(() => (product ? product.sizePricing[sizeId] : 0), [product, sizeId]);
+  const priceInfo = useMemo(
+    () => (product ? getEffectivePrice(product, sizeId) : null),
+    [product, sizeId]
+  );
+  const unitPrice = priceInfo?.final ?? 0;
   // Imagen según el color: foto propia del color si existe, o imagen base teñida.
   const img = product ? resolveProductImage(product, colorId) : null;
 
@@ -76,7 +81,17 @@ export default function ProductDetail() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
           <p className="mt-2 text-neutral-500">{product.shortDescription}</p>
-          <p className="mt-4 text-xl font-semibold">{currencyFormatter.format(unitPrice)}</p>
+          <div className="mt-4 flex items-baseline gap-2">
+            <p className="text-xl font-semibold">{currencyFormatter.format(unitPrice)}</p>
+            {priceInfo?.discountPercent > 0 && (
+              <>
+                <p className="text-sm text-neutral-400 line-through">{currencyFormatter.format(priceInfo.original)}</p>
+                <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
+                  -{priceInfo.discountPercent}%
+                </span>
+              </>
+            )}
+          </div>
 
           <div className="mt-6">
             <p className="mb-2 text-sm font-medium text-neutral-700">Tamaño</p>

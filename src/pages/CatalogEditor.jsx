@@ -197,6 +197,7 @@ const PRODUCTO_VACIO = {
   shortDescription: '',
   specs: [],
   sizePricing: {},
+  discountPercent: 0,
   availableColors: [],
   colorImages: {},
 };
@@ -430,6 +431,37 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
             </label>
           ))}
         </div>
+      </div>
+
+      {/* Descuento / oferta (opcional) */}
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+          <input
+            type="checkbox"
+            checked={Boolean(p.discountPercent)}
+            onChange={(e) => set('discountPercent', e.target.checked ? p.discountPercent || 10 : 0)}
+          />
+          Este producto está en oferta (opcional)
+        </label>
+        {Boolean(p.discountPercent) && (
+          <div className="mt-3 flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <span className="text-neutral-500">Descuento:</span>
+              <input
+                type="number"
+                min="1"
+                max="90"
+                value={p.discountPercent}
+                onChange={(e) => set('discountPercent', Math.min(Math.max(parseInt(e.target.value, 10) || 0, 0), 90))}
+                className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+              />
+              <span className="text-neutral-500">%</span>
+            </label>
+            <p className="text-xs text-neutral-500">
+              Se muestra en la tienda con el precio anterior tachado. Se aplica igual a todos los tamaños.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Colores disponibles */}

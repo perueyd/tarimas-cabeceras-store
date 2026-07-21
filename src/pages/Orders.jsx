@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { Stars } from './ProductDetail.jsx';
 import CatalogEditor from './CatalogEditor.jsx';
+import PromoEditor from './PromoEditor.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -217,6 +218,7 @@ export default function Orders() {
           { id: 'resumen', label: 'Resumen' },
           { id: 'pedidos', label: `Pedidos (${orders.length})` },
           { id: 'resenas', label: `Reseñas (${reviews.length})` },
+          { id: 'promos', label: '🏷️ Promociones' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
           <button
@@ -350,6 +352,8 @@ export default function Orders() {
           ))}
         </div>
       )}
+
+      {tab === 'promos' && <PromoEditor adminKey={key} />}
 
       {tab === 'editar' && <CatalogEditor adminKey={key} />}
     </main>

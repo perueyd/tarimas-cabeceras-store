@@ -35,6 +35,39 @@ export default function Checkout() {
   const [status, setStatus] = useState('idle'); // idle | paying | error
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Código de descuento (opcional) — se valida contra el servidor, nunca se
+  // confía en un descuento calculado solo en el navegador.
+  const [promoInput, setPromoInput] = useState('');
+  const [promo, setPromo] = useState(null); // { code, descuento, tipo, valor }
+  const [promoMsg, setPromoMsg] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const totalConDescuento = Math.max(totalAmount - (promo?.descuento || 0), 0);
+
+  async function aplicarPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoMsg('');
+    try {
+      const res = await fetch(`/api/promo?validar=${encodeURIComponent(code)}&total=${totalAmount}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Código no válido.');
+      setPromo({ code: data.code, descuento: data.descuento, tipo: data.tipo, valor: data.valor });
+      setPromoMsg(`✓ Código "${data.code}" aplicado: -${currencyFormatter.format(data.descuento)}`);
+    } catch (err) {
+      setPromo(null);
+      setPromoMsg(err.message);
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function quitarPromo() {
+    setPromo(null);
+    setPromoInput('');
+    setPromoMsg('');
+  }
+
   useEffect(() => {
     if (items.length === 0) navigate('/carrito');
     else trackBeginCheckout(totalAmount);
@@ -95,7 +128,7 @@ export default function Checkout() {
     window.Culqi.settings({
       title: 'Espacios y Diseño',
       currency: 'PEN',
-      amount: Math.round(totalAmount * 100), // Culqi trabaja en céntimos
+      amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
     });
     window.Culqi.options({
       lang: 'es',
@@ -114,7 +147,7 @@ export default function Checkout() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
-          amount: Math.round(totalAmount * 100),
+          amount: Math.round(totalConDescuento * 100),
           email: form.email,
           nombre: form.nombre,
           telefono: form.telefono,
@@ -123,6 +156,7 @@ export default function Checkout() {
           ubicacion: ubicacion ? `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lng}` : '',
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
+          promoCode: promo?.code,
         }),
       });
       const data = await res.json();
@@ -130,12 +164,12 @@ export default function Checkout() {
         throw new Error(data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
       }
       clearCart();
-      trackPurchase(data.orderCode || data.id, totalAmount);
+      trackPurchase(data.orderCode || data.id, totalConDescuento);
       navigate('/gracias', {
         state: {
           chargeId: data.id,
           orderCode: data.orderCode,
-          monto: totalAmount,
+          monto: totalConDescuento,
           entregaFecha: form.entregaFecha,
           entregaHorario: slot ? slot.label : '',
         },
@@ -162,7 +196,7 @@ export default function Checkout() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           metodo: metodoLabel,
-          monto: totalAmount,
+          monto: totalConDescuento,
           nombre: form.nombre,
           email: form.email,
           telefono: form.telefono,
@@ -171,25 +205,27 @@ export default function Checkout() {
           ubicacion: ubicacion ? `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lng}` : '',
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
+          promoCode: promo?.code,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.code) throw new Error(data?.error || 'No se pudo registrar el pedido.');
+      const montoFinal = data.monto ?? totalConDescuento;
 
       if (storeConfig.whatsapp) {
         const msg = encodeURIComponent(
-          `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(totalAmount)}. Aquí envío mi comprobante:`
+          `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}. Aquí envío mi comprobante:`
         );
         window.open(`https://wa.me/${storeConfig.whatsapp}?text=${msg}`, '_blank');
       }
       clearCart();
-      trackPurchase(data.code, totalAmount);
+      trackPurchase(data.code, montoFinal);
       navigate('/gracias', {
         state: {
           orderCode: data.code,
           metodo: metodoLabel,
           porVerificar: true,
-          monto: totalAmount,
+          monto: montoFinal,
           entregaFecha: form.entregaFecha,
           entregaHorario: slot ? slot.label : '',
         },
@@ -296,9 +332,62 @@ export default function Checkout() {
             </div>
           </form>
 
-          <div className="mt-6 flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
-            <span className="text-sm text-neutral-500">Total a pagar</span>
-            <span className="text-lg font-semibold">{currencyFormatter.format(totalAmount)}</span>
+          {/* ===== Código de descuento ===== */}
+          <div className="mt-6">
+            <p className="mb-2 text-sm font-medium text-neutral-700">¿Tienes un código de descuento?</p>
+            {promo ? (
+              <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-sm">
+                <span className="text-green-800">
+                  ✓ Código <span className="font-mono font-semibold">{promo.code}</span> aplicado
+                </span>
+                <button type="button" onClick={quitarPromo} className="text-xs text-green-800 underline">
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), aplicarPromo())}
+                  placeholder="Código de descuento"
+                  className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm uppercase outline-none focus:border-ink"
+                />
+                <button
+                  type="button"
+                  onClick={aplicarPromo}
+                  disabled={promoLoading || !promoInput.trim()}
+                  className="rounded-lg border border-ink px-4 py-2 text-sm font-medium transition hover:bg-neutral-100 disabled:opacity-50"
+                >
+                  {promoLoading ? 'Verificando...' : 'Aplicar'}
+                </button>
+              </div>
+            )}
+            {promoMsg && !promo && <p className="mt-1.5 text-xs text-red-600">{promoMsg}</p>}
+          </div>
+
+          <div className="mt-4 space-y-1.5 rounded-lg border border-neutral-200 px-4 py-3">
+            {promo ? (
+              <>
+                <div className="flex items-center justify-between text-sm text-neutral-500">
+                  <span>Subtotal</span>
+                  <span>{currencyFormatter.format(totalAmount)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-green-700">
+                  <span>Descuento ({promo.code})</span>
+                  <span>-{currencyFormatter.format(promo.descuento)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-neutral-100 pt-1.5">
+                  <span className="text-sm text-neutral-500">Total a pagar</span>
+                  <span className="text-lg font-semibold">{currencyFormatter.format(totalConDescuento)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-neutral-500">Total a pagar</span>
+                <span className="text-lg font-semibold">{currencyFormatter.format(totalAmount)}</span>
+              </div>
+            )}
           </div>
 
           {/* ===== Método de pago ===== */}
@@ -330,7 +419,7 @@ export default function Checkout() {
               <p className="mt-2 text-2xl font-bold tracking-wide">{storeConfig.yape}</p>
               <p className="text-xs text-purple-800">{storeConfig.yapeTitular}</p>
               <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
-                <li>Abre tu app de Yape o Plin y envía {currencyFormatter.format(totalAmount)} a ese número.</li>
+                <li>Abre tu app de Yape o Plin y envía {currencyFormatter.format(totalConDescuento)} a ese número.</li>
                 <li>Guarda la captura de tu pago.</li>
                 <li>Toca el botón de abajo: registramos tu pedido y se abre WhatsApp para que nos envíes tu comprobante.</li>
               </ol>
@@ -359,7 +448,7 @@ export default function Checkout() {
                 </p>
               )}
               <p className="mt-3 text-xs text-sky-800">
-                Después de transferir {currencyFormatter.format(totalAmount)}, toca el botón de abajo:
+                Después de transferir {currencyFormatter.format(totalConDescuento)}, toca el botón de abajo:
                 registramos tu pedido y nos envías tu constancia por WhatsApp.
               </p>
             </div>

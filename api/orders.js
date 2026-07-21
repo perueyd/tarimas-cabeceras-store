@@ -1,6 +1,7 @@
 import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
+import { registerPromoUsage, validatePromo } from './_promo.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
@@ -25,12 +26,32 @@ export default async function handler(req, res) {
     if (!priced) {
       return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
     }
+
+    // Código promocional (opcional): se revalida aquí, nunca se confía en el
+    // descuento que mande el navegador. Si el código dejó de ser válido justo
+    // en este instante (venció, se acabó), simplemente no se aplica — la
+    // compra sigue, no se bloquea al cliente por eso.
+    let montoFinal = priced.total;
+    let promoCode = null;
+    let promoDescuento = 0;
+    const promoInput = s(body.promoCode, 30);
+    if (promoInput) {
+      const promoResult = await validatePromo(promoInput, priced.total);
+      if (promoResult.valid) {
+        promoDescuento = promoResult.descuento;
+        montoFinal = Math.round((priced.total - promoDescuento) * 100) / 100;
+        promoCode = promoResult.promo.code;
+      }
+    }
+
     const order = {
       code: newOrderCode(),
       fecha: new Date().toISOString(),
       estado: 'Pago por verificar',
       metodo,
-      monto: priced.total,
+      monto: montoFinal,
+      promoCode,
+      promoDescuento,
       nombre,
       email: s(body.email, 120),
       telefono,
@@ -42,10 +63,11 @@ export default async function handler(req, res) {
     };
     try {
       const saved = await saveOrder(order);
-      return res.status(200).json({ ok: true, code: order.code, saved });
+      if (promoCode) registerPromoUsage(promoCode).catch(() => {});
+      return res.status(200).json({ ok: true, code: order.code, saved, monto: montoFinal, promoDescuento });
     } catch (err) {
       console.log('PEDIDO (error BD, respaldo):', JSON.stringify(order));
-      return res.status(200).json({ ok: true, code: order.code, saved: false });
+      return res.status(200).json({ ok: true, code: order.code, saved: false, monto: montoFinal, promoDescuento });
     }
   }
 

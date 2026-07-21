@@ -296,3 +296,46 @@ donde sea, se muestra una tarjeta con el logo E|D y el nombre de la tienda
 (`public/og-image.png`). Cuando tengas fotos reales de tus muebles, puedes
 reemplazar esa imagen por una foto de tu mejor producto — se ve mucho más
 atractivo que un texto en fondo plano.
+
+---
+
+## Códigos de descuento (cupones)
+
+Panel `/pedidos` → pestaña **🏷️ Promociones**.
+
+- **"🎲 Generar código"** te da un código legible al azar (ej. `PROMO-K7X2Q`)
+  listo para enviar a un cliente. **"+ Código manual"** te deja escribir el tuyo
+  (ej. `AMIGO10`).
+- Cada código tiene: **tipo** (porcentaje o monto fijo en soles), **valor**,
+  **límite de usos** (opcional — déjalo vacío para uso ilimitado) y **fecha de
+  vencimiento** (opcional).
+- **Activar / Desactivar**: un código desactivado deja de funcionar al
+  instante, sin necesidad de eliminarlo — útil para pausar una promo.
+- **Eliminar**: lo borra para siempre.
+- El cliente lo escribe en el checkout, en el campo "¿Tienes un código de
+  descuento?", antes de pagar. El descuento se aplica al total y se ve
+  reflejado en el monto que realmente se cobra (tarjeta/Yape, o el monto que
+  se le pide transferir/yapear).
+- Si un código se queda sin usos o vence justo cuando el cliente va a pagar,
+  la compra **no se bloquea** — simplemente se cobra el precio normal.
+
+**Seguridad:** el descuento siempre se recalcula en el servidor a partir del
+código guardado — nadie puede inventarse un descuento editando el navegador.
+
+## Descuento directo por producto (oferta, sin código)
+
+En el panel → **Editar página** → **Productos** → al editar un producto,
+marca la casilla **"Este producto está en oferta"** y pon el porcentaje
+(1–90%). Es completamente opcional — si no la activas, el producto se vende
+a precio normal.
+
+- Se aplica igual a **todos los tamaños** de ese producto.
+- En la tienda se ve el precio anterior tachado + el precio con descuento,
+  con una etiqueta roja "-XX%" (en la tarjeta del producto, en su página, y
+  en la vitrina rotativa de la portada).
+- El precio final es el que realmente se cobra — el servidor lo recalcula
+  igual que el precio normal, así que no hay forma de manipularlo desde el
+  navegador.
+- Puedes combinar un descuento de producto CON un código de descuento — se
+  aplican uno sobre el otro (primero la oferta del producto, luego el cupón
+  sobre ese total).
