@@ -346,7 +346,10 @@ export default function Orders() {
 function PedidoCard({ o, onUpdate, onDelete }) {
   const cal = calendarUrl(o);
   const tel = (o.telefono || '').replace(/\D/g, '');
-  const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}` : null;
+  const waMsg = encodeURIComponent(
+    `Hola ${o.nombre}, te escribimos de E|D Espacios y Diseño sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: https://tarimas-cabeceras-store.vercel.app/seguimiento?codigo=${o.code}`
+  );
+  const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${waMsg}` : null;
   const badge =
     o.estado === 'Pagado'
       ? 'bg-green-100 text-green-800'
