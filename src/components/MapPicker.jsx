@@ -12,13 +12,35 @@ export default function MapPicker({ onChange }) {
   const onChangeRef = useRef(onChange);
   const [coords, setCoords] = useState(null);
   const [geoStatus, setGeoStatus] = useState('');
+  // El script de Leaflet (cargado en index.html) puede tardar en llegar, sobre
+  // todo en conexiones lentas o celulares. Se espera activamente en vez de
+  // revisar window.L una sola vez, para no dejar el mapa roto para siempre.
+  const [leafletReady, setLeafletReady] = useState(() => Boolean(window.L));
 
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
 
   useEffect(() => {
-    if (!window.L || !mapEl.current || mapRef.current) return;
+    if (window.L) {
+      setLeafletReady(true);
+      return;
+    }
+    const interval = setInterval(() => {
+      if (window.L) {
+        setLeafletReady(true);
+        clearInterval(interval);
+      }
+    }, 150);
+    const timeout = setTimeout(() => clearInterval(interval), 8000); // deja de intentar tras 8s
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!leafletReady || !mapEl.current || mapRef.current) return;
     const L = window.L;
     const map = L.map(mapEl.current).setView(LIMA_CENTER, 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -32,7 +54,7 @@ export default function MapPicker({ onChange }) {
       mapRef.current = null;
       markerRef.current = null;
     };
-  }, []);
+  }, [leafletReady]);
 
   function setPoint(lat, lng) {
     const L = window.L;
@@ -72,10 +94,10 @@ export default function MapPicker({ onChange }) {
     );
   }
 
-  if (!window.L) {
+  if (!leafletReady) {
     return (
       <p className="rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-500">
-        El mapa no pudo cargarse. Puedes continuar solo con tu dirección escrita.
+        Cargando mapa...
       </p>
     );
   }

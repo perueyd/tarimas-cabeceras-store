@@ -83,6 +83,10 @@ export default function Checkout() {
       setErrorMsg('Falta configurar VITE_CULQI_PUBLIC_KEY en las variables de entorno.');
       return;
     }
+    if (!window.Culqi) {
+      setErrorMsg('El sistema de pago aún está cargando. Espera un segundo e intenta de nuevo.');
+      return;
+    }
     setErrorMsg('');
     setStatus('idle');
 
