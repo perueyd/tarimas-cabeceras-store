@@ -54,7 +54,20 @@ productos listos, o agrega una línea nueva:
   La web la teñirá automáticamente con cada color que elija el cliente.
 - Si subes la foto **ya con su acabado real** (ej. melamina roble) → pon `tintable: false`.
   La foto se muestra tal cual. (En este caso los círculos de color son solo referenciales;
-  si quieres una foto distinta por acabado, crea un producto por cada acabado.)
+  si quieres una foto distinta por acabado, crea un producto por cada acabado — ver
+  "Foto propia por color" más abajo.)
+
+**Importante si usas `tintable: true`: sube la foto SIN FONDO (PNG transparente).**
+El teñido usa la transparencia de tu propia foto para saber "hasta dónde" pintar. Si tu
+foto es un JPG con fondo (pared, piso, etc.), el color se aplicará sobre TODO el
+rectángulo, incluido el fondo — se va a ver mal. La solución:
+1. Recorta el mueble dejando el fondo transparente (hay editores gratis online tipo
+   "remove background" — busca "quitar fondo de imagen gratis").
+2. Guarda el archivo como **PNG** (no JPG — el JPG no admite transparencia).
+3. Súbelo con el botón "📷 Subir" del panel como siempre.
+
+Con el fondo transparente, el color solo pinta el mueble; el resto de la tarjeta queda
+con tu fondo neutro de la web, limpio.
 
 ## 3. Agregar un producto
 

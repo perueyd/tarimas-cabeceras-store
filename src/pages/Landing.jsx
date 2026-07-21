@@ -155,21 +155,47 @@ export default function Landing() {
                 className="group block"
               >
                 <div key={heroProduct.id} className="hero-slide relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
-                  <div className="relative aspect-[4/3] w-full">
-                    <img
-                      src={heroImg.src}
-                      alt={heroProduct.name}
-                      className="absolute inset-0 h-full w-full object-contain p-6"
-                    />
-                    {heroImg.tintable && (
-                      <>
-                        <div
-                          className="absolute inset-0 mix-blend-multiply transition-colors duration-200"
-                          style={{ backgroundColor: heroColor.hex }}
-                        />
-                        <div className="absolute inset-0 bg-white/25 mix-blend-overlay" />
-                      </>
-                    )}
+                  <div className="relative aspect-[4/3] w-full p-6">
+                    {/* El tinte usa la MISMA foto como máscara: si subiste el mueble
+                        sin fondo (PNG transparente), el color solo pinta el objeto. */}
+                    <div className="relative h-full w-full">
+                      <img
+                        src={heroImg.src}
+                        alt={heroProduct.name}
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                      {heroImg.tintable && (
+                        <>
+                          <div
+                            className="absolute inset-0 mix-blend-multiply transition-colors duration-200"
+                            style={{
+                              backgroundColor: heroColor.hex,
+                              WebkitMaskImage: `url(${heroImg.src})`,
+                              WebkitMaskSize: 'contain',
+                              WebkitMaskRepeat: 'no-repeat',
+                              WebkitMaskPosition: 'center',
+                              maskImage: `url(${heroImg.src})`,
+                              maskSize: 'contain',
+                              maskRepeat: 'no-repeat',
+                              maskPosition: 'center',
+                            }}
+                          />
+                          <div
+                            className="absolute inset-0 bg-white/25 mix-blend-overlay"
+                            style={{
+                              WebkitMaskImage: `url(${heroImg.src})`,
+                              WebkitMaskSize: 'contain',
+                              WebkitMaskRepeat: 'no-repeat',
+                              WebkitMaskPosition: 'center',
+                              maskImage: `url(${heroImg.src})`,
+                              maskSize: 'contain',
+                              maskRepeat: 'no-repeat',
+                              maskPosition: 'center',
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
                   {/* Etiqueta del producto */}
                   <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10 text-white">
