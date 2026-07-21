@@ -42,6 +42,7 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'categorias', label: 'Categorías' },
           { id: 'colores', label: 'Colores' },
           { id: 'config', label: 'Datos de la tienda' },
+          { id: 'portada', label: 'Página principal' },
         ].map((t) => (
           <button
             key={t.id}
@@ -59,6 +60,82 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
+    </div>
+  );
+}
+
+// ============================================================
+// PÁGINA PRINCIPAL (textos, vínculos y palabra de la animación)
+// ============================================================
+function PortadaTab({ catalog, api, flash }) {
+  const [landing, setLanding] = useState({
+    eyebrow: '',
+    titulo1: '',
+    titulo2: '',
+    descripcion: '',
+    marqueeWord: '',
+    cta1Label: '',
+    cta1Url: '',
+    cta2Label: '',
+    cta2Url: '',
+    ...(catalog.storeConfig.landing || {}),
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set(field, value) {
+    setLanding((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function guardar() {
+    setSaving(true);
+    try {
+      await api('POST', 'config', { landing });
+      flash('Página principal actualizada — refresca tu web para verla.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <p className="mb-1 text-sm font-medium">Textos del inicio (hero)</p>
+      <p className="mb-4 text-xs text-neutral-400">
+        Lo primero que ve el cliente al entrar a tu web.
+      </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Etiqueta superior (pastilla)" value={landing.eyebrow} onChange={(v) => set('eyebrow', v)} placeholder="Hecho en Perú · Envíos a todo el país" />
+        <Field label="Título — línea 1 (en negro)" value={landing.titulo1} onChange={(v) => set('titulo1', v)} placeholder="Tu dormitorio," />
+        <Field label="Título — línea 2 (en gris)" value={landing.titulo2} onChange={(v) => set('titulo2', v)} placeholder="en el color que imaginas." />
+        <Field label="Palabra gigante de la animación" value={landing.marqueeWord} onChange={(v) => set('marqueeWord', v)} placeholder="Espacios" />
+      </div>
+      <label className="mt-4 block text-sm">
+        <span className="mb-1 block font-medium text-neutral-700">Descripción</span>
+        <textarea
+          value={landing.descripcion}
+          onChange={(e) => set('descripcion', e.target.value)}
+          rows={2}
+          className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink"
+        />
+      </label>
+
+      <p className="mb-1 mt-6 text-sm font-medium">Botones (vínculos)</p>
+      <p className="mb-4 text-xs text-neutral-400">
+        Los vínculos pueden ser internos (ej. /tienda, /tienda?categoria=tarimas, /seguimiento) o
+        externos (ej. https://wa.me/51951278010).
+      </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Botón 1 — texto (fondo negro)" value={landing.cta1Label} onChange={(v) => set('cta1Label', v)} placeholder="Explorar la tienda" />
+        <Field label="Botón 1 — vínculo" value={landing.cta1Url} onChange={(v) => set('cta1Url', v)} placeholder="/tienda" />
+        <Field label="Botón 2 — texto (con borde)" value={landing.cta2Label} onChange={(v) => set('cta2Label', v)} placeholder="Ver cabeceras" />
+        <Field label="Botón 2 — vínculo" value={landing.cta2Url} onChange={(v) => set('cta2Url', v)} placeholder="/tienda?categoria=cabeceras" />
+      </div>
+
+      <button onClick={guardar} disabled={saving} className="mt-6 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+        {saving ? 'Guardando...' : 'Guardar página principal'}
+      </button>
     </div>
   );
 }

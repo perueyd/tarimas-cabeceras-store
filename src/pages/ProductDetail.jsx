@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
+import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
@@ -146,6 +147,12 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      <RecommendedProducts
+        excludeIds={[product.id]}
+        excludeCategories={[product.category]}
+        title="Completa tu dormitorio"
+      />
 
       <ReviewsSection productId={product.id} />
     </main>

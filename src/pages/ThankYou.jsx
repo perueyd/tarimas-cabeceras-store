@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { currencyFormatter } from '../data/catalog.js';
+import RecommendedProducts from '../components/RecommendedProducts.jsx';
 
 // Evento de calendario pre-llenado para el cliente (día completo de la entrega).
 function buildCalendarUrl(state) {
@@ -72,6 +73,10 @@ export default function ThankYou() {
       >
         Volver al catálogo
       </Link>
+
+      <div className="text-left">
+        <RecommendedProducts title="¿Y si completas tu dormitorio?" />
+      </div>
     </main>
   );
 }

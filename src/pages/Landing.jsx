@@ -6,8 +6,36 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 // Colores que se muestran como chips interactivos en el hero.
 const HERO_COLORS = ['gris', 'beige', 'azul', 'vino', 'negro'];
 
+// Un botón puede apuntar dentro de la web (/tienda) o afuera (https://wa.me/...).
+function CtaLink({ to, className, children }) {
+  if (/^https?:\/\//i.test(to)) {
+    return (
+      <a href={to} target="_blank" rel="noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={to} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+const LANDING_DEFAULTS = {
+  eyebrow: 'Hecho en Perú · Envíos a todo el país',
+  titulo1: 'Tu dormitorio,',
+  titulo2: 'en el color que imaginas.',
+  descripcion: 'Tarimas, cabeceras y muebles a medida. Toca un color y mira cómo cambia la escena — así de fácil será elegir el tuyo.',
+  cta1Label: 'Explorar la tienda',
+  cta1Url: '/tienda',
+  cta2Label: 'Ver cabeceras',
+  cta2Url: '/tienda?categoria=cabeceras',
+};
+
 export default function Landing() {
-  const { categories, colors } = useCatalog();
+  const { categories, colors, storeConfig } = useCatalog();
+  const landing = { ...LANDING_DEFAULTS, ...(storeConfig.landing || {}) };
   const [heroColor, setHeroColor] = useState(() => colors.find((c) => c.id === 'azul') || colors[0]);
   const sceneRef = useRef(null);
   const revealRefs = useRef([]);
@@ -52,16 +80,15 @@ export default function Landing() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-2">
           <div>
             <p className="mb-4 inline-block rounded-full border border-neutral-300 px-3 py-1 text-xs uppercase tracking-widest text-neutral-500">
-              Hecho en Perú · Envíos a todo el país
+              {landing.eyebrow}
             </p>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl [text-wrap:balance]">
-              Tu dormitorio,
+              {landing.titulo1}
               <br />
-              <span className="text-neutral-400">en el color que imaginas.</span>
+              <span className="text-neutral-400">{landing.titulo2}</span>
             </h1>
             <p className="mt-5 max-w-md text-neutral-500">
-              Tarimas, cabeceras y muebles a medida. Toca un color y mira cómo cambia
-              la escena — así de fácil será elegir el tuyo.
+              {landing.descripcion}
             </p>
 
             {/* Chips de color interactivos */}
@@ -85,18 +112,18 @@ export default function Landing() {
             </div>
 
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link
-                to="/tienda"
+              <CtaLink
+                to={landing.cta1Url}
                 className="rounded-lg bg-ink px-7 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
               >
-                Explorar la tienda
-              </Link>
-              <Link
-                to="/tienda?categoria=cabeceras"
+                {landing.cta1Label}
+              </CtaLink>
+              <CtaLink
+                to={landing.cta2Url}
                 className="rounded-lg border border-neutral-300 px-7 py-3 text-sm font-medium transition hover:border-ink"
               >
-                Ver cabeceras
-              </Link>
+                {landing.cta2Label}
+              </CtaLink>
             </div>
           </div>
 

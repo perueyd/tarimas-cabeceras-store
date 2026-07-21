@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 // Marquee 3D tipo "rueda" con física:
 //  - Los paneles no pasan planos: giran como un carrusel 3D (los de los bordes se
@@ -38,6 +39,8 @@ const PANELS = [
 const CRUISE = 0.7; // velocidad crucero en px por frame (~42 px/s)
 
 export default function ShowcaseMarquee() {
+  const { storeConfig } = useCatalog();
+  const marqueeWord = storeConfig.landing?.marqueeWord || 'Espacios';
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const dispRef = useRef(null); // feDisplacementMap (intensidad del agua)
@@ -245,7 +248,7 @@ export default function ShowcaseMarquee() {
 
       {/* Texto gigante: negro sobre fondo claro, se invierte al pasar cada panel */}
       <h2 className="pointer-events-none absolute inset-0 flex items-center justify-center text-[16vw] font-extrabold uppercase leading-none tracking-tighter text-white mix-blend-difference sm:text-[11vw]">
-        Espacios
+        {marqueeWord}
       </h2>
 
       <p className="pointer-events-none absolute bottom-4 left-0 right-0 text-center text-[11px] uppercase tracking-[0.3em] text-neutral-400">

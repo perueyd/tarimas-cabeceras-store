@@ -2,10 +2,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import RecommendedProducts from '../components/RecommendedProducts.jsx';
 
 export default function Cart() {
   const { items, updateQty, removeItem, totalAmount, lineKey } = useCart();
-  const { currencyFormatter, getColorById, getSizeById } = useCatalog();
+  const { currencyFormatter, getColorById, getSizeById, getProductById: getProductByIdSafe } = useCatalog();
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -84,6 +85,15 @@ export default function Cart() {
       >
         Proceder al pago
       </button>
+
+      <RecommendedProducts
+        excludeIds={items.map((i) => i.productId)}
+        excludeCategories={[...new Set(items.map((i) => {
+          const prod = getProductByIdSafe(i.productId);
+          return prod?.category;
+        }).filter(Boolean))]}
+        title="Antes de pagar, ¿algo más para tu dormitorio?"
+      />
     </main>
   );
 }

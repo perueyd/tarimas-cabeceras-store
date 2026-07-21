@@ -23,6 +23,18 @@ export const storeConfig = {
     { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
     { id: 'tarde', label: 'Tarde (2:00 p.m. – 6:00 p.m.)' },
   ],
+  // Textos y vínculos de la página principal (editables desde el panel).
+  landing: {
+    eyebrow: 'Hecho en Perú · Envíos a todo el país',
+    titulo1: 'Tu dormitorio,',
+    titulo2: 'en el color que imaginas.',
+    descripcion: 'Tarimas, cabeceras y muebles a medida. Toca un color y mira cómo cambia la escena — así de fácil será elegir el tuyo.',
+    marqueeWord: 'Espacios',
+    cta1Label: 'Explorar la tienda',
+    cta1Url: '/tienda',
+    cta2Label: 'Ver cabeceras',
+    cta2Url: '/tienda?categoria=cabeceras',
+  },
 };
 
 // ---------- CATEGORÍAS ----------
