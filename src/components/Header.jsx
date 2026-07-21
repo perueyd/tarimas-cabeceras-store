@@ -24,6 +24,9 @@ export default function Header() {
           <Link to="/tienda" className="hover:text-neutral-500">
             Productos
           </Link>
+          <Link to="/seguimiento" className="hidden hover:text-neutral-500 sm:inline">
+            Rastrear pedido
+          </Link>
           <Link to="/carrito" className="relative flex items-center gap-1">
             <span>Carrito</span>
             {totalItems > 0 && (

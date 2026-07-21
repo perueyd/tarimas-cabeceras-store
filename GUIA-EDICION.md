@@ -124,9 +124,11 @@ Vercel detecta el cambio y publica la web actualizada sola en ~1 minuto.
 
 ---
 
-## Registro de pedidos en Google Sheets (hoja de cálculo)
+## Registro de pedidos en Google Sheets + correo automático al cliente
 
-Cada pedido puede guardarse automáticamente en una hoja de Google tuya:
+Cada pedido puede guardarse automáticamente en una hoja de Google tuya, Y
+enviarle un correo de confirmación (y de actualización de estado) al cliente
+— usando tu propia cuenta de Gmail, gratis, sin ningún servicio de pago.
 
 1. Entra a https://sheets.new y crea una hoja llamada "Pedidos ED".
 2. En la primera fila escribe estos encabezados:
@@ -138,24 +140,79 @@ function doPost(e) {
   var hoja = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   var o = JSON.parse(e.postData.contents);
   var items = (o.items || []).map(function(i){
-    return i.productName + ' x' + i.qty + ' (' + i.sizeId + ', ' + i.colorId + ')';
+    return i.productName + ' x' + i.qty + ' (' + (i.sizeId || '') + ', ' + (i.colorId || '') + ')';
   }).join(' | ');
-  hoja.appendRow([o.fecha, o.code, o.estado, o.metodo, o.monto, o.nombre,
-    o.telefono, o.email, o.zona, o.direccion, o.ubicacion, o.entrega, items]);
+
+  if (o.evento === 'actualizado') {
+    // Busca la fila por código y actualiza Estado (col C) y Método (col D).
+    var data = hoja.getDataRange().getValues();
+    for (var r = 1; r < data.length; r++) {
+      if (data[r][1] === o.code) {
+        hoja.getRange(r + 1, 3).setValue(o.estado);
+        hoja.getRange(r + 1, 4).setValue(o.metodo || data[r][3]);
+        break;
+      }
+    }
+  } else {
+    hoja.appendRow([o.fecha, o.code, o.estado, o.metodo, o.monto, o.nombre,
+      o.telefono, o.email, o.zona, o.direccion, o.ubicacion, o.entrega, items]);
+  }
+
+  if (o.email) enviarCorreo(o, items);
   return ContentService.createTextOutput('ok');
+}
+
+function enviarCorreo(o, items) {
+  var monto = 'S/ ' + Number(o.monto || 0).toFixed(2);
+  var link = 'https://tarimas-cabeceras-store.vercel.app/seguimiento?codigo=' + encodeURIComponent(o.code);
+  var asunto, cuerpo;
+
+  if (o.evento === 'actualizado') {
+    asunto = 'Tu pedido ' + o.code + ' cambió de estado — E|D Espacios y Diseño';
+    cuerpo = 'Hola ' + o.nombre + ',\n\nTu pedido ' + o.code + ' ahora está: ' + o.estado + '.\n\n' +
+      'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nE|D Espacios y Diseño';
+  } else {
+    asunto = 'Confirmación de tu pedido ' + o.code + ' — E|D Espacios y Diseño';
+    cuerpo = 'Hola ' + o.nombre + ',\n\nRecibimos tu pedido ' + o.code + ' por ' + monto + '.\n' +
+      'Estado actual: ' + o.estado + '\nEntrega: ' + (o.entrega || 'por confirmar') + '\n\n' +
+      (items ? 'Productos:\n' + items + '\n\n' : '') +
+      'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nE|D Espacios y Diseño';
+  }
+  MailApp.sendEmail(o.email, asunto, cuerpo);
 }
 ```
 
 4. Botón **Implementar → Nueva implementación → Aplicación web**:
    - "Ejecutar como": **Tú** (tu correo)
    - "Quién tiene acceso": **Cualquier persona**
-   - Autoriza los permisos cuando Google te los pida.
+   - Autoriza los permisos cuando Google te los pida (esta vez pedirá acceso a
+     la hoja de cálculo Y a enviar correo en tu nombre — es normal, ambos los
+     usa el mismo script).
 5. Copia la **URL de la aplicación web** (termina en `/exec`).
 6. En Vercel → Settings → Environment Variables agrega
    `SHEETS_WEBHOOK_URL` = esa URL, y haz **Redeploy**.
 
-Desde ese momento, **todos los pedidos** (Culqi, Yape/Plin y transferencia)
-se agregan como una fila nueva en tu hoja, además del panel `/pedidos`.
+Desde ese momento: cada pedido nuevo agrega una fila y le manda un correo de
+confirmación al cliente (si dejó su email); y cada vez que tú cambias el
+estado en tu panel `/pedidos`, se actualiza esa fila en la hoja Y se le
+envía un correo automático avisando el nuevo estado. Los correos salen desde
+tu propia cuenta de Gmail (gratis, hasta ~100 correos/día).
+
+**Si "Autorizar acceso" no abre ninguna ventana** (síntoma: haces clic y no
+pasa nada) — casi siempre es el bloqueador de ventanas emergentes de Chrome:
+1. Mira el ícono de "ventana bloqueada" en la barra de direcciones (a la
+   derecha, junto a la estrella) → clic → "Permitir siempre emergentes de
+   script.google.com" → Listo.
+2. Vuelve a intentar "Autorizar acceso".
+
+**Alternativa que casi siempre funciona** (evita el problema de las ventanas
+emergentes): en el editor de Apps Script, en la lista de funciones junto al
+botón "Ejecutar" (arriba), elige `enviarCorreo` en vez de `doPost`, y presiona
+**Ejecutar**. Aparecerá "Se requiere autorización" **dentro de la misma
+pestaña** → "Revisar permisos" → tu cuenta → "Configuración avanzada" (texto
+pequeño abajo a la izquierda) → "Ir a Proyecto sin título (no seguro)" →
+**Permitir**. Una vez autorizado así, el botón "Implementar" ya no debería
+pedir autorización de nuevo.
 
 ---
 
@@ -163,12 +220,30 @@ se agregan como una fila nueva en tu hoja, además del panel `/pedidos`.
 
 - Entra a `tudominio.vercel.app/pedidos` con la clave que definiste en la
   variable `ORDERS_ADMIN_KEY` de Vercel.
-- Verás: ventas confirmadas, montos por verificar, ventas de hoy, calificación
-  promedio, la lista completa de pedidos (con link al pin del mapa) y las
-  reseñas de clientes (con opción de eliminar las inapropiadas).
+- Pestaña **Resumen**: gráfica de ventas confirmadas por día (14 días) y
+  gráfica de ventas por producto.
+- Pestaña **Pedidos**: filtros (Todos / Por verificar / Pagados / Entregados /
+  Cancelados). En cada pedido puedes cambiar libremente el **Estado**
+  (incluye "Cancelado") y el **Método de pago** con los selectores, escribir
+  al cliente por WhatsApp, agendar la entrega en tu Google Calendar, y
+  **eliminar el pedido** con el botón rojo (esto no borra la fila ya escrita
+  en tu hoja de Google — es tu historial permanente).
+- Pestaña **Reseñas**: editar o eliminar cualquier reseña.
+- Cambiar el estado de un pedido también actualiza la fila en tu hoja de
+  Google y le envía un correo automático al cliente (si configuraste
+  `SHEETS_WEBHOOK_URL`, ver sección anterior).
 - Para que el panel y las reseñas funcionen necesitas la base de datos gratuita:
   Vercel → Storage → Marketplace → **Upstash Redis** (plan gratis) → conectar al
   proyecto → Redeploy.
+
+## Seguimiento de pedido para el cliente (/seguimiento)
+
+- Cualquier cliente puede entrar a `tudominio.vercel.app/seguimiento`, poner
+  su código de pedido (ej. `ED-XXXXXXXX`) y ver un círculo de progreso con el
+  % de avance: Por verificar (20%) → Pagado (60%) → Entregado (100%), o
+  Cancelado.
+- El botón "Ver el estado de mi pedido" aparece solo en la página de gracias
+  después de comprar, y el link también llega en el correo de confirmación.
 
 ## Seguridad incluida
 

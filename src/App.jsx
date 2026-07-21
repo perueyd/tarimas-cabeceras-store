@@ -9,6 +9,7 @@ import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
 import ThankYou from './pages/ThankYou.jsx';
 import Orders from './pages/Orders.jsx';
+import Track from './pages/Track.jsx';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/gracias" element={<ThankYou />} />
           <Route path="/pedidos" element={<Orders />} />
+          <Route path="/seguimiento" element={<Track />} />
         </Routes>
       </div>
       <Footer />

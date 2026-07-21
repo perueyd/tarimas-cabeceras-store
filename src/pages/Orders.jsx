@@ -101,6 +101,16 @@ export default function Orders() {
     } catch { /* no-op */ }
   }
 
+  async function eliminarPedido(o) {
+    if (!window.confirm(`¿Eliminar el pedido ${o.code} de ${o.nombre}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`/api/orders?key=${encodeURIComponent(key)}&code=${encodeURIComponent(o.code)}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) setOrders(orders.filter((x) => x.code !== o.code));
+    } catch { /* no-op */ }
+  }
+
   async function borrarResena(r) {
     if (!window.confirm(`¿Eliminar la reseña de ${r.nombre}?`)) return;
     try {
@@ -166,10 +176,12 @@ export default function Orders() {
     ? (reviews.reduce((s, r) => s + r.estrellas, 0) / reviews.length).toFixed(1)
     : '—';
 
+  const cancelados = orders.filter((o) => o.estado === 'Cancelado');
   const visibles = orders.filter((o) => {
     if (filtro === 'pendientes') return o.estado === 'Pago por verificar';
     if (filtro === 'pagados') return o.estado === 'Pagado';
     if (filtro === 'entregados') return o.estado === 'Entregado';
+    if (filtro === 'cancelados') return o.estado === 'Cancelado';
     return true;
   });
 
@@ -231,6 +243,7 @@ export default function Orders() {
               { id: 'pendientes', label: `Por verificar (${porVerificar.length})` },
               { id: 'pagados', label: 'Pagados' },
               { id: 'entregados', label: 'Entregados' },
+              { id: 'cancelados', label: `Cancelados (${cancelados.length})` },
             ].map((f) => (
               <button
                 key={f.id}
@@ -251,7 +264,7 @@ export default function Orders() {
               </p>
             )}
             {visibles.map((o) => (
-              <PedidoCard key={o.code} o={o} onUpdate={actualizarPedido} />
+              <PedidoCard key={o.code} o={o} onUpdate={actualizarPedido} onDelete={eliminarPedido} />
             ))}
           </div>
         </>
@@ -330,7 +343,7 @@ export default function Orders() {
   );
 }
 
-function PedidoCard({ o, onUpdate }) {
+function PedidoCard({ o, onUpdate, onDelete }) {
   const cal = calendarUrl(o);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}` : null;
@@ -339,7 +352,9 @@ function PedidoCard({ o, onUpdate }) {
       ? 'bg-green-100 text-green-800'
       : o.estado === 'Entregado'
         ? 'bg-sky-100 text-sky-800'
-        : 'bg-amber-100 text-amber-800';
+        : o.estado === 'Cancelado'
+          ? 'bg-red-100 text-red-700'
+          : 'bg-amber-100 text-amber-800';
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -377,6 +392,7 @@ function PedidoCard({ o, onUpdate }) {
             <option>Pago por verificar</option>
             <option>Pagado</option>
             <option>Entregado</option>
+            <option>Cancelado</option>
           </select>
         </label>
         <label className="flex items-center gap-1.5">
@@ -406,6 +422,12 @@ function PedidoCard({ o, onUpdate }) {
             📍 Mapa
           </a>
         )}
+        <button
+          onClick={() => onDelete(o)}
+          className="ml-auto rounded-lg border border-red-200 px-3 py-1.5 font-medium text-red-600 hover:bg-red-50"
+        >
+          🗑️ Eliminar pedido
+        </button>
       </div>
     </div>
   );

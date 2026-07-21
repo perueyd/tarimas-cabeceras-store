@@ -1,11 +1,14 @@
-import { hasDB, listOrders, newOrderCode, redisCmd, saveOrder } from './_store.js';
+import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 
-const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado'];
+const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
 
-// POST  -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
-// GET   -> lista los pedidos del negocio. Protegido con ?key=<ORDERS_ADMIN_KEY>.
+// POST   -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
+// GET    -> ?code=  seguimiento público de UN pedido (sin datos sensibles, sin clave).
+//        -> ?key=   lista todos los pedidos del negocio (panel admin).
+// PATCH  -> el dueño cambia estado y/o método de un pedido. Notifica la hoja + correo.
+// DELETE -> el dueño elimina un pedido del panel.
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const body = req.body || {};
@@ -45,6 +48,28 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
+    // Seguimiento público: cualquier persona con el código puede ver el estado
+    // (no requiere clave). Solo se devuelven campos no sensibles.
+    if (req.query.code) {
+      const code = s(req.query.code, 30);
+      if (!hasDB) {
+        return res.status(501).json({ error: 'El seguimiento aún no está disponible.' });
+      }
+      const orders = await listOrders();
+      const found = orders?.find((o) => o.code === code);
+      if (!found) return res.status(404).json({ error: 'No encontramos un pedido con ese código.' });
+      return res.status(200).json({
+        order: {
+          code: found.code,
+          estado: found.estado,
+          fecha: found.fecha,
+          entrega: found.entrega,
+          monto: found.monto,
+          items: (found.items || []).map((i) => ({ productName: i.productName, qty: i.qty })),
+        },
+      });
+    }
+
     const adminKey = process.env.ORDERS_ADMIN_KEY;
     if (!adminKey) {
       return res.status(501).json({ error: 'Configura la variable ORDERS_ADMIN_KEY en Vercel para ver los pedidos.' });
@@ -65,7 +90,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // PATCH: el dueño cambia el estado de un pedido (confirmar pago, marcar entregado).
+  // PATCH: el dueño cambia el estado y/o el método de un pedido.
   if (req.method === 'PATCH') {
     const adminKey = process.env.ORDERS_ADMIN_KEY;
     if (!adminKey || (req.query.key || '') !== adminKey) {
@@ -93,11 +118,38 @@ export default async function handler(req, res) {
           if (estado) order.estado = estado;
           if (metodo) order.metodo = metodo;
           await redisCmd(['LSET', 'pedidos', String(i), JSON.stringify(order)]);
+          // Actualiza la fila en la hoja de Google y avisa al cliente por correo (si hay email).
+          if (estado) {
+            notifySheet({
+              evento: 'actualizado',
+              code: order.code,
+              estado: order.estado,
+              metodo: order.metodo,
+              nombre: order.nombre,
+              email: order.email,
+              entrega: order.entrega,
+              monto: order.monto,
+            }).catch(() => {});
+          }
           return res.status(200).json({ ok: true, order });
         }
       } catch { /* sigue buscando */ }
     }
     return res.status(404).json({ error: 'Pedido no encontrado.' });
+  }
+
+  // DELETE: el dueño elimina un pedido del panel (no borra la fila ya escrita en Sheets).
+  if (req.method === 'DELETE') {
+    const adminKey = process.env.ORDERS_ADMIN_KEY;
+    if (!adminKey || (req.query.key || '') !== adminKey) {
+      return res.status(401).json({ error: 'Clave incorrecta.' });
+    }
+    if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
+    const code = s(req.query.code, 30);
+    if (!code) return res.status(400).json({ error: 'Falta el código del pedido.' });
+    const ok = await deleteOrder(code);
+    if (!ok) return res.status(404).json({ error: 'Pedido no encontrado.' });
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(405).json({ error: 'Método no permitido' });

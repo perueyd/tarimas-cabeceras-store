@@ -1,8 +1,8 @@
 // Almacén de pedidos usando Upstash Redis (REST, sin dependencias) + copia a
 // Google Sheets vía webhook de Apps Script (variable SHEETS_WEBHOOK_URL).
 // - Redis se activa al conectar la integración "Upstash Redis" (gratis) en Vercel.
-// - La hoja de Google se activa pegando la URL del Apps Script en SHEETS_WEBHOOK_URL
-//   (instrucciones en GUIA-EDICION.md).
+// - La hoja de Google (y el correo automático al cliente) se activan pegando la
+//   URL del Apps Script en SHEETS_WEBHOOK_URL (instrucciones en GUIA-EDICION.md).
 // Si nada está configurado, los pedidos quedan en los logs de Vercel como respaldo.
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
@@ -29,16 +29,18 @@ export function newOrderCode() {
   return `ED-${Date.now().toString(36).toUpperCase()}${rand}`;
 }
 
-async function sendToSheet(order) {
+// Notifica al Apps Script de Google: agrega/actualiza la fila en la hoja y
+// envía el correo automático al cliente. `evento` indica qué pasó.
+export async function notifySheet(payload) {
   if (!SHEETS_URL) return;
   try {
     await fetch(SHEETS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order),
+      body: JSON.stringify(payload),
     });
   } catch (err) {
-    console.log('No se pudo enviar el pedido a Google Sheets:', err?.message);
+    console.log('No se pudo notificar a Google Sheets:', err?.message);
   }
 }
 
@@ -54,8 +56,20 @@ export async function saveOrder(order) {
   } else {
     console.log('PEDIDO (BD no configurada):', JSON.stringify(order));
   }
-  await sendToSheet(order); // copia a la hoja de Google (si está configurada)
+  await notifySheet({ evento: 'creado', ...order });
   return saved;
+}
+
+export async function deleteOrder(code) {
+  if (!hasDB) return false;
+  const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
+  const list = data.result || [];
+  const raw = list.find((x) => {
+    try { return JSON.parse(x).code === code; } catch { return false; }
+  });
+  if (!raw) return false;
+  await redisCmd(['LREM', 'pedidos', '0', raw]);
+  return true;
 }
 
 export async function listOrders(limit = 200) {

@@ -29,9 +29,17 @@ export default function ThankYou() {
           : 'Tu pago se procesó correctamente. Te enviaremos la confirmación por correo.'}
       </p>
       {state?.orderCode && (
-        <p className="mt-4 text-sm font-medium">
-          N° de pedido: <span className="rounded bg-neutral-100 px-2 py-1 font-mono">{state.orderCode}</span>
-        </p>
+        <>
+          <p className="mt-4 text-sm font-medium">
+            N° de pedido: <span className="rounded bg-neutral-100 px-2 py-1 font-mono">{state.orderCode}</span>
+          </p>
+          <Link
+            to={`/seguimiento?codigo=${encodeURIComponent(state.orderCode)}`}
+            className="mt-2 inline-block text-sm text-sky-700 underline"
+          >
+            Ver el estado de mi pedido
+          </Link>
+        </>
       )}
       {state?.chargeId && (
         <p className="mt-2 text-sm text-neutral-400">N° de operación: {state.chargeId}</p>
