@@ -34,11 +34,27 @@ const LANDING_DEFAULTS = {
 };
 
 export default function Landing() {
-  const { categories, colors, storeConfig } = useCatalog();
+  const { categories, colors, storeConfig, products, currencyFormatter } = useCatalog();
   const landing = { ...LANDING_DEFAULTS, ...(storeConfig.landing || {}) };
   const [heroColor, setHeroColor] = useState(() => colors.find((c) => c.id === 'azul') || colors[0]);
   const sceneRef = useRef(null);
   const revealRefs = useRef([]);
+
+  // Vitrina rotativa: muestra los productos reales del catálogo, uno cada
+  // pocos segundos. Se pausa al pasar el mouse y respeta "reducir movimiento".
+  const [heroIdx, setHeroIdx] = useState(0);
+  const pausedRef = useRef(false);
+  useEffect(() => {
+    if (products.length <= 1) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+    const timer = setInterval(() => {
+      if (!pausedRef.current) setHeroIdx((i) => (i + 1) % products.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [products.length]);
+  const heroProduct = products.length ? products[heroIdx % products.length] : null;
+  const heroMin = heroProduct ? Math.min(...Object.values(heroProduct.sizePricing || { 0: 0 })) : 0;
 
   // Parallax sutil con el mouse (desactivado si el usuario prefiere menos movimiento).
   useEffect(() => {
@@ -127,38 +143,64 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Escena del dormitorio que se tiñe con el color elegido */}
+          {/* Vitrina rotativa: los productos reales del catálogo van pasando solos,
+              teñidos con el color elegido. Se pausa al pasar el mouse. */}
           <div ref={sceneRef} className="transition-transform duration-300 ease-out will-change-transform">
-            <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
-              <svg viewBox="0 0 600 440" className="block w-full" aria-hidden="true">
-                {/* pared y piso */}
-                <rect x="0" y="0" width="600" height="330" fill="#efece6" />
-                <rect x="0" y="330" width="600" height="110" fill="#e2ddd3" />
-                {/* cabecera */}
-                <rect x="120" y="80" width="360" height="180" rx="20" fill="#cfcfcf" />
-                <rect x="150" y="105" width="90" height="130" rx="12" fill="#ffffff" opacity="0.16" />
-                <rect x="255" y="105" width="90" height="130" rx="12" fill="#ffffff" opacity="0.16" />
-                <rect x="360" y="105" width="90" height="130" rx="12" fill="#ffffff" opacity="0.16" />
-                {/* colchón y sábanas (no se tiñen) */}
-                <rect x="105" y="235" width="390" height="60" rx="14" fill="#ffffff" />
-                <rect x="105" y="255" width="390" height="40" rx="12" fill="#f4f2ee" />
-                {/* tarima */}
-                <rect x="90" y="290" width="420" height="58" rx="12" fill="#cfcfcf" />
-                <rect x="110" y="348" width="16" height="42" rx="4" fill="#9a9a9a" />
-                <rect x="474" y="348" width="16" height="42" rx="4" fill="#9a9a9a" />
-                {/* almohadas */}
-                <rect x="150" y="200" width="130" height="48" rx="16" fill="#ffffff" />
-                <rect x="320" y="200" width="130" height="48" rx="16" fill="#ffffff" />
-              </svg>
-              {/* capa de tinte: solo cubre cabecera y tarima mediante máscara SVG */}
-              <svg viewBox="0 0 600 440" className="absolute inset-0 block w-full mix-blend-multiply transition-colors duration-200" aria-hidden="true">
-                <rect x="120" y="80" width="360" height="180" rx="20" fill={heroColor.hex} />
-                <rect x="90" y="290" width="420" height="58" rx="12" fill={heroColor.hex} />
-              </svg>
-              <div className="pointer-events-none absolute inset-0 bg-white/20 mix-blend-overlay" />
-            </div>
-            <p className="mt-3 text-center text-xs text-neutral-400">
-              Vista referencial — el color se aplica igual en cada producto de la tienda.
+            {heroProduct && (
+              <Link
+                to={`/producto/${heroProduct.id}`}
+                onMouseEnter={() => { pausedRef.current = true; }}
+                onMouseLeave={() => { pausedRef.current = false; }}
+                className="group block"
+              >
+                <div key={heroProduct.id} className="hero-slide relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
+                  <div className="relative aspect-[4/3] w-full">
+                    <img
+                      src={heroProduct.baseImage}
+                      alt={heroProduct.name}
+                      className="absolute inset-0 h-full w-full object-contain p-6"
+                    />
+                    {heroProduct.tintable !== false && (
+                      <>
+                        <div
+                          className="absolute inset-0 mix-blend-multiply transition-colors duration-200"
+                          style={{ backgroundColor: heroColor.hex }}
+                        />
+                        <div className="absolute inset-0 bg-white/25 mix-blend-overlay" />
+                      </>
+                    )}
+                  </div>
+                  {/* Etiqueta del producto */}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10 text-white">
+                    <div>
+                      <p className="text-sm font-medium">{heroProduct.name}</p>
+                      <p className="text-xs opacity-80">Desde {currencyFormatter.format(heroMin)}</p>
+                    </div>
+                    <span className="rounded-full bg-white/90 px-4 py-1.5 text-xs font-medium text-ink transition group-hover:bg-white">
+                      Ver producto →
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            )}
+
+            {/* Puntos indicadores */}
+            {products.length > 1 && (
+              <div className="mt-3 flex justify-center gap-1.5">
+                {products.map((p, i) => (
+                  <button
+                    key={p.id}
+                    aria-label={`Ver ${p.name}`}
+                    onClick={() => setHeroIdx(i)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === heroIdx % products.length ? 'w-6 bg-ink' : 'w-1.5 bg-neutral-300 hover:bg-neutral-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-center text-xs text-neutral-400">
+              Nuestros muebles — el color se aplica al instante en cada producto.
             </p>
           </div>
         </div>

@@ -49,6 +49,15 @@ body {
   100% { transform: translateY(2px) rotate(calc(var(--rot, 0deg) - 4deg)); }
 }
 
+/* Vitrina rotativa del hero: cada producto entra con un fundido suave. */
+.hero-slide {
+  animation: hero-fade 0.5s ease both;
+}
+@keyframes hero-fade {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal {
     opacity: 1;
@@ -56,7 +65,8 @@ body {
     transition: none;
   }
   .marquee,
-  .ed-float {
+  .ed-float,
+  .hero-slide {
     animation: none;
   }
 }
