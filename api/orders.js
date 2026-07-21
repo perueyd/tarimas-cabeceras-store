@@ -118,17 +118,13 @@ export default async function handler(req, res) {
           if (estado) order.estado = estado;
           if (metodo) order.metodo = metodo;
           await redisCmd(['LSET', 'pedidos', String(i), JSON.stringify(order)]);
-          // Actualiza la fila en la hoja de Google y avisa al cliente por correo (si hay email).
+          // Agrega una fila nueva a la hoja de Google (historial con fecha de cada
+          // cambio de estado) y avisa al cliente por correo, si hay email.
           if (estado) {
             notifySheet({
+              ...order,
               evento: 'actualizado',
-              code: order.code,
-              estado: order.estado,
-              metodo: order.metodo,
-              nombre: order.nombre,
-              email: order.email,
-              entrega: order.entrega,
-              monto: order.monto,
+              fecha: new Date().toISOString(), // fecha de ESTE cambio de estado, no la del pedido original
             }).catch(() => {});
           }
           return res.status(200).json({ ok: true, order });
