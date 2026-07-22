@@ -75,12 +75,19 @@ export function useCatalog() {
   return ctx;
 }
 
-// Resuelve qué imagen mostrar para un producto según el color elegido:
+// Resuelve qué imagen mostrar para un producto según el color y el tamaño
+// elegidos (el tamaño es opcional — las tarjetas de catálogo, que no tienen
+// un tamaño seleccionado, no lo mandan):
 // 1. Si ese color tiene su PROPIA foto (colorImages) -> se muestra tal cual, sin teñir.
-// 2. Si no, y el producto es tintable -> se tiñe la imagen base con el color.
-// 3. Si no es tintable -> imagen base tal cual.
-export function resolveProductImage(product, colorId) {
+// 2. Si no, y ese tamaño tiene su PROPIA foto (sizeImages) -> se usa esa (una
+//    cabecera King se ve distinta a una de 1.5 plaza, aunque sea el mismo diseño),
+//    teñida igual que la imagen base si el producto es tintable.
+// 3. Si no, se usa la imagen base del producto (o ninguna, si el dueño aún no
+//    subió foto para ese tamaño — ProductImage muestra un aviso en ese caso).
+export function resolveProductImage(product, colorId, sizeId) {
   const especifica = product.colorImages?.[colorId];
   if (especifica) return { src: especifica, tintable: false };
+  const porTamano = sizeId && product.sizeImages?.[sizeId];
+  if (porTamano) return { src: porTamano, tintable: product.tintable !== false };
   return { src: product.baseImage, tintable: product.tintable !== false };
 }

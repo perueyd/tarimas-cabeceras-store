@@ -29,8 +29,9 @@ export default function ProductDetail() {
     [product, sizeId]
   );
   const unitPrice = priceInfo?.final ?? 0;
-  // Imagen según el color: foto propia del color si existe, o imagen base teñida.
-  const img = product ? resolveProductImage(product, colorId) : null;
+  // Imagen según color y tamaño: foto propia del color, si no la del tamaño,
+  // si no la imagen base teñida (ver resolveProductImage).
+  const img = product ? resolveProductImage(product, colorId, sizeId) : null;
 
   if (!product) {
     return (

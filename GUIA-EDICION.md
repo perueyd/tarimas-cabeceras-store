@@ -92,6 +92,21 @@ con tu fondo neutro de la web, limpio.
 `src/data/catalog.js`. Solo tiene sentido si prefieres editar el catálogo por
 código en vez del panel — para el uso normal, usa el botón "📷 Subir".
 
+**Foto propia por tamaño (opcional):** un mueble se ve distinto según el
+tamaño (una cabecera King es visiblemente más ancha que una de 1.5 plaza).
+Si quieres una foto específica por tamaño, en el panel → editar el producto
+→ sección **"Foto propia por tamaño"** aparece un campo por cada tamaño que
+tenga precio, con su propio botón "📷 Subir".
+
+- Puedes subirlas de a poco — no hace falta tenerlas todas de una vez.
+- El tamaño que no tenga foto propia usa la imagen base del producto (la de
+  arriba). Si tampoco hay imagen base, se muestra "Foto próximamente" en
+  vez de un ícono de foto rota — así puedes publicar el producto antes de
+  tener todas las fotos listas, sin que se vea roto.
+- Funciona igual que "Foto propia por color": si un color también tiene su
+  propia foto, esa manda primero; si no, se usa la foto del tamaño; si
+  tampoco hay, la imagen base.
+
 ## 3. Agregar un producto
 
 Copia una de las **plantillas** que están al final de la lista `products`

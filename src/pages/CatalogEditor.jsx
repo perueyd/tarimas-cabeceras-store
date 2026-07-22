@@ -201,6 +201,7 @@ const PRODUCTO_VACIO = {
   discountPercent: 0,
   availableColors: [],
   colorImages: {},
+  sizeImages: {},
 };
 
 function ProductosTab({ catalog, api, flash, adminKey }) {
@@ -331,6 +332,14 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       if (url.trim() === '') delete ci[colorId];
       else ci[colorId] = url.trim();
       return { ...prev, colorImages: ci };
+    });
+  }
+  function setSizeImage(sizeId, url) {
+    setP((prev) => {
+      const si = { ...(prev.sizeImages || {}) };
+      if (url.trim() === '') delete si[sizeId];
+      else si[sizeId] = url.trim();
+      return { ...prev, sizeImages: si };
     });
   }
 
@@ -570,6 +579,35 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Foto propia por tamaño (opcional) */}
+      {Object.keys(p.sizePricing || {}).length > 0 && (
+        <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+          <p className="text-sm font-medium text-neutral-700">Foto propia por tamaño (opcional)</p>
+          <p className="mb-3 mt-1 text-xs text-neutral-500">
+            Útil cuando el mueble se ve realmente distinto según el tamaño (ej. una cabecera
+            King se ve mucho más ancha que una de 1.5 plaza). Puedes subirlas de a poco — el
+            tamaño que aún no tenga foto propia usa la imagen base; si tampoco hay imagen base,
+            se muestra un aviso de "Foto próximamente" en vez de romperse.
+          </p>
+          <div className="space-y-2">
+            {catalog.sizes
+              .filter((s) => p.sizePricing[s.id] != null)
+              .map((s) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <span className="w-32 shrink-0 text-xs font-medium text-neutral-600">{s.label}</span>
+                  <input
+                    value={p.sizeImages?.[s.id] || ''}
+                    onChange={(e) => setSizeImage(s.id, e.target.value)}
+                    placeholder="(vacío = usar imagen base) Sube o pega la URL"
+                    className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                  />
+                  <UploadButton adminKey={adminKey} onUploaded={(url) => setSizeImage(s.id, url)} />
+                </div>
+              ))}
           </div>
         </div>
       )}

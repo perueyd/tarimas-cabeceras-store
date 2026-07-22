@@ -11,6 +11,17 @@
 //                   completo, como antes.
 // tintable=false -> muestra la foto tal cual (para fotos reales ya con su acabado).
 export default function ProductImage({ baseImage, colorHex, alt, className = '', tintable = true }) {
+  // Sin foto todavía para esta combinación (ej. tamaño recién agregado, sin
+  // subir su imagen aún) -> aviso en vez de un ícono de imagen rota.
+  if (!baseImage) {
+    return (
+      <div className={`relative flex flex-col items-center justify-center gap-1 overflow-hidden bg-neutral-100 text-neutral-400 ${className}`}>
+        <span className="text-3xl">🖼️</span>
+        <span className="text-xs">Foto próximamente</span>
+      </div>
+    );
+  }
+
   const maskStyle = {
     WebkitMaskImage: `url(${baseImage})`,
     WebkitMaskSize: 'contain',
