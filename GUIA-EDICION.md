@@ -107,6 +107,15 @@ tenga precio, con su propio botón "📷 Subir".
   propia foto, esa manda primero; si no, se usa la foto del tamaño; si
   tampoco hay, la imagen base.
 
+**Colores por tamaño (opcional):** a veces un tamaño viene en menos colores
+que el resto (ej. King solo en 2 de tus 5 colores). En el panel → editar el
+producto → sección **"Colores por tamaño"**, marca "personalizar colores"
+en el tamaño que quieras limitar y desmarca los colores que no apliquen ahí.
+El tamaño que no personalices sigue usando la lista general de "Colores
+disponibles". El cliente ve automáticamente solo los colores que correspondan
+al tamaño que eligió — si tenía seleccionado un color que ya no aplica al
+cambiar de tamaño, se cambia solo al primero disponible.
+
 ## 3. Agregar un producto
 
 Copia una de las **plantillas** que están al final de la lista `products`

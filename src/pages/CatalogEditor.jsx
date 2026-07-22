@@ -440,6 +440,7 @@ const PRODUCTO_VACIO = {
   availableColors: [],
   colorImages: {},
   sizeImages: {},
+  colorsBySize: {},
 };
 
 function ProductosTab({ catalog, api, flash, adminKey }) {
@@ -578,6 +579,22 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       if (url.trim() === '') delete si[sizeId];
       else si[sizeId] = url.trim();
       return { ...prev, sizeImages: si };
+    });
+  }
+  function setColoresPersonalizados(sizeId, activar) {
+    setP((prev) => {
+      const cbs = { ...(prev.colorsBySize || {}) };
+      if (activar) cbs[sizeId] = [...prev.availableColors];
+      else delete cbs[sizeId];
+      return { ...prev, colorsBySize: cbs };
+    });
+  }
+  function toggleColorForSize(sizeId, colorId) {
+    setP((prev) => {
+      const cbs = { ...(prev.colorsBySize || {}) };
+      const actual = cbs[sizeId] || prev.availableColors;
+      cbs[sizeId] = actual.includes(colorId) ? actual.filter((c) => c !== colorId) : [...actual, colorId];
+      return { ...prev, colorsBySize: cbs };
     });
   }
 
@@ -787,6 +804,58 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
           ))}
         </div>
       </div>
+
+      {/* Colores por tamaño (opcional) */}
+      {Object.keys(p.sizePricing || {}).length > 0 && p.availableColors.length > 0 && (
+        <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+          <p className="text-sm font-medium text-neutral-700">Colores por tamaño (opcional)</p>
+          <p className="mb-3 mt-1 text-xs text-neutral-500">
+            A veces un tamaño viene en menos colores que el resto (ej. King solo en 2 colores).
+            El tamaño que no personalices usa la lista general de "Colores disponibles" de arriba.
+          </p>
+          <div className="space-y-2">
+            {catalog.sizes
+              .filter((s) => p.sizePricing[s.id] != null)
+              .map((s) => {
+                const personalizado = Boolean(p.colorsBySize?.[s.id]);
+                const seleccionados = p.colorsBySize?.[s.id] || p.availableColors;
+                return (
+                  <div key={s.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+                    <label className="flex items-center gap-2 text-xs font-medium text-neutral-700">
+                      <input
+                        type="checkbox"
+                        checked={personalizado}
+                        onChange={(e) => setColoresPersonalizados(s.id, e.target.checked)}
+                      />
+                      {s.label} — personalizar colores
+                    </label>
+                    {personalizado && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {p.availableColors.map((colorId) => {
+                          const c = catalog.colors.find((x) => x.id === colorId);
+                          const activo = seleccionados.includes(colorId);
+                          return (
+                            <button
+                              key={colorId}
+                              type="button"
+                              onClick={() => toggleColorForSize(s.id, colorId)}
+                              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+                                activo ? 'border-ink bg-neutral-100 font-medium' : 'border-neutral-200 text-neutral-400'
+                              }`}
+                            >
+                              <span className="h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: c?.hex }} />
+                              {c?.label || colorId}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* Foto propia por color (opcional) */}
       {p.availableColors.length > 0 && (

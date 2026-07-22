@@ -16,12 +16,27 @@ export default function ProductDetail() {
   const { addItem } = useCart();
 
   const availableSizes = product ? sizes.filter((s) => product.sizePricing[s.id] != null) : [];
-  const availableColors = product ? colors.filter((c) => product.availableColors.includes(c.id)) : [];
 
   const [sizeId, setSizeId] = useState(availableSizes[0]?.id);
+  // Colores según el tamaño elegido: si ese tamaño tiene su propia lista
+  // (colorsBySize) se usa esa; si no, la lista general del producto — una
+  // cabecera King puede venir en menos colores que una de 1.5 plaza.
+  const colorIdsForSize = product ? product.colorsBySize?.[sizeId] || product.availableColors : [];
+  const availableColors = colors.filter((c) => colorIdsForSize.includes(c.id));
+
   const [colorId, setColorId] = useState(availableColors[0]?.id);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+
+  // Si el color elegido ya no está disponible para el tamaño recién
+  // seleccionado, cambia solo al primero disponible (mismo patrón que el
+  // checkout usa para los métodos de pago).
+  useEffect(() => {
+    if (availableColors.length && !availableColors.some((c) => c.id === colorId)) {
+      setColorId(availableColors[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sizeId]);
 
   const selectedColor = colors.find((c) => c.id === colorId);
   const priceInfo = useMemo(
