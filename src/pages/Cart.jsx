@@ -33,7 +33,7 @@ export default function Cart() {
             <div key={lineKey(item)} className="flex gap-4 p-4">
               <ProductImage
                 baseImage={item.baseImage}
-                colorHex={color.hex}
+                colorHex={color?.hex}
                 alt={item.productName}
                 className="h-20 w-24 flex-shrink-0 rounded-lg"
                 tintable={item.tintable !== false}
@@ -43,7 +43,7 @@ export default function Cart() {
                   <div>
                     <p className="font-medium">{item.productName}</p>
                     <p className="text-sm text-neutral-500">
-                      {size.label} · {color.label}
+                      {size?.label || item.sizeId} · {color?.label || item.colorId}
                     </p>
                   </div>
                   <div className="text-right">

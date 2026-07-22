@@ -72,7 +72,7 @@ export default function ProductDetail() {
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <ProductImage
           baseImage={img.src}
-          colorHex={selectedColor.hex}
+          colorHex={selectedColor?.hex}
           alt={product.name}
           className="aspect-[4/3] w-full rounded-xl"
           tintable={img.tintable}
@@ -113,9 +113,11 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <ColorPicker colors={availableColors} selectedId={colorId} onSelect={setColorId} />
-          </div>
+          {availableColors.length > 0 && (
+            <div className="mt-6">
+              <ColorPicker colors={availableColors} selectedId={colorId} onSelect={setColorId} />
+            </div>
+          )}
 
           <div className="mt-6 flex items-center gap-3">
             <p className="text-sm font-medium text-neutral-700">Cantidad</p>

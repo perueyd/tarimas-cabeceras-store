@@ -9,8 +9,11 @@ export default function ProductCard({ product }) {
   const img = resolveProductImage(product, defaultColor.id);
 
   // Precio "Desde": el tamaño más barato, con su descuento si aplica.
-  const cheapestSizeId = Object.entries(product.sizePricing).sort((a, b) => a[1] - b[1])[0][0];
-  const { original, final, discountPercent } = getEffectivePrice(product, cheapestSizeId);
+  // (product.sizePricing puede venir vacío si el producto aún no tiene
+  // ningún precio cargado — se muestra sin precio en vez de romper la página.)
+  const cheapestSizeId = Object.entries(product.sizePricing || {}).sort((a, b) => a[1] - b[1])[0]?.[0];
+  const priceInfo = cheapestSizeId ? getEffectivePrice(product, cheapestSizeId) : null;
+  const { original, final, discountPercent } = priceInfo || {};
 
   return (
     <Link
@@ -29,7 +32,7 @@ export default function ProductCard({ product }) {
         <p className="mt-1 text-sm text-neutral-500 line-clamp-2">{product.shortDescription}</p>
         <div className="mt-3 flex items-baseline gap-2">
           <p className="text-sm font-medium">
-            Desde {currencyFormatter.format(final)}
+            {priceInfo ? `Desde ${currencyFormatter.format(final)}` : 'Precio por confirmar'}
           </p>
           {discountPercent > 0 && (
             <>

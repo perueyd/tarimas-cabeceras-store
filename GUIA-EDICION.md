@@ -153,6 +153,7 @@ Vercel detecta el cambio y publica la web actualizada sola en ~1 minuto.
 | La foto no aparece | El nombre del archivo no coincide exacto (mayúsculas incluidas) o no está en public/images/ |
 | El producto no aparece | Su `category` no existe o la categoría tiene `active: false` |
 | El tamaño no aparece | Ese tamaño no tiene precio en `sizePricing` |
+| Al crear un producto desde el panel, el botón "Guardar" no deja avanzar | El panel exige al menos un precio por tamaño y al menos un color marcado antes de guardar — un producto sin ninguno de los dos rompía la tienda (página en blanco). Completa "Precios por tamaño" y "Colores disponibles" antes de guardar. |
 
 ---
 

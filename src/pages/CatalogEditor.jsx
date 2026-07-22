@@ -339,6 +339,17 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       alert('Completa al menos: id, nombre y categoría.');
       return;
     }
+    // Un producto sin ningún precio por tamaño, o sin ningún color, rompe la
+    // tienda (la tarjeta y la página del producto no tienen qué mostrar) —
+    // se bloquea el guardado aquí para no dejarlo a medias.
+    if (Object.keys(p.sizePricing || {}).length === 0) {
+      alert('Agrega el precio de al menos un tamaño en "Precios por tamaño" antes de guardar.');
+      return;
+    }
+    if ((p.availableColors || []).length === 0) {
+      alert('Marca al menos un color en "Colores disponibles" antes de guardar.');
+      return;
+    }
     // Un precio de oferta solo cuenta si es menor al precio regular de ese
     // mismo tamaño — cualquier otro caso se descarta antes de guardar.
     const offerPricing = {};
