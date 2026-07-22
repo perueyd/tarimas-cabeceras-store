@@ -12,6 +12,8 @@ export function CatalogProvider({ children }) {
     products: staticCatalog.products,
     categories: staticCatalog.categories,
     colors: staticCatalog.colors,
+    sizes: staticCatalog.sizes,
+    showcase: staticCatalog.showcase,
     storeConfig: staticCatalog.storeConfig,
     loaded: false,
   });
@@ -26,6 +28,8 @@ export function CatalogProvider({ children }) {
           products: Array.isArray(d.products) ? d.products : staticCatalog.products,
           categories: Array.isArray(d.categories) ? d.categories : staticCatalog.categories,
           colors: Array.isArray(d.colors) ? d.colors : staticCatalog.colors,
+          sizes: Array.isArray(d.sizes) ? d.sizes : staticCatalog.sizes,
+          showcase: Array.isArray(d.showcase) ? d.showcase : staticCatalog.showcase,
           storeConfig: d.storeConfig || staticCatalog.storeConfig,
           loaded: true,
         });
@@ -39,18 +43,19 @@ export function CatalogProvider({ children }) {
   }, []);
 
   const value = useMemo(() => {
-    const { products, categories, colors, storeConfig, loaded } = state;
+    const { products, categories, colors, sizes, showcase, storeConfig, loaded } = state;
     return {
       products,
       categories,
       colors,
+      sizes,
+      showcase,
       storeConfig,
-      sizes: staticCatalog.sizes,
       currencyFormatter: staticCatalog.currencyFormatter,
       loaded,
       getProductById: (id) => products.find((p) => p.id === id),
       getColorById: (id) => colors.find((c) => c.id === id),
-      getSizeById: (id) => staticCatalog.sizes.find((s) => s.id === id),
+      getSizeById: (id) => sizes.find((s) => s.id === id),
       refetch: () =>
         fetch('/api/catalog')
           .then((r) => r.json())
@@ -59,6 +64,8 @@ export function CatalogProvider({ children }) {
               products: d.products || [],
               categories: d.categories || [],
               colors: d.colors || [],
+              sizes: d.sizes || [],
+              showcase: d.showcase || [],
               storeConfig: d.storeConfig || staticCatalog.storeConfig,
               loaded: true,
             })

@@ -298,6 +298,29 @@ pedir autorización de nuevo.
   Vercel → Storage → Marketplace → **Upstash Redis** (plan gratis) → conectar al
   proyecto → Redeploy.
 
+### Editar página — pestañas de catálogo
+
+Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
+
+- **Categorías**: agregar, activar/desactivar, eliminar, y **renombrar** (escribe
+  el nuevo nombre en el campo y aparece el botón "Guardar nombre"). El ID no se
+  puede cambiar una vez creada — solo el nombre visible.
+- **Tamaños**: edita el nombre y las medidas (ej. "135 x 190 cm") de cada
+  tamaño, o agrega/elimina tamaños. Estos son los que eliges en "Precios por
+  tamaño" al editar un producto. Cambiar nombre/medidas no afecta los precios
+  ya guardados; eliminar un tamaño hace que los productos con precio ahí dejen
+  de poder comprarse en ese tamaño (el precio queda guardado por si lo agregas
+  de nuevo con el mismo ID).
+- **Página principal**: los textos del hero (lo primero que ve el cliente),
+  los botones, y la palabra grande de la animación.
+- **Vitrina animada**: los paneles del carrusel 3D que se arrastra en la
+  portada (el de "arrastra o toca un panel"). Por cada panel puedes cambiar la
+  imagen (con el botón "📷 Subir"), el color de fondo, el nombre (ahora se
+  muestra visible sobre el panel) y a qué categoría lleva al tocar — o quitar
+  y agregar paneles. La forma del blob y el balanceo son automáticos, no hay
+  que configurarlos. Si quitas todos los paneles, esa sección simplemente no
+  se muestra en la portada (no rompe nada).
+
 ## Seguimiento de pedido para el cliente (/seguimiento)
 
 - Cualquier cliente puede entrar a `tudominio.vercel.app/seguimiento`, poner

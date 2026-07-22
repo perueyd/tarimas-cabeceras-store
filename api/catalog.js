@@ -3,9 +3,9 @@ import { hasDB } from './_store.js';
 import { s } from './_pricing.js';
 
 // GET     -> catálogo completo (público, lo usa la tienda para mostrarse).
-// POST    -> ?key=admin&resource=product|category|color   body: el objeto (crea o edita por id)
-//         -> ?key=admin&resource=config                    body: cambios parciales de storeConfig
-// DELETE  -> ?key=admin&resource=product|category|color&id=xxx
+// POST    -> ?key=admin&resource=product|category|color|size|showcase   body: el objeto (crea o edita por id)
+//         -> ?key=admin&resource=config                                 body: cambios parciales de storeConfig
+// DELETE  -> ?key=admin&resource=product|category|color|size|showcase&id=xxx
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const catalog = await getCatalog();
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     }
 
     const listKey = listKeyFor(resource);
-    if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color o config).' });
+    if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color, size, showcase o config).' });
 
     const item = req.body;
     const id = s(item?.id, 60).trim();

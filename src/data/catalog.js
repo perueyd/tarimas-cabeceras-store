@@ -57,6 +57,7 @@ export const categories = [
 ];
 
 // ---------- TAMAÑOS ----------
+// Editable desde el panel → Editar página → Tamaños.
 // Un producto solo muestra los tamaños que tengan precio en su sizePricing.
 // 'unico' sirve para muebles que no van por plazas (ej. un ropero de melamina).
 export const sizes = [
@@ -79,6 +80,22 @@ export const colors = [
   { id: 'roble', label: 'Roble', hex: '#b08a5a' },
   { id: 'nogal', label: 'Nogal', hex: '#7a5638' },
   { id: 'blanco', label: 'Blanco', hex: '#f2f0ec' },
+];
+
+// ---------- VITRINA ANIMADA (portada) ----------
+// Editable desde el panel → Editar página → Vitrina animada.
+// Paneles del carrusel 3D "arrastra o toca un panel" de la portada.
+//   id     texto único
+//   label  nombre visible en el panel
+//   img    ruta o URL de la imagen/silueta
+//   color  color de fondo del blob (hex)
+//   cat    id de `categories` al que lleva al tocar el panel (opcional)
+export const showcase = [
+  { id: 'tarimas', label: 'Tarimas', img: '/images/tarima-base.svg', color: '#3b5a70', cat: 'tarimas' },
+  { id: 'cabeceras', label: 'Cabeceras', img: '/images/cabecera-base.svg', color: '#6e2a35', cat: 'cabeceras' },
+  { id: 'sofas-cama', label: 'Sofás Cama', img: '/images/sofa-base.svg', color: '#7a5638', cat: 'sofas-cama' },
+  { id: 'salas', label: 'Sala y Comedor', img: '/images/comedor-base.svg', color: '#8b8d91', cat: 'salas' },
+  { id: 'melamina', label: 'Melamina', img: '/images/ropero-base.svg', color: '#b08a5a', cat: 'melamina' },
 ];
 
 // ---------- PRODUCTOS ----------

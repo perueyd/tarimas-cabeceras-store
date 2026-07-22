@@ -3,12 +3,14 @@
 // Si Redis no tiene datos todavía (o no está conectado), se usa el catálogo
 // estático de src/data/catalog.js como respaldo — la tienda nunca se rompe.
 import { hasDB, redisCmd } from './_store.js';
-import { categories, colors, products, sizes, storeConfig } from '../src/data/catalog.js';
+import { categories, colors, products, showcase, sizes, storeConfig } from '../src/data/catalog.js';
 
 const KEYS = {
   products: 'catalog:products',
   categories: 'catalog:categories',
   colors: 'catalog:colors',
+  sizes: 'catalog:sizes',
+  showcase: 'catalog:showcase',
   config: 'catalog:config',
 };
 
@@ -31,22 +33,25 @@ async function setJSON(key, value) {
 }
 
 export async function getCatalog() {
-  const [dbProducts, dbCategories, dbColors, dbConfig] = await Promise.all([
+  const [dbProducts, dbCategories, dbColors, dbSizes, dbShowcase, dbConfig] = await Promise.all([
     getJSON(KEYS.products, null),
     getJSON(KEYS.categories, null),
     getJSON(KEYS.colors, null),
+    getJSON(KEYS.sizes, null),
+    getJSON(KEYS.showcase, null),
     getJSON(KEYS.config, null),
   ]);
   return {
     products: dbProducts ?? products,
     categories: dbCategories ?? categories,
     colors: dbColors ?? colors,
+    sizes: dbSizes ?? sizes,
+    showcase: dbShowcase ?? showcase,
     storeConfig: dbConfig ? { ...storeConfig, ...dbConfig } : storeConfig,
-    sizes, // los tamaños (plazas) son estructurales, no se editan desde el panel
   };
 }
 
-const LIST_RESOURCES = { product: 'products', category: 'categories', color: 'colors' };
+const LIST_RESOURCES = { product: 'products', category: 'categories', color: 'colors', size: 'sizes', showcase: 'showcase' };
 
 export function listKeyFor(resource) {
   return LIST_RESOURCES[resource] || null;

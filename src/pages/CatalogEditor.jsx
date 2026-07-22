@@ -86,8 +86,10 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'productos', label: `Productos (${catalog.products.length})` },
           { id: 'categorias', label: 'Categorías' },
           { id: 'colores', label: 'Colores' },
+          { id: 'tamanos', label: 'Tamaños' },
           { id: 'config', label: 'Datos de la tienda' },
           { id: 'portada', label: 'Página principal' },
+          { id: 'vitrina', label: 'Vitrina animada' },
         ].map((t) => (
           <button
             key={t.id}
@@ -104,8 +106,10 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'tamanos' && <TamanosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
     </div>
   );
 }
@@ -181,6 +185,155 @@ function PortadaTab({ catalog, api, flash }) {
       <button onClick={guardar} disabled={saving} className="mt-6 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
         {saving ? 'Guardando...' : 'Guardar página principal'}
       </button>
+    </div>
+  );
+}
+
+// ============================================================
+// VITRINA ANIMADA (carrusel 3D "arrastra o toca un panel")
+// ============================================================
+function VitrinaTab({ catalog, api, flash, adminKey }) {
+  const [lista, setLista] = useState(catalog.showcase);
+  const [nuevo, setNuevo] = useState({ id: '', label: '', img: '', color: '#8b8d91', cat: '' });
+  const [saving, setSaving] = useState(false);
+
+  function set(i, field, value) {
+    setLista((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)));
+  }
+
+  async function guardarTodos() {
+    setSaving(true);
+    try {
+      for (const p of lista) {
+        await api('POST', 'showcase', p);
+      }
+      flash('Vitrina animada guardada — refresca tu web para verla.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function eliminar(p) {
+    if (!window.confirm(`¿Eliminar el panel "${p.label}" de la vitrina animada?`)) return;
+    await api('DELETE', 'showcase', null, `&id=${encodeURIComponent(p.id)}`);
+    setLista((prev) => prev.filter((x) => x.id !== p.id));
+    flash('Panel eliminado.');
+  }
+
+  async function agregar() {
+    if (!nuevo.id.trim() || !nuevo.label.trim()) return;
+    const id = nuevo.id.trim().toLowerCase().replace(/\s+/g, '-');
+    const item = { ...nuevo, id };
+    await api('POST', 'showcase', item);
+    setLista((prev) => [...prev, item]);
+    setNuevo({ id: '', label: '', img: '', color: '#8b8d91', cat: '' });
+    flash('Panel agregado.');
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-neutral-500">
+        Los paneles del carrusel animado de la portada (el que se arrastra, con el nombre grande
+        de fondo). Puedes cambiar la imagen, el color de fondo, el nombre y a qué categoría lleva
+        cada uno, o quitar y agregar paneles. La forma del blob y el balanceo son automáticos —
+        no necesitas configurarlos.
+      </p>
+      <div className="space-y-3">
+        {lista.map((p, i) => (
+          <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="h-8 w-8 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: p.color }} />
+              <input
+                value={p.label}
+                onChange={(e) => set(i, 'label', e.target.value)}
+                placeholder="Nombre visible"
+                className="w-40 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+              />
+              <select
+                value={p.cat || ''}
+                onChange={(e) => set(i, 'cat', e.target.value)}
+                className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-ink"
+              >
+                <option value="">Sin categoría (va a la tienda)</option>
+                {catalog.categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+              <input
+                type="color"
+                value={p.color}
+                onChange={(e) => set(i, 'color', e.target.value)}
+                className="h-9 w-10 cursor-pointer rounded border border-neutral-300"
+              />
+              <button onClick={() => eliminar(p)} className="ml-auto text-xs text-red-600 hover:underline">
+                Eliminar
+              </button>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                value={p.img}
+                onChange={(e) => set(i, 'img', e.target.value)}
+                placeholder="URL de la imagen"
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+              />
+              <UploadButton adminKey={adminKey} onUploaded={(url) => set(i, 'img', url)} />
+            </div>
+          </div>
+        ))}
+        {lista.length === 0 && (
+          <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-400">
+            Sin paneles — la vitrina animada no se mostrará en la portada hasta que agregues al menos uno.
+          </p>
+        )}
+      </div>
+
+      <button onClick={guardarTodos} disabled={saving} className="mt-4 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+        {saving ? 'Guardando...' : 'Guardar cambios'}
+      </button>
+
+      <div className="mt-6 rounded-lg border border-dashed border-neutral-300 p-3">
+        <p className="mb-2 text-xs font-medium text-neutral-600">+ Agregar panel nuevo</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <Field small label="ID" value={nuevo.id} onChange={(v) => setNuevo({ ...nuevo, id: v })} placeholder="ej. escritorios" />
+          <Field small label="Nombre visible" value={nuevo.label} onChange={(v) => setNuevo({ ...nuevo, label: v })} placeholder="ej. Escritorios" />
+          <label className="text-xs">
+            <span className="mb-1 block text-neutral-500">Categoría</span>
+            <select
+              value={nuevo.cat}
+              onChange={(e) => setNuevo({ ...nuevo, cat: e.target.value })}
+              className="rounded-lg border border-neutral-300 bg-white px-2 py-2 text-sm outline-none focus:border-ink"
+            >
+              <option value="">Sin categoría</option>
+              {catalog.categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs">
+            <span className="mb-1 block text-neutral-500">Color</span>
+            <input
+              type="color"
+              value={nuevo.color}
+              onChange={(e) => setNuevo({ ...nuevo, color: e.target.value })}
+              className="h-9 w-14 cursor-pointer rounded border border-neutral-300"
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              value={nuevo.img}
+              onChange={(e) => setNuevo({ ...nuevo, img: e.target.value })}
+              placeholder="URL de la imagen"
+              className="w-48 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+            />
+            <UploadButton adminKey={adminKey} onUploaded={(url) => setNuevo((prev) => ({ ...prev, img: url }))} />
+          </div>
+          <button onClick={agregar} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+            + Agregar panel
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -629,6 +782,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
 // ============================================================
 function CategoriasTab({ catalog, api, flash }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '' });
+  const [labels, setLabels] = useState(() => Object.fromEntries(catalog.categories.map((c) => [c.id, c.label])));
 
   async function toggleActive(cat) {
     await api('POST', 'category', { ...cat, active: !cat.active });
@@ -645,25 +799,47 @@ function CategoriasTab({ catalog, api, flash }) {
     setNuevo({ id: '', label: '' });
     flash('Categoría agregada.');
   }
+  async function renombrar(cat) {
+    const nuevoLabel = (labels[cat.id] ?? cat.label).trim();
+    if (!nuevoLabel || nuevoLabel === cat.label) return;
+    await api('POST', 'category', { ...cat, label: nuevoLabel });
+    flash(`Categoría renombrada a "${nuevoLabel}".`);
+  }
 
   return (
     <div>
       <div className="space-y-2">
-        {catalog.categories.map((c) => (
-          <div key={c.id} className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-3">
-            <div>
-              <p className="text-sm font-medium">{c.label}</p>
-              <p className="text-xs text-neutral-400">{c.id}</p>
+        {catalog.categories.map((c) => {
+          const labelActual = labels[c.id] ?? c.label;
+          const cambiado = labelActual.trim() && labelActual !== c.label;
+          return (
+            <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-white p-3">
+              <div className="flex min-w-[220px] flex-1 items-center gap-2">
+                <input
+                  value={labelActual}
+                  onChange={(e) => setLabels((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                  className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                />
+                <span className="shrink-0 text-xs text-neutral-400">{c.id}</span>
+                {cambiado && (
+                  <button
+                    onClick={() => renombrar(c)}
+                    className="shrink-0 rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                  >
+                    Guardar nombre
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <label className="flex items-center gap-1.5">
+                  <input type="checkbox" checked={c.active} onChange={() => toggleActive(c)} />
+                  Activa
+                </label>
+                <button onClick={() => eliminar(c)} className="text-red-600 hover:underline">Eliminar</button>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-xs">
-              <label className="flex items-center gap-1.5">
-                <input type="checkbox" checked={c.active} onChange={() => toggleActive(c)} />
-                Activa
-              </label>
-              <button onClick={() => eliminar(c)} className="text-red-600 hover:underline">Eliminar</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-neutral-300 p-3">
@@ -721,6 +897,94 @@ function ColoresTab({ catalog, api, flash }) {
         </label>
         <button onClick={agregar} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
           + Agregar color
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// TAMAÑOS (medidas)
+// ============================================================
+function TamanosTab({ catalog, api, flash }) {
+  const [lista, setLista] = useState(catalog.sizes);
+  const [nuevo, setNuevo] = useState({ id: '', label: '', dims: '' });
+  const [saving, setSaving] = useState(false);
+
+  function set(i, field, value) {
+    setLista((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)));
+  }
+
+  async function guardarTodos() {
+    setSaving(true);
+    try {
+      for (const s of lista) {
+        await api('POST', 'size', s);
+      }
+      flash('Tamaños guardados.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function eliminar(s) {
+    if (!window.confirm(`¿Eliminar el tamaño "${s.label}"? Los productos que ya tengan precio en ese tamaño no se podrán comprar en ese tamaño hasta que lo agregues de nuevo con el mismo ID (${s.id}).`)) return;
+    await api('DELETE', 'size', null, `&id=${encodeURIComponent(s.id)}`);
+    setLista((prev) => prev.filter((x) => x.id !== s.id));
+    flash('Tamaño eliminado.');
+  }
+
+  async function agregar() {
+    if (!nuevo.id.trim() || !nuevo.label.trim()) return;
+    const id = nuevo.id.trim().toLowerCase().replace(/\s+/g, '-');
+    const item = { id, label: nuevo.label.trim(), dims: nuevo.dims.trim() };
+    await api('POST', 'size', item);
+    setLista((prev) => [...prev, item]);
+    setNuevo({ id: '', label: '', dims: '' });
+    flash('Tamaño agregado.');
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-neutral-500">
+        Estos son los tamaños que eliges en "Precios por tamaño" al editar un producto. Cambiar el
+        nombre o las medidas aquí no afecta los precios que ya guardaste. Eliminar un tamaño hace
+        que los productos con precio en ese tamaño dejen de poder comprarse en él (el precio queda
+        guardado y vuelve a aparecer si agregas de nuevo un tamaño con el mismo ID).
+      </p>
+      <div className="space-y-2">
+        {lista.map((s, i) => (
+          <div key={s.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
+            <span className="w-24 shrink-0 font-mono text-xs text-neutral-400">{s.id}</span>
+            <input
+              value={s.label}
+              onChange={(e) => set(i, 'label', e.target.value)}
+              placeholder="Nombre visible"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+            />
+            <input
+              value={s.dims}
+              onChange={(e) => set(i, 'dims', e.target.value)}
+              placeholder="Medidas (ej. 135 x 190 cm)"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+            />
+            <button onClick={() => eliminar(s)} className="text-xs text-red-600 hover:underline">Eliminar</button>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={guardarTodos} disabled={saving} className="mt-4 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+        {saving ? 'Guardando...' : 'Guardar cambios'}
+      </button>
+
+      <div className="mt-6 flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-neutral-300 p-3">
+        <Field small label="ID" value={nuevo.id} onChange={(v) => setNuevo({ ...nuevo, id: v })} placeholder="ej. cal-king" />
+        <Field small label="Nombre visible" value={nuevo.label} onChange={(v) => setNuevo({ ...nuevo, label: v })} placeholder="ej. Cal King" />
+        <Field small label="Medidas" value={nuevo.dims} onChange={(v) => setNuevo({ ...nuevo, dims: v })} placeholder="ej. 180 x 200 cm" />
+        <button onClick={agregar} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+          + Agregar tamaño
         </button>
       </div>
     </div>

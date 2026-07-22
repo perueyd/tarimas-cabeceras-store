@@ -8,39 +8,26 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 //  - Arrastrable en ambas direcciones con inercia; clic en un panel lleva a su categoría.
 //  - Al pasar el cursor sobre un panel, se mece como un barco en el mar.
 //  - Bordes orgánicos suaves (curvas, no picos) con una ondulación líquida sutil.
-const PANELS = [
-  {
-    img: '/images/tarima-base.svg', color: '#3b5a70', cat: 'tarimas', label: 'Tarimas',
-    size: 'h-64 w-56', rot: '-2deg', delay: '0s',
-    blob: '58% 42% 50% 50% / 46% 54% 46% 54%',
-  },
-  {
-    img: '/images/cabecera-base.svg', color: '#6e2a35', cat: 'cabeceras', label: 'Cabeceras',
-    size: 'h-56 w-48', rot: '2deg', delay: '-1.6s',
-    blob: '44% 56% 52% 48% / 55% 45% 55% 45%',
-  },
-  {
-    img: '/images/sofa-base.svg', color: '#7a5638', cat: 'sofas-cama', label: 'Sofás Cama',
-    size: 'h-72 w-60', rot: '-1.5deg', delay: '-3.2s',
-    blob: '52% 48% 44% 56% / 48% 52% 48% 52%',
-  },
-  {
-    img: '/images/comedor-base.svg', color: '#8b8d91', cat: 'salas', label: 'Sala y Comedor',
-    size: 'h-56 w-52', rot: '1.5deg', delay: '-2.4s',
-    blob: '46% 54% 58% 42% / 52% 48% 52% 48%',
-  },
-  {
-    img: '/images/ropero-base.svg', color: '#b08a5a', cat: 'melamina', label: 'Melamina',
-    size: 'h-64 w-52', rot: '-2.5deg', delay: '-4s',
-    blob: '55% 45% 46% 54% / 44% 56% 44% 56%',
-  },
+//
+// El contenido de cada panel (imagen, color, nombre, categoría) es editable
+// desde el panel → Editar página → Vitrina animada (catalog.showcase). Los
+// valores de abajo son solo la "forma" decorativa (tamaño, giro, blob) — se
+// asignan por posición (ciclando esta lista) para que cualquier cantidad de
+// paneles se vea variada sin que el dueño tenga que configurar CSS.
+const PANEL_STYLE_PRESETS = [
+  { size: 'h-64 w-56', rot: '-2deg', delay: '0s', blob: '58% 42% 50% 50% / 46% 54% 46% 54%' },
+  { size: 'h-56 w-48', rot: '2deg', delay: '-1.6s', blob: '44% 56% 52% 48% / 55% 45% 55% 45%' },
+  { size: 'h-72 w-60', rot: '-1.5deg', delay: '-3.2s', blob: '52% 48% 44% 56% / 48% 52% 48% 52%' },
+  { size: 'h-56 w-52', rot: '1.5deg', delay: '-2.4s', blob: '46% 54% 58% 42% / 52% 48% 52% 48%' },
+  { size: 'h-64 w-52', rot: '-2.5deg', delay: '-4s', blob: '55% 45% 46% 54% / 44% 56% 44% 56%' },
 ];
 
 const CRUISE = 0.7; // velocidad crucero en px por frame (~42 px/s)
 
 export default function ShowcaseMarquee() {
-  const { storeConfig } = useCatalog();
+  const { storeConfig, showcase } = useCatalog();
   const marqueeWord = storeConfig.landing?.marqueeWord || 'Espacios';
+  const panelsData = showcase.map((p, i) => ({ ...p, style: PANEL_STYLE_PRESETS[i % PANEL_STYLE_PRESETS.length] }));
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const dispRef = useRef(null); // feDisplacementMap (intensidad del agua)
@@ -175,7 +162,9 @@ export default function ShowcaseMarquee() {
       section.removeEventListener('pointerup', onUp);
       section.removeEventListener('pointercancel', onUp);
     };
-  }, []);
+  }, [showcase]);
+
+  if (panelsData.length === 0) return null;
 
   return (
     <section
@@ -208,33 +197,38 @@ export default function ShowcaseMarquee() {
       >
         {[...Array(2)].map((_, copy) => (
           <div key={copy} className="flex items-center gap-10" aria-hidden={copy === 1}>
-            {PANELS.map((p) => (
+            {panelsData.map((p) => (
               <Link
-                key={`${copy}-${p.cat}`}
-                to={`/tienda?categoria=${p.cat}`}
+                key={`${copy}-${p.id}`}
+                to={p.cat ? `/tienda?categoria=${p.cat}` : '/tienda'}
                 data-panel
                 aria-label={`Ver catálogo de ${p.label}`}
                 title={`Ver ${p.label}`}
                 tabIndex={copy === 1 ? -1 : 0}
                 draggable={false}
-                className={`relative block shrink-0 will-change-transform ${p.size}`}
+                className={`relative block shrink-0 will-change-transform ${p.style.size}`}
               >
                 {/* Capa que flota / se mece como barco al pasar el cursor */}
                 <div
                   className="ed-float absolute inset-0"
-                  style={{ '--rot': p.rot, animationDelay: p.delay }}
+                  style={{ '--rot': p.style.rot, animationDelay: p.style.delay }}
                 >
                   <div
                     className="absolute inset-0 overflow-hidden"
-                    style={{ backgroundColor: p.color, borderRadius: p.blob, filter: 'url(#ed-liquid)' }}
+                    style={{ backgroundColor: p.color, borderRadius: p.style.blob, filter: 'url(#ed-liquid)' }}
                   >
-                    <img
-                      src={p.img}
-                      alt=""
-                      draggable={false}
-                      className="absolute inset-0 h-full w-full object-contain p-7 mix-blend-multiply opacity-90"
-                    />
+                    {p.img && (
+                      <img
+                        src={p.img}
+                        alt=""
+                        draggable={false}
+                        className="absolute inset-0 h-full w-full object-contain p-7 mix-blend-multiply opacity-90"
+                      />
+                    )}
                   </div>
+                  <span className="pointer-events-none absolute inset-x-0 bottom-4 mx-auto w-fit rounded-full bg-white/85 px-3 py-1 text-center text-xs font-medium text-neutral-800 backdrop-blur-sm">
+                    {p.label}
+                  </span>
                 </div>
               </Link>
             ))}
