@@ -721,6 +721,23 @@ function ConfigTab({ catalog, api, flash }) {
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mb-5 rounded-lg bg-neutral-50 p-3">
+        <p className="mb-1 text-sm font-medium text-neutral-700">
+          Datos legales del negocio <span className="font-normal text-neutral-400">(para el Libro de Reclamaciones)</span>
+        </p>
+        <p className="mb-3 text-xs text-neutral-500">
+          Se muestran en la página pública del Libro de Reclamaciones para identificar al proveedor.
+          Déjalos vacíos si aún no los tienes — la página igual funciona.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Razón social" value={cfg.razonSocial} onChange={(v) => set('razonSocial', v)} placeholder="Ej. E|D Espacios y Diseño S.A.C." />
+          <Field label="RUC" value={cfg.ruc} onChange={(v) => set('ruc', v)} placeholder="20xxxxxxxxx" />
+          <div className="sm:col-span-2">
+            <Field label="Domicilio fiscal" value={cfg.direccionFiscal} onChange={(v) => set('direccionFiscal', v)} placeholder="Dirección registrada del negocio" />
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="WhatsApp (con 51, sin espacios)" value={cfg.whatsapp} onChange={(v) => set('whatsapp', v)} placeholder="51987654321" />
         <Field label="Número de Yape/Plin (como se muestra)" value={cfg.yape} onChange={(v) => set('yape', v)} placeholder="987 654 321" />

@@ -261,6 +261,9 @@ pedir autorización de nuevo.
   **eliminar el pedido** con el botón rojo (esto no borra la fila ya escrita
   en tu hoja de Google — es tu historial permanente).
 - Pestaña **Reseñas**: editar o eliminar cualquier reseña.
+- Pestaña **📋 Reclamos**: ver y responder los reclamos/quejas del Libro de
+  Reclamaciones (ver sección propia más abajo). Muestra cuántos están
+  pendientes en el número junto al nombre de la pestaña.
 - Cambiar el estado de un pedido también actualiza la fila en tu hoja de
   Google y le envía un correo automático al cliente (si configuraste
   `SHEETS_WEBHOOK_URL`, ver sección anterior).
@@ -276,6 +279,35 @@ pedir autorización de nuevo.
   Cancelado.
 - El botón "Ver el estado de mi pedido" aparece solo en la página de gracias
   después de comprar, y el link también llega en el correo de confirmación.
+
+## Libro de Reclamaciones (obligatorio por ley en Perú)
+
+`tudominio.vercel.app/libro-de-reclamaciones` — enlazado siempre en el pie de
+página de toda la web (footer), como exige la norma.
+
+**Por qué existe:** el Código de Protección y Defensa del Consumidor (Ley
+29571) y su reglamento obligan a todo negocio que atiende consumidores en
+Perú, incluidas las tiendas online, a tener un Libro de Reclamaciones
+accesible sin necesidad de haber comprado. No es opcional.
+
+- **Para el cliente:** un formulario público (nombre, documento, domicilio,
+  teléfono, correo, tipo "Reclamo" o "Queja", detalle y qué solicita). Al
+  enviarlo recibe un número de hoja (folio) correlativo, ej. `RC-2026-0001`.
+- **Para ti:** en el panel `/pedidos` → pestaña **📋 Reclamos** ves todos los
+  reclamos, con los días restantes para responder (el plazo legal es hasta
+  30 días calendario desde la fecha del reclamo). Escribes tu respuesta ahí
+  mismo y queda guardada con fecha.
+- **No se pueden eliminar**: a diferencia de los pedidos, los reclamos no
+  tienen botón de borrar — son un registro legal que debes conservar.
+- **Datos del proveedor**: en `/pedidos` → Editar página → Datos de la
+  tienda, completa **Razón social**, **RUC** y **Domicilio fiscal** — se
+  muestran en la página pública del libro para identificar tu negocio.
+  Puedes dejarlos vacíos por ahora; la página funciona igual, pero
+  complétalos apenas los tengas a mano.
+
+⚠️ Este texto es una guía práctica, no asesoría legal. Para confirmar que
+cumples exactamente con la normativa vigente (plazos, formato, registro ante
+INDECOPI si aplica a tu caso), consulta con un abogado o contador en Perú.
 
 ## Seguridad incluida
 

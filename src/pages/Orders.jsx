@@ -60,6 +60,7 @@ export default function Orders() {
   const [input, setInput] = useState('');
   const [orders, setOrders] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [reclamos, setReclamos] = useState([]);
   const [tab, setTab] = useState('resumen');
   const [filtro, setFiltro] = useState('todos');
   const [error, setError] = useState('');
@@ -79,6 +80,10 @@ export default function Orders() {
       fetch(`/api/reviews?all=1&key=${encodeURIComponent(k)}`)
         .then((r) => r.json())
         .then((d) => setReviews(d.reviews || []))
+        .catch(() => {});
+      fetch(`/api/reclamos?key=${encodeURIComponent(k)}`)
+        .then((r) => r.json())
+        .then((d) => setReclamos(d.reclamos || []))
         .catch(() => {});
     } catch (err) {
       setError(err.message);
@@ -140,6 +145,17 @@ export default function Orders() {
     } catch { /* no-op */ }
   }
 
+  async function responderReclamo(r, respuesta) {
+    const res = await fetch(`/api/reclamos?key=${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folio: r.folio, respuesta }),
+    });
+    const data = await res.json();
+    if (res.ok) setReclamos(reclamos.map((x) => (x.folio === r.folio ? data.reclamo : x)));
+    else alert(data?.error || 'No se pudo guardar la respuesta.');
+  }
+
   if (!orders) {
     return (
       <main className="mx-auto max-w-md px-4 py-16">
@@ -179,6 +195,7 @@ export default function Orders() {
     ? (reviews.reduce((s, r) => s + r.estrellas, 0) / reviews.length).toFixed(1)
     : '—';
 
+  const reclamosPendientes = reclamos.filter((r) => r.estado === 'Pendiente');
   const cancelados = orders.filter((o) => o.estado === 'Cancelado');
   const visibles = orders.filter((o) => {
     if (filtro === 'pendientes') return o.estado === 'Pago por verificar';
@@ -218,6 +235,7 @@ export default function Orders() {
           { id: 'resumen', label: 'Resumen' },
           { id: 'pedidos', label: `Pedidos (${orders.length})` },
           { id: 'resenas', label: `Reseñas (${reviews.length})` },
+          { id: 'reclamos', label: `📋 Reclamos${reclamosPendientes.length ? ` (${reclamosPendientes.length})` : ''}` },
           { id: 'promos', label: '🏷️ Promociones' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
@@ -353,6 +371,23 @@ export default function Orders() {
         </div>
       )}
 
+      {tab === 'reclamos' && (
+        <div className="space-y-4">
+          <p className="rounded-lg bg-sky-50 px-4 py-2 text-xs text-sky-900">
+            Por ley tienes hasta 30 días calendario desde la fecha del reclamo para responder.
+            Los reclamos no se pueden eliminar — quedan como registro.
+          </p>
+          {reclamos.length === 0 && (
+            <p className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-neutral-500">
+              Aún no hay reclamos ni quejas registrados.
+            </p>
+          )}
+          {reclamos.map((r) => (
+            <ReclamoCard key={r.folio} r={r} onResponder={responderReclamo} />
+          ))}
+        </div>
+      )}
+
       {tab === 'promos' && <PromoEditor adminKey={key} />}
 
       {tab === 'editar' && <CatalogEditor adminKey={key} />}
@@ -448,6 +483,88 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
         >
           🗑️ Eliminar pedido
         </button>
+      </div>
+    </div>
+  );
+}
+
+function ReclamoCard({ r, onResponder }) {
+  const [respuesta, setRespuesta] = useState(r.respuesta || '');
+  const [guardando, setGuardando] = useState(false);
+  const diasRestantes = Math.ceil((new Date(r.fecha).getTime() + 30 * 86400000 - Date.now()) / 86400000);
+
+  async function guardar() {
+    if (!respuesta.trim()) return;
+    setGuardando(true);
+    try {
+      await onResponder(r, respuesta.trim());
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-sm font-semibold">{r.folio}</p>
+        <div className="flex items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${r.tipo === 'Reclamo' ? 'bg-orange-100 text-orange-800' : 'bg-neutral-100 text-neutral-700'}`}>
+            {r.tipo}
+          </span>
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${r.estado === 'Respondido' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+            {r.estado}
+          </span>
+        </div>
+      </div>
+
+      {r.estado === 'Pendiente' && (
+        <p className={`mt-1 text-xs ${diasRestantes < 0 ? 'font-medium text-red-600' : diasRestantes <= 5 ? 'font-medium text-amber-600' : 'text-neutral-400'}`}>
+          {diasRestantes < 0 ? `⚠️ Vencido hace ${Math.abs(diasRestantes)} día(s)` : `Vence en ${diasRestantes} día(s)`}
+        </p>
+      )}
+
+      <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+        <p><span className="text-neutral-500">Nombre:</span> {r.consumidor?.nombre}</p>
+        <p><span className="text-neutral-500">Documento:</span> {r.consumidor?.tipoDocumento} {r.consumidor?.numeroDocumento}</p>
+        <p><span className="text-neutral-500">Teléfono:</span> {r.consumidor?.telefono}</p>
+        <p><span className="text-neutral-500">Correo:</span> {r.consumidor?.email}</p>
+        <p className="sm:col-span-2"><span className="text-neutral-500">Domicilio:</span> {r.consumidor?.domicilio}</p>
+        <p className="sm:col-span-2"><span className="text-neutral-500">Sobre:</span> {r.bien?.tipo}{r.bien?.descripcion ? ` — ${r.bien.descripcion}` : ''}</p>
+        <p className="sm:col-span-2"><span className="text-neutral-500">Fecha:</span> {new Date(r.fecha).toLocaleString('es-PE')}</p>
+      </div>
+
+      <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3 text-sm">
+        <p><span className="text-neutral-500">Detalle:</span> {r.detalle}</p>
+        {r.pedido && <p><span className="text-neutral-500">Solicita:</span> {r.pedido}</p>}
+      </div>
+
+      <div className="mt-3 border-t border-neutral-100 pt-3">
+        {r.estado === 'Respondido' ? (
+          <div className="rounded-lg bg-green-50 p-3 text-sm">
+            <p className="text-xs font-medium text-green-800">Tu respuesta ({new Date(r.fechaRespuesta).toLocaleDateString('es-PE')}):</p>
+            <p className="mt-1 text-neutral-700">{r.respuesta}</p>
+          </div>
+        ) : (
+          <>
+            <label className="block text-xs">
+              <span className="mb-1 block font-medium text-neutral-700">Escribe tu respuesta</span>
+              <textarea
+                value={respuesta}
+                onChange={(e) => setRespuesta(e.target.value)}
+                rows={2}
+                maxLength={2000}
+                className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+              />
+            </label>
+            <button
+              onClick={guardar}
+              disabled={guardando || !respuesta.trim()}
+              className="mt-2 rounded-lg bg-ink px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {guardando ? 'Guardando...' : 'Guardar respuesta'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import Checkout from './pages/Checkout.jsx';
 import ThankYou from './pages/ThankYou.jsx';
 import Orders from './pages/Orders.jsx';
 import Track from './pages/Track.jsx';
+import ComplaintsBook from './pages/ComplaintsBook.jsx';
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/gracias" element={<ThankYou />} />
           <Route path="/pedidos" element={<Orders />} />
           <Route path="/seguimiento" element={<Track />} />
+          <Route path="/libro-de-reclamaciones" element={<ComplaintsBook />} />
         </Routes>
       </div>
       <Footer />

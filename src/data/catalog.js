@@ -10,6 +10,11 @@
 // leadTime: texto del tiempo de fabricación/entrega que ve el cliente.
 // deliveryMinDays: días mínimos desde hoy para elegir fecha de entrega en el checkout.
 export const storeConfig = {
+  // Datos del negocio para el Libro de Reclamaciones (identifican al
+  // proveedor ante el consumidor). Edítalos en el panel → Datos de la tienda.
+  razonSocial: '',
+  ruc: '',
+  direccionFiscal: '',
   whatsapp: '51951278010',
   // Número que recibe Yape/Plin directo (se muestra al cliente en el checkout).
   yape: '951 278 010',
