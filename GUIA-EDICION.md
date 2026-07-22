@@ -28,6 +28,17 @@ export const storeConfig = {
 - **Provincia**: sin pago directo — el cliente arma su cotización de envío por WhatsApp
   (el envío corre por su cuenta) y su carrito queda guardado para completar después.
 
+**Métodos de pago (editable sin tocar código):** en el panel `/pedidos` →
+Editar página → Datos de la tienda → **"Métodos de pago en el checkout"**,
+apaga el checkbox del que no uses:
+- **Tarjeta o Yape (Culqi)** — cobro automático.
+- **Yape / Plin directo** — el cliente te envía y manda su comprobante por WhatsApp.
+- **Transferencia bancaria** — igual, pero a una cuenta bancaria.
+
+El cliente solo ve en el checkout los que dejes activos. No puedes apagar los
+tres — el panel te avisa si lo intentas. Si nunca tocas esta opción, los tres
+quedan activos como siempre (no rompe nada en tiendas que ya estaban funcionando).
+
 ---
 
 ## 1. Agregar una categoría nueva

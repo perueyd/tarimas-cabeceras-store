@@ -44,6 +44,23 @@ export default function Checkout() {
   const [ubicacion, setUbicacion] = useState(null); // {lat, lng} del mapa
   const [metodoPago, setMetodoPago] = useState('culqi'); // 'culqi' | 'yape-plin' | 'transferencia'
   const [status, setStatus] = useState('idle'); // idle | paying | error
+
+  // Métodos de pago activos según lo que configuró el dueño en el panel.
+  // Si el negocio nunca tocó esta opción, storeConfig.paymentMethods viene
+  // vacío -> se asume que los tres están activos (comportamiento de siempre).
+  const pm = storeConfig.paymentMethods || {};
+  const metodosDisponibles = [
+    { key: 'culqi', title: 'Tarjeta o Yape', subtitle: 'Confirmación automática (Culqi)' },
+    { key: 'yape-plin', title: 'Yape / Plin directo', subtitle: 'Envía tu comprobante' },
+    { key: 'transferencia', title: 'Transferencia', subtitle: 'Cuenta bancaria' },
+  ].filter((m) => pm[m.key === 'yape-plin' ? 'yapePlin' : m.key] ?? true);
+
+  useEffect(() => {
+    if (metodosDisponibles.length && !metodosDisponibles.some((m) => m.key === metodoPago)) {
+      setMetodoPago(metodosDisponibles[0].key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeConfig.paymentMethods]);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Código de descuento (opcional) — se valida contra el servidor, nunca se
@@ -474,26 +491,24 @@ export default function Checkout() {
 
           {/* ===== Método de pago ===== */}
           <p className="mb-2 mt-6 text-sm font-medium text-neutral-700">¿Cómo quieres pagar?</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <MetodoBtn
-              active={metodoPago === 'culqi'}
-              onClick={() => setMetodoPago('culqi')}
-              title="Tarjeta o Yape"
-              subtitle="Confirmación automática (Culqi)"
-            />
-            <MetodoBtn
-              active={metodoPago === 'yape-plin'}
-              onClick={() => setMetodoPago('yape-plin')}
-              title="Yape / Plin directo"
-              subtitle="Envía tu comprobante"
-            />
-            <MetodoBtn
-              active={metodoPago === 'transferencia'}
-              onClick={() => setMetodoPago('transferencia')}
-              title="Transferencia"
-              subtitle="Cuenta bancaria"
-            />
-          </div>
+          {metodosDisponibles.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {metodosDisponibles.map((m) => (
+                <MetodoBtn
+                  key={m.key}
+                  active={metodoPago === m.key}
+                  onClick={() => setMetodoPago(m.key)}
+                  title={m.title}
+                  subtitle={m.subtitle}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Por ahora no hay un método de pago disponible en la web. Escríbenos por WhatsApp
+              para completar tu compra.
+            </p>
+          )}
 
           {metodoPago === 'yape-plin' && (
             <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-950">
@@ -540,7 +555,7 @@ export default function Checkout() {
             <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{errorMsg}</p>
           )}
 
-          {metodoPago === 'culqi' ? (
+          {metodosDisponibles.length > 0 && metodoPago === 'culqi' ? (
             <>
               <button
                 onClick={abrirCulqi}
@@ -553,7 +568,7 @@ export default function Checkout() {
                 Pago seguro procesado por Culqi. No almacenamos los datos de tu tarjeta.
               </p>
             </>
-          ) : (
+          ) : metodosDisponibles.length > 0 ? (
             <button
               onClick={() => registrarPedidoManual(metodoPago === 'yape-plin' ? 'Yape/Plin' : 'Transferencia bancaria')}
               disabled={status === 'paying'}
@@ -561,7 +576,7 @@ export default function Checkout() {
             >
               {status === 'paying' ? 'Registrando pedido...' : 'Ya pagué — registrar pedido y enviar comprobante'}
             </button>
-          )}
+          ) : null}
         </>
       )}
     </main>

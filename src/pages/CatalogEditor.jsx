@@ -708,6 +708,12 @@ function ConfigTab({ catalog, api, flash }) {
   function removeBank(i) {
     setCfg((prev) => ({ ...prev, banks: prev.banks.filter((_, idx) => idx !== i) }));
   }
+  function togglePaymentMethod(key) {
+    setCfg((prev) => ({
+      ...prev,
+      paymentMethods: { ...(prev.paymentMethods || {}), [key]: !(prev.paymentMethods?.[key] ?? true) },
+    }));
+  }
   function setSlot(i, field, value) {
     setCfg((prev) => ({ ...prev, deliverySlots: prev.deliverySlots.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)) }));
   }
@@ -719,6 +725,11 @@ function ConfigTab({ catalog, api, flash }) {
   }
 
   async function guardar() {
+    const pm = cfg.paymentMethods || {};
+    if (!pm.culqi && !pm.yapePlin && !pm.transferencia) {
+      alert('Deja al menos un método de pago activo — si apagas los tres, nadie podrá pagar.');
+      return;
+    }
     setSaving(true);
     try {
       await api('POST', 'config', cfg);
@@ -760,6 +771,31 @@ function ConfigTab({ catalog, api, flash }) {
           onChange={(v) => set('deliveryMinDays', Number(v) || 0)}
           type="number"
         />
+      </div>
+
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <p className="mb-1 text-sm font-medium text-neutral-700">Métodos de pago en el checkout</p>
+        <p className="mb-3 text-xs text-neutral-500">
+          Apaga el que no uses — el cliente solo verá los que dejes activos. Debes dejar al
+          menos uno activo.
+        </p>
+        <div className="space-y-2">
+          {[
+            { key: 'culqi', label: 'Tarjeta o Yape (Culqi)', sub: 'Confirmación automática al pagar' },
+            { key: 'yapePlin', label: 'Yape / Plin directo', sub: 'El cliente envía y manda su comprobante' },
+            { key: 'transferencia', label: 'Transferencia bancaria', sub: 'El cliente transfiere y manda su constancia' },
+          ].map((m) => (
+            <label key={m.key} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={cfg.paymentMethods?.[m.key] ?? true}
+                onChange={() => togglePaymentMethod(m.key)}
+              />
+              <span className="font-medium">{m.label}</span>
+              <span className="text-xs text-neutral-400">— {m.sub}</span>
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5">

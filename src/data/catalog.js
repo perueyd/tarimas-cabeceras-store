@@ -15,6 +15,9 @@ export const storeConfig = {
   razonSocial: '',
   ruc: '',
   direccionFiscal: '',
+  // Métodos de pago visibles en el checkout — apaga el que no uses (ej. si
+  // no tienes cuenta bancaria para transferencia, o no quieres exponer Yape).
+  paymentMethods: { culqi: true, yapePlin: true, transferencia: true },
   whatsapp: '51951278010',
   // Número que recibe Yape/Plin directo (se muestra al cliente en el checkout).
   yape: '951 278 010',
