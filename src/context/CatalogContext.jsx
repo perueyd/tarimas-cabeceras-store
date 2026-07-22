@@ -23,9 +23,9 @@ export function CatalogProvider({ children }) {
       .then((d) => {
         if (cancelled) return;
         setState({
-          products: Array.isArray(d.products) && d.products.length ? d.products : staticCatalog.products,
-          categories: Array.isArray(d.categories) && d.categories.length ? d.categories : staticCatalog.categories,
-          colors: Array.isArray(d.colors) && d.colors.length ? d.colors : staticCatalog.colors,
+          products: Array.isArray(d.products) ? d.products : staticCatalog.products,
+          categories: Array.isArray(d.categories) ? d.categories : staticCatalog.categories,
+          colors: Array.isArray(d.colors) ? d.colors : staticCatalog.colors,
           storeConfig: d.storeConfig || staticCatalog.storeConfig,
           loaded: true,
         });
