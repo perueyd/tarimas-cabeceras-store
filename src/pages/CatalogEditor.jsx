@@ -117,6 +117,15 @@ export default function CatalogEditor({ adminKey }) {
 // ============================================================
 // PÁGINA PRINCIPAL (textos, vínculos y palabra de la animación)
 // ============================================================
+const COMO_FUNCIONA_VACIO = {
+  titulo: 'Comprar es simple',
+  pasos: [
+    { titulo: '', texto: '' },
+    { titulo: '', texto: '' },
+    { titulo: '', texto: '' },
+  ],
+};
+
 function PortadaTab({ catalog, api, flash }) {
   const [landing, setLanding] = useState({
     eyebrow: '',
@@ -128,12 +137,36 @@ function PortadaTab({ catalog, api, flash }) {
     cta1Url: '',
     cta2Label: '',
     cta2Url: '',
+    categoriasTitulo: '',
+    categoriasDescripcion: '',
+    comoFunciona: COMO_FUNCIONA_VACIO,
     ...(catalog.storeConfig.landing || {}),
   });
   const [saving, setSaving] = useState(false);
 
   function set(field, value) {
     setLanding((prev) => ({ ...prev, [field]: value }));
+  }
+  function setPaso(i, field, value) {
+    setLanding((prev) => ({
+      ...prev,
+      comoFunciona: {
+        ...prev.comoFunciona,
+        pasos: prev.comoFunciona.pasos.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)),
+      },
+    }));
+  }
+  function addPaso() {
+    setLanding((prev) => ({
+      ...prev,
+      comoFunciona: { ...prev.comoFunciona, pasos: [...prev.comoFunciona.pasos, { titulo: '', texto: '' }] },
+    }));
+  }
+  function removePaso(i) {
+    setLanding((prev) => ({
+      ...prev,
+      comoFunciona: { ...prev.comoFunciona, pasos: prev.comoFunciona.pasos.filter((_, idx) => idx !== i) },
+    }));
   }
 
   async function guardar() {
@@ -182,7 +215,52 @@ function PortadaTab({ catalog, api, flash }) {
         <Field label="Botón 2 — vínculo" value={landing.cta2Url} onChange={(v) => set('cta2Url', v)} placeholder="/tienda?categoria=cabeceras" />
       </div>
 
-      <button onClick={guardar} disabled={saving} className="mt-6 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+      <p className="mb-1 mt-6 text-sm font-medium">Sección "Todo para tu hogar"</p>
+      <p className="mb-4 text-xs text-neutral-400">
+        El título y la descripción arriba de la grilla de categorías.
+      </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Título" value={landing.categoriasTitulo} onChange={(v) => set('categoriasTitulo', v)} placeholder="Todo para tu hogar" />
+        <Field
+          label="Descripción"
+          value={landing.categoriasDescripcion}
+          onChange={(v) => set('categoriasDescripcion', v)}
+          placeholder="Empezamos con tarimas y cabeceras..."
+        />
+      </div>
+
+      <p className="mb-1 mt-6 text-sm font-medium">Sección de pasos ("Comprar es simple")</p>
+      <p className="mb-4 text-xs text-neutral-400">
+        Los pasos que ve el cliente antes de comprar. Puedes agregar o quitar pasos — si los
+        quitas todos, la sección de pasos no se muestra (el botón "Ir a la tienda" sigue igual).
+      </p>
+      <Field label="Título de la sección" value={landing.comoFunciona.titulo} onChange={(v) => set('comoFunciona', { ...landing.comoFunciona, titulo: v })} placeholder="Comprar es simple" />
+      <div className="mt-3 space-y-3">
+        {landing.comoFunciona.pasos.map((paso, i) => (
+          <div key={i} className="rounded-lg bg-neutral-50 p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-neutral-400">{i + 1}</span>
+              <input
+                value={paso.titulo}
+                onChange={(e) => setPaso(i, 'titulo', e.target.value)}
+                placeholder="Título del paso"
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+              />
+              <button onClick={() => removePaso(i)} className="text-xs text-red-600 hover:underline">Eliminar</button>
+            </div>
+            <textarea
+              value={paso.texto}
+              onChange={(e) => setPaso(i, 'texto', e.target.value)}
+              rows={2}
+              placeholder="Texto del paso"
+              className="mt-2 w-full resize-none rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+            />
+          </div>
+        ))}
+      </div>
+      <button onClick={addPaso} className="mt-2 text-xs text-sky-700 hover:underline">+ Agregar paso</button>
+
+      <button onClick={guardar} disabled={saving} className="mt-6 block rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
         {saving ? 'Guardando...' : 'Guardar página principal'}
       </button>
     </div>
@@ -783,6 +861,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
 function CategoriasTab({ catalog, api, flash }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '' });
   const [labels, setLabels] = useState(() => Object.fromEntries(catalog.categories.map((c) => [c.id, c.label])));
+  const [descriptions, setDescriptions] = useState(() => Object.fromEntries(catalog.categories.map((c) => [c.id, c.description || ''])));
 
   async function toggleActive(cat) {
     await api('POST', 'category', { ...cat, active: !cat.active });
@@ -799,11 +878,12 @@ function CategoriasTab({ catalog, api, flash }) {
     setNuevo({ id: '', label: '' });
     flash('Categoría agregada.');
   }
-  async function renombrar(cat) {
+  async function guardarCambios(cat) {
     const nuevoLabel = (labels[cat.id] ?? cat.label).trim();
-    if (!nuevoLabel || nuevoLabel === cat.label) return;
-    await api('POST', 'category', { ...cat, label: nuevoLabel });
-    flash(`Categoría renombrada a "${nuevoLabel}".`);
+    const nuevaDesc = (descriptions[cat.id] ?? cat.description ?? '').trim();
+    if (!nuevoLabel) return;
+    await api('POST', 'category', { ...cat, label: nuevoLabel, description: nuevaDesc });
+    flash(`Categoría "${nuevoLabel}" actualizada.`);
   }
 
   return (
@@ -811,32 +891,47 @@ function CategoriasTab({ catalog, api, flash }) {
       <div className="space-y-2">
         {catalog.categories.map((c) => {
           const labelActual = labels[c.id] ?? c.label;
-          const cambiado = labelActual.trim() && labelActual !== c.label;
+          const descActual = descriptions[c.id] ?? (c.description || '');
+          const cambiado = (labelActual.trim() && labelActual !== c.label) || descActual !== (c.description || '');
+          const descPorDefecto = c.active
+            ? 'Disponible ahora — elige tamaño y color.'
+            : 'Estamos preparando esta línea. Vuelve pronto.';
           return (
-            <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-white p-3">
-              <div className="flex min-w-[220px] flex-1 items-center gap-2">
+            <div key={c.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-[220px] flex-1 items-center gap-2">
+                  <input
+                    value={labelActual}
+                    onChange={(e) => setLabels((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                    className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                  />
+                  <span className="shrink-0 text-xs text-neutral-400">{c.id}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                  <label className="flex items-center gap-1.5">
+                    <input type="checkbox" checked={c.active} onChange={() => toggleActive(c)} />
+                    Activa
+                  </label>
+                  <button onClick={() => eliminar(c)} className="text-red-600 hover:underline">Eliminar</button>
+                </div>
+              </div>
+              <label className="mt-2 block text-xs">
+                <span className="mb-1 block text-neutral-500">Descripción en la portada (opcional)</span>
                 <input
-                  value={labelActual}
-                  onChange={(e) => setLabels((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                  className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                  value={descActual}
+                  onChange={(e) => setDescriptions((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                  placeholder={descPorDefecto}
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                 />
-                <span className="shrink-0 text-xs text-neutral-400">{c.id}</span>
-                {cambiado && (
-                  <button
-                    onClick={() => renombrar(c)}
-                    className="shrink-0 rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
-                  >
-                    Guardar nombre
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <label className="flex items-center gap-1.5">
-                  <input type="checkbox" checked={c.active} onChange={() => toggleActive(c)} />
-                  Activa
-                </label>
-                <button onClick={() => eliminar(c)} className="text-red-600 hover:underline">Eliminar</button>
-              </div>
+              </label>
+              {cambiado && (
+                <button
+                  onClick={() => guardarCambios(c)}
+                  className="mt-2 rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800"
+                >
+                  Guardar cambios
+                </button>
+              )}
             </div>
           );
         })}

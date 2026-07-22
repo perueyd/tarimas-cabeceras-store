@@ -42,6 +42,18 @@ export const storeConfig = {
     cta1Url: '/tienda',
     cta2Label: 'Ver cabeceras',
     cta2Url: '/tienda?categoria=cabeceras',
+    // Sección "Todo para tu hogar" (grilla de categorías).
+    categoriasTitulo: 'Todo para tu hogar',
+    categoriasDescripcion: 'Empezamos con tarimas y cabeceras. Muy pronto: melamina, salas, comedores y sofás cama.',
+    // Sección de 3 pasos ("Comprar es simple").
+    comoFunciona: {
+      titulo: 'Comprar es simple',
+      pasos: [
+        { titulo: 'Elige y personaliza', texto: 'Selecciona el modelo, el tamaño y el color que combine con tu espacio.' },
+        { titulo: 'Paga seguro', texto: 'Con tarjeta o Yape a través de Culqi, en soles y sin complicaciones.' },
+        { titulo: 'Recíbelo en casa', texto: 'Coordinamos la entrega e instalación según tu distrito.' },
+      ],
+    },
   },
 };
 

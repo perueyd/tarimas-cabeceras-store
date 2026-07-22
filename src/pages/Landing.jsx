@@ -32,7 +32,19 @@ const LANDING_DEFAULTS = {
   cta1Url: '/tienda',
   cta2Label: 'Ver cabeceras',
   cta2Url: '/tienda?categoria=cabeceras',
+  categoriasTitulo: 'Todo para tu hogar',
+  categoriasDescripcion: 'Empezamos con tarimas y cabeceras. Muy pronto: melamina, salas, comedores y sofás cama.',
+  comoFunciona: {
+    titulo: 'Comprar es simple',
+    pasos: [
+      { titulo: 'Elige y personaliza', texto: 'Selecciona el modelo, el tamaño y el color que combine con tu espacio.' },
+      { titulo: 'Paga seguro', texto: 'Con tarjeta o Yape a través de Culqi, en soles y sin complicaciones.' },
+      { titulo: 'Recíbelo en casa', texto: 'Coordinamos la entrega e instalación según tu distrito.' },
+    ],
+  },
 };
+
+const GRID_COLS_SM = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
 
 export default function Landing() {
   const { categories, colors, storeConfig, products, currencyFormatter } = useCatalog();
@@ -251,10 +263,8 @@ export default function Landing() {
       {/* ================= CATEGORÍAS ================= */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div ref={addReveal} className="reveal">
-          <h2 className="text-2xl font-semibold tracking-tight">Todo para tu hogar</h2>
-          <p className="mt-2 max-w-xl text-neutral-500">
-            Empezamos con tarimas y cabeceras. Muy pronto: melamina, salas, comedores y sofás cama.
-          </p>
+          <h2 className="text-2xl font-semibold tracking-tight">{landing.categoriasTitulo}</h2>
+          <p className="mt-2 max-w-xl text-neutral-500">{landing.categoriasDescripcion}</p>
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -276,9 +286,10 @@ export default function Landing() {
                   )}
                 </div>
                 <p className="mt-2 text-sm text-neutral-500">
-                  {cat.active
-                    ? 'Disponible ahora — elige tamaño y color.'
-                    : 'Estamos preparando esta línea. Vuelve pronto.'}
+                  {cat.description ||
+                    (cat.active
+                      ? 'Disponible ahora — elige tamaño y color.'
+                      : 'Estamos preparando esta línea. Vuelve pronto.')}
                 </p>
               </div>
             );
@@ -295,26 +306,24 @@ export default function Landing() {
       <section className="border-t border-neutral-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16">
           <h2 ref={addReveal} className="reveal text-2xl font-semibold tracking-tight">
-            Comprar es simple
+            {landing.comoFunciona.titulo}
           </h2>
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {[
-              ['Elige y personaliza', 'Selecciona el modelo, el tamaño y el color que combine con tu espacio.'],
-              ['Paga seguro', 'Con tarjeta o Yape a través de Culqi, en soles y sin complicaciones.'],
-              ['Recíbelo en casa', 'Coordinamos la entrega e instalación según tu distrito.'],
-            ].map(([title, body], i) => (
-              <div
-                key={title}
-                ref={addReveal}
-                className="reveal rounded-xl border border-neutral-200 p-6"
-                style={{ transitionDelay: `${i * 80}ms` }}
-              >
-                <span className="text-sm font-semibold text-neutral-400">{i + 1}</span>
-                <h3 className="mt-2 font-medium">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-500">{body}</p>
-              </div>
-            ))}
-          </div>
+          {landing.comoFunciona.pasos.length > 0 && (
+            <div className={`mt-8 grid grid-cols-1 gap-6 ${GRID_COLS_SM[Math.min(landing.comoFunciona.pasos.length, 4)] || 'sm:grid-cols-3'}`}>
+              {landing.comoFunciona.pasos.map((paso, i) => (
+                <div
+                  key={i}
+                  ref={addReveal}
+                  className="reveal rounded-xl border border-neutral-200 p-6"
+                  style={{ transitionDelay: `${i * 80}ms` }}
+                >
+                  <span className="text-sm font-semibold text-neutral-400">{i + 1}</span>
+                  <h3 className="mt-2 font-medium">{paso.titulo}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">{paso.texto}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div ref={addReveal} className="reveal mt-12 text-center">
             <Link

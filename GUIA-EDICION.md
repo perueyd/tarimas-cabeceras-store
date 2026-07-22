@@ -302,9 +302,11 @@ pedir autorización de nuevo.
 
 Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
 
-- **Categorías**: agregar, activar/desactivar, eliminar, y **renombrar** (escribe
-  el nuevo nombre en el campo y aparece el botón "Guardar nombre"). El ID no se
-  puede cambiar una vez creada — solo el nombre visible.
+- **Categorías**: agregar, activar/desactivar, eliminar, **renombrar**, y ahora
+  también editar la **descripción** que se ve en su tarjeta de la portada
+  (opcional — si la dejas vacía, se usa el texto automático según esté activa
+  o no). Cambia lo que quieras y aparece el botón "Guardar cambios". El ID no
+  se puede cambiar una vez creada — solo el nombre y la descripción.
 - **Tamaños**: edita el nombre y las medidas (ej. "135 x 190 cm") de cada
   tamaño, o agrega/elimina tamaños. Estos son los que eliges en "Precios por
   tamaño" al editar un producto. Cambiar nombre/medidas no afecta los precios
@@ -312,7 +314,10 @@ Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
   de poder comprarse en ese tamaño (el precio queda guardado por si lo agregas
   de nuevo con el mismo ID).
 - **Página principal**: los textos del hero (lo primero que ve el cliente),
-  los botones, y la palabra grande de la animación.
+  los botones, la palabra grande de la animación, el título y descripción de
+  la sección "Todo para tu hogar", y el título + los pasos de "Comprar es
+  simple" (puedes agregar o quitar pasos — si los quitas todos, esa sección
+  no se muestra pero el botón "Ir a la tienda" sigue apareciendo igual).
 - **Vitrina animada**: los paneles del carrusel 3D que se arrastra en la
   portada (el de "arrastra o toca un panel"). Por cada panel puedes cambiar la
   imagen (con el botón "📷 Subir"), el color de fondo, el nombre (ahora se
