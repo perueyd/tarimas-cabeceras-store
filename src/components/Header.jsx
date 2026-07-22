@@ -17,14 +17,11 @@ export default function Header() {
             <span className="text-[9px] tracking-[0.34em] text-neutral-400">PROYECTOS INMOBILIARIOS</span>
           </span>
         </Link>
-        <nav className="flex items-center gap-6 text-sm">
-          <Link to="/tienda" className="hidden hover:text-neutral-500 sm:inline">
+        <nav className="flex items-center gap-4 text-sm sm:gap-6">
+          <Link to="/tienda" className="hover:text-neutral-500">
             Tienda
           </Link>
-          <Link to="/tienda" className="hover:text-neutral-500">
-            Productos
-          </Link>
-          <Link to="/seguimiento" className="hidden hover:text-neutral-500 sm:inline">
+          <Link to="/seguimiento" className="hover:text-neutral-500">
             Rastrear pedido
           </Link>
           <Link to="/carrito" className="relative flex items-center gap-1">

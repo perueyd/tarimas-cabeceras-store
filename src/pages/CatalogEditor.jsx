@@ -478,6 +478,38 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
         </div>
       </div>
 
+      {/* Descuento por porcentaje (alternativa opcional al precio de oferta directo) */}
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+          <input
+            type="checkbox"
+            checked={Boolean(p.discountPercent)}
+            onChange={(e) => set('discountPercent', e.target.checked ? p.discountPercent || 10 : 0)}
+          />
+          O, en vez de precio de oferta, usar un descuento por porcentaje (opcional)
+        </label>
+        {Boolean(p.discountPercent) && (
+          <div className="mt-3 flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <span className="text-neutral-500">Descuento:</span>
+              <input
+                type="number"
+                min="1"
+                max="90"
+                value={p.discountPercent}
+                onChange={(e) => set('discountPercent', Math.min(Math.max(parseInt(e.target.value, 10) || 0, 0), 90))}
+                className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+              />
+              <span className="text-neutral-500">%</span>
+            </label>
+            <p className="text-xs text-neutral-500">
+              Se aplica solo a los tamaños que dejes SIN precio de oferta arriba (si un tamaño
+              tiene su propio precio de oferta, ese manda sobre el porcentaje).
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Colores disponibles */}
       <div className="mt-5">
         <p className="mb-2 text-sm font-medium text-neutral-700">Colores disponibles para este producto</p>

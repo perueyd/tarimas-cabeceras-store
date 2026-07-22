@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 // El cliente puede: tocar el mapa, arrastrar el pin, o usar su ubicación actual (GPS).
 const LIMA_CENTER = [-12.0464, -77.0428];
 
-export default function MapPicker({ onChange }) {
+export default function MapPicker({ onChange, onGeoDistrict }) {
   const mapEl = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const onChangeRef = useRef(onChange);
+  const onGeoDistrictRef = useRef(onGeoDistrict);
   const [coords, setCoords] = useState(null);
   const [geoStatus, setGeoStatus] = useState('');
   // El script de Leaflet (cargado en index.html) puede tardar en llegar, sobre
@@ -20,6 +21,10 @@ export default function MapPicker({ onChange }) {
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  useEffect(() => {
+    onGeoDistrictRef.current = onGeoDistrict;
+  }, [onGeoDistrict]);
 
   useEffect(() => {
     if (window.L) {
@@ -74,6 +79,25 @@ export default function MapPicker({ onChange }) {
     onChangeRef.current?.(point);
   }
 
+  // Convierte el lat/lng del GPS a un nombre de distrito (geocodificación
+  // inversa vía Nominatim/OpenStreetMap, gratuito y sin llave). El distrito
+  // detectado solo se sugiere — el campo sigue siendo editable por si el
+  // GPS se equivoca o el cliente prefiere elegir otro.
+  async function detectarDistrito(lat, lng) {
+    if (!onGeoDistrictRef.current) return;
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`
+      );
+      const data = await res.json();
+      const a = data?.address || {};
+      const distrito = a.suburb || a.city_district || a.town || a.village || a.neighbourhood;
+      if (distrito) onGeoDistrictRef.current(distrito);
+    } catch {
+      // Sin distrito automático: el cliente lo elige a mano en el buscador.
+    }
+  }
+
   function usarUbicacionActual() {
     if (!navigator.geolocation) {
       setGeoStatus('Tu navegador no permite obtener la ubicación.');
@@ -86,6 +110,7 @@ export default function MapPicker({ onChange }) {
         mapRef.current?.setView([latitude, longitude], 16);
         setPoint(latitude, longitude);
         setGeoStatus('');
+        detectarDistrito(latitude, longitude);
       },
       () => {
         setGeoStatus('No pudimos obtener tu ubicación. Activa el GPS/permiso de ubicación o marca el punto en el mapa.');

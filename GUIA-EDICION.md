@@ -358,6 +358,14 @@ que coincidir.
   aplican uno sobre el otro (primero la oferta del producto, luego el cupón
   sobre ese total).
 
+**Alternativa: descuento por porcentaje.** Debajo de "Precios por tamaño"
+hay una casilla **"O, en vez de precio de oferta, usar un descuento por
+porcentaje"** — la forma anterior, por si prefieres escribir un % en vez de
+calcular el precio de oferta a mano. Se aplica solo a los tamaños que
+dejaste SIN precio de oferta directo arriba (si un tamaño ya tiene su
+propio precio de oferta, ese manda). Útil para aplicar el mismo % a varios
+tamaños de una sola vez sin escribir cada precio.
+
 ## Buscador de distrito en el checkout (Lima y Provincia)
 
 Antes el cliente escribía su distrito a mano (con riesgo de errores de
@@ -373,3 +381,8 @@ escribe unas letras y elige de una lista desplegable.
 - La lista se carga aparte del resto de la web (no hace más lenta ninguna
   otra página), así que puede tardar un instante en activarse al entrar al
   checkout — mientras carga, el campo dice "Cargando lista...".
+- **"📍 Usar mi ubicación actual"** (en Lima): además de marcar el pin en el
+  mapa, ahora detecta el distrito automáticamente a partir del GPS y llena
+  el campo Distrito solo. El campo sigue siendo editable — si el GPS se
+  equivoca o no logra detectar el distrito, el cliente lo busca y elige a
+  mano igual que siempre.

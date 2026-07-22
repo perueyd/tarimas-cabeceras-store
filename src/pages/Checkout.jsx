@@ -81,6 +81,24 @@ export default function Checkout() {
   function setLimaDistrito(option) {
     setForm((prev) => ({ ...prev, distrito: option.label }));
   }
+
+  // El GPS (MapPicker "Usar mi ubicación actual") devuelve un nombre de lugar
+  // en texto libre — lo buscamos en nuestra lista de distritos de Lima para
+  // completar el campo solo. Si no coincide con ninguno, no se toca el campo
+  // y el cliente lo elige a mano (sigue siendo editable siempre).
+  function normalizarTexto(str) {
+    return str
+      .normalize('NFD')
+      .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+      .toLowerCase()
+      .trim();
+  }
+  function handleGeoDistrito(nombreDetectado) {
+    const objetivo = normalizarTexto(nombreDetectado);
+    const match = limaOptions.find((o) => normalizarTexto(o.label) === objetivo);
+    if (match) setLimaDistrito(match);
+  }
+
   function setNacionalUbicacion(option) {
     setForm((prev) => ({
       ...prev,
@@ -355,7 +373,7 @@ export default function Checkout() {
             />
 
             <div className="sm:col-span-2">
-              <MapPicker onChange={setUbicacion} />
+              <MapPicker onChange={setUbicacion} onGeoDistrict={handleGeoDistrito} />
               <p className="mt-2 text-xs text-neutral-500">
                 💡 Si estás en el lugar de entrega, usa «Usar mi ubicación actual» y el pin se colocará solo.
               </p>

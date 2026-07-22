@@ -44,7 +44,7 @@ export default function LocationSearch({ options, value, onSelect, placeholder =
         className="w-full rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink disabled:bg-neutral-50 disabled:text-neutral-400"
       />
       {open && !disabled && results.length > 0 && (
-        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-neutral-200 bg-white text-sm shadow-lg">
+        <ul className="absolute z-[1200] mt-1 max-h-60 w-full overflow-auto rounded-lg border border-neutral-200 bg-white text-sm shadow-lg">
           {results.map((o) => (
             <li key={o.value}>
               <button
@@ -64,7 +64,7 @@ export default function LocationSearch({ options, value, onSelect, placeholder =
         </ul>
       )}
       {open && !disabled && query && results.length === 0 && (
-        <div className="absolute z-20 mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-400 shadow-lg">
+        <div className="absolute z-[1200] mt-1 w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-400 shadow-lg">
           No encontramos ese lugar. Sigue escribiendo o revisa la ortografía.
         </div>
       )}
