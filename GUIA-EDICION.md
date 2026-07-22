@@ -110,7 +110,14 @@ Puedes sacar el hex de cualquier selector de color en Google ("color picker"):
 
 ## 5. Cambiar precios
 
-Solo edita los números en `sizePricing` del producto. Están en soles (S/).
+Desde el panel `/pedidos` → **Editar página** → **Productos** (recomendado, no
+necesitas tocar código): edita **Precio regular** y, si quieres, **Precio de
+oferta** por cada tamaño — ver la sección
+["Descuento directo por producto"](#descuento-directo-por-producto-precio-regular--precio-de-oferta)
+más abajo.
+
+También puedes editar los números directamente en `sizePricing` del producto
+en el archivo de catálogo, si prefieres tocar el código. Están en soles (S/).
 
 ## 6. Publicar los cambios
 
@@ -322,20 +329,47 @@ Panel `/pedidos` → pestaña **🏷️ Promociones**.
 **Seguridad:** el descuento siempre se recalcula en el servidor a partir del
 código guardado — nadie puede inventarse un descuento editando el navegador.
 
-## Descuento directo por producto (oferta, sin código)
+## Descuento directo por producto (precio regular + precio de oferta)
 
-En el panel → **Editar página** → **Productos** → al editar un producto,
-marca la casilla **"Este producto está en oferta"** y pon el porcentaje
-(1–90%). Es completamente opcional — si no la activas, el producto se vende
-a precio normal.
+En el panel → **Editar página** → **Productos** → al editar un producto, en
+**"Precios por tamaño"** cada tamaño tiene DOS campos, independientes entre sí:
 
-- Se aplica igual a **todos los tamaños** de ese producto.
-- En la tienda se ve el precio anterior tachado + el precio con descuento,
-  con una etiqueta roja "-XX%" (en la tarjeta del producto, en su página, y
-  en la vitrina rotativa de la portada).
+- **Precio regular**: el precio normal (lo mismo de siempre).
+- **Precio de oferta** (opcional): el precio con descuento, escrito
+  directamente en soles — no un porcentaje. Déjalo vacío si ese tamaño no
+  está en oferta.
+
+Es decir, tú escribes los dos números tal cual se van a ver (ej. regular
+S/799, oferta S/599) y el sistema calcula solo el porcentaje para la
+etiqueta. Cada tamaño puede tener su propia oferta o ninguna — no tienen
+que coincidir.
+
+- El precio de oferta **debe ser menor** al precio regular de ese mismo
+  tamaño. Si escribes uno igual o mayor, se marca en rojo y al guardar se
+  ignora automáticamente (el producto se vende al precio regular) — así
+  no hay riesgo de "descontar" a un precio más caro por error de tipeo.
+- En la tienda se ve el precio regular tachado + el precio de oferta, con
+  una etiqueta roja "-XX%" calculada sola (en la tarjeta del producto, en
+  su página, y en la vitrina rotativa de la portada).
 - El precio final es el que realmente se cobra — el servidor lo recalcula
   igual que el precio normal, así que no hay forma de manipularlo desde el
   navegador.
 - Puedes combinar un descuento de producto CON un código de descuento — se
   aplican uno sobre el otro (primero la oferta del producto, luego el cupón
   sobre ese total).
+
+## Buscador de distrito en el checkout (Lima y Provincia)
+
+Antes el cliente escribía su distrito a mano (con riesgo de errores de
+tipeo que compliquen la entrega). Ahora, tanto en **Lima Metropolitana**
+como en **Provincia**, el campo de distrito es un buscador: el cliente
+escribe unas letras y elige de una lista desplegable.
+
+- **Lima Metropolitana**: la lista son los distritos de Lima + Callao (51
+  en total) — solo los que corresponden a entrega local.
+- **Provincia**: la lista son los 1892 distritos de todo el Perú. Al elegir
+  uno, se completan solos el departamento y la provincia — el cliente ya no
+  escribe esos tres campos por separado, solo busca y elige el distrito.
+- La lista se carga aparte del resto de la web (no hace más lenta ninguna
+  otra página), así que puede tardar un instante en activarse al entrar al
+  checkout — mientras carga, el campo dice "Cargando lista...".

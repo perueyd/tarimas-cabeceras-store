@@ -197,6 +197,7 @@ const PRODUCTO_VACIO = {
   shortDescription: '',
   specs: [],
   sizePricing: {},
+  offerPricing: {},
   discountPercent: 0,
   availableColors: [],
   colorImages: {},
@@ -308,6 +309,14 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       return { ...prev, sizePricing: sp };
     });
   }
+  function setOfferPrice(sizeId, value) {
+    setP((prev) => {
+      const op = { ...(prev.offerPricing || {}) };
+      if (value === '') delete op[sizeId];
+      else op[sizeId] = Number(value);
+      return { ...prev, offerPricing: op };
+    });
+  }
   function toggleColor(colorId) {
     setP((prev) => ({
       ...prev,
@@ -330,9 +339,16 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       alert('Completa al menos: id, nombre y categoría.');
       return;
     }
+    // Un precio de oferta solo cuenta si es menor al precio regular de ese
+    // mismo tamaño — cualquier otro caso se descarta antes de guardar.
+    const offerPricing = {};
+    for (const [sizeId, valor] of Object.entries(p.offerPricing || {})) {
+      const regular = p.sizePricing[sizeId];
+      if (regular != null && valor > 0 && valor < regular) offerPricing[sizeId] = valor;
+    }
     setSaving(true);
     try {
-      await onSave(p);
+      await onSave({ ...p, offerPricing });
     } catch (err) {
       alert(err.message);
     } finally {
@@ -414,54 +430,52 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
         <button onClick={addSpec} className="mt-2 text-xs text-sky-700 hover:underline">+ Agregar especificación</button>
       </div>
 
-      {/* Precios por tamaño */}
+      {/* Precios por tamaño: regular y de oferta */}
       <div className="mt-5">
-        <p className="mb-2 text-sm font-medium text-neutral-700">Precios por tamaño (S/) — deja vacío el que no aplique</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {catalog.sizes.map((s) => (
-            <label key={s.id} className="text-xs">
-              <span className="mb-1 block text-neutral-500">{s.label}</span>
-              <input
-                type="number"
-                min="0"
-                value={p.sizePricing[s.id] ?? ''}
-                onChange={(e) => setPrice(s.id, e.target.value)}
-                className="w-full rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
-              />
-            </label>
-          ))}
+        <p className="mb-1 text-sm font-medium text-neutral-700">Precios por tamaño (S/)</p>
+        <p className="mb-3 text-xs text-neutral-500">
+          Precio de oferta es opcional e independiente para cada tamaño. Si lo llenas, la tienda
+          muestra ese precio con el precio regular tachado al lado. Debe ser menor al precio
+          regular — si no, se ignora y se vende al precio regular.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {catalog.sizes.map((s) => {
+            const regular = p.sizePricing[s.id] ?? '';
+            const oferta = p.offerPricing?.[s.id] ?? '';
+            const ofertaInvalida = oferta !== '' && regular !== '' && Number(oferta) >= Number(regular);
+            return (
+              <div key={s.id} className="rounded-lg border border-neutral-200 p-3">
+                <p className="mb-2 text-xs font-medium text-neutral-600">{s.label}</p>
+                <label className="mb-2 block text-xs">
+                  <span className="mb-1 block text-neutral-500">Precio regular</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={regular}
+                    onChange={(e) => setPrice(s.id, e.target.value)}
+                    className="w-full rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-neutral-500">Precio de oferta (opcional)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={oferta}
+                    onChange={(e) => setOfferPrice(s.id, e.target.value)}
+                    placeholder="Sin oferta"
+                    className={`w-full rounded-lg border px-2 py-1.5 outline-none focus:border-ink ${
+                      ofertaInvalida ? 'border-red-300' : 'border-neutral-300'
+                    }`}
+                  />
+                </label>
+                {ofertaInvalida && (
+                  <p className="mt-1 text-[11px] text-red-600">Debe ser menor al precio regular; si no, se ignora al guardar.</p>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
-
-      {/* Descuento / oferta (opcional) */}
-      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
-          <input
-            type="checkbox"
-            checked={Boolean(p.discountPercent)}
-            onChange={(e) => set('discountPercent', e.target.checked ? p.discountPercent || 10 : 0)}
-          />
-          Este producto está en oferta (opcional)
-        </label>
-        {Boolean(p.discountPercent) && (
-          <div className="mt-3 flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <span className="text-neutral-500">Descuento:</span>
-              <input
-                type="number"
-                min="1"
-                max="90"
-                value={p.discountPercent}
-                onChange={(e) => set('discountPercent', Math.min(Math.max(parseInt(e.target.value, 10) || 0, 0), 90))}
-                className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
-              />
-              <span className="text-neutral-500">%</span>
-            </label>
-            <p className="text-xs text-neutral-500">
-              Se muestra en la tienda con el precio anterior tachado. Se aplica igual a todos los tamaños.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Colores disponibles */}

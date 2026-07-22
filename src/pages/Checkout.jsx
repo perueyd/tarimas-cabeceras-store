@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
+import LocationSearch from '../components/LocationSearch.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
+
+// El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
+// principal — solo el checkout lo necesita, así no pesa en el resto de la web.
+function useUbigeo() {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    import('../data/ubigeoPeru.js').then(setData).catch(() => {});
+  }, []);
+  return data;
+}
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 
@@ -42,6 +53,42 @@ export default function Checkout() {
   const [promoMsg, setPromoMsg] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const totalConDescuento = Math.max(totalAmount - (promo?.descuento || 0), 0);
+
+  // Listas buscables de lugares (Lima Metropolitana + Callao para el flujo
+  // Lima; los 1892 distritos del Perú para Provincia).
+  const ubigeo = useUbigeo();
+  const limaOptions = useMemo(
+    () => (ubigeo ? ubigeo.LIMA_DISTRITOS.map((d) => ({ value: d, label: d })) : []),
+    [ubigeo]
+  );
+  const nacionalOptions = useMemo(
+    () =>
+      ubigeo
+        ? ubigeo.UBIGEO_PERU.map(([distrito, provincia, departamento]) => ({
+            value: `${distrito}|${provincia}|${departamento}`,
+            label: distrito,
+            sub: `${provincia}, ${departamento}`,
+            distrito,
+            provincia,
+            departamento,
+          }))
+        : [],
+    [ubigeo]
+  );
+
+  // Traduce la selección del buscador de lugares (LocationSearch) a los campos
+  // del formulario, que en otras partes se actualizan con handleChange(e).
+  function setLimaDistrito(option) {
+    setForm((prev) => ({ ...prev, distrito: option.label }));
+  }
+  function setNacionalUbicacion(option) {
+    setForm((prev) => ({
+      ...prev,
+      distrito: option.distrito,
+      provincia: option.provincia,
+      departamento: option.departamento,
+    }));
+  }
 
   async function aplicarPromo() {
     const code = promoInput.trim();
@@ -272,7 +319,17 @@ export default function Checkout() {
       </div>
 
       {zona === 'provincia' ? (
-        <ProvinciaFlow form={form} handleChange={handleChange} mensajeCotizacion={mensajeCotizacion} totalAmount={totalAmount} />
+        <ProvinciaFlow
+          form={form}
+          handleChange={handleChange}
+          mensajeCotizacion={mensajeCotizacion}
+          totalAmount={totalAmount}
+          nacionalOptions={nacionalOptions}
+          onSelectUbicacion={setNacionalUbicacion}
+          ubigeoLoading={!ubigeo}
+          storeConfig={storeConfig}
+          currencyFormatter={currencyFormatter}
+        />
       ) : (
         <>
           <form className="grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
@@ -280,7 +337,14 @@ export default function Checkout() {
             <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} />
             <Field label="Teléfono / WhatsApp" name="telefono" value={form.telefono} onChange={handleChange} />
             <Field label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} full />
-            <Field label="Distrito" name="distrito" value={form.distrito} onChange={handleChange} />
+            <LocationSearch
+              label="Distrito"
+              options={limaOptions}
+              value={form.distrito}
+              onSelect={setLimaDistrito}
+              placeholder="Busca tu distrito..."
+              disabled={!ubigeo}
+            />
             <Field
               label="Referencia (opcional)"
               name="referencia"
@@ -502,7 +566,18 @@ function MetodoBtn({ active, onClick, title, subtitle }) {
 }
 
 // Flujo para provincia: el envío corre por cuenta del cliente y se cotiza antes de pagar.
-function ProvinciaFlow({ form, handleChange, mensajeCotizacion, totalAmount }) {
+function ProvinciaFlow({
+  form,
+  handleChange,
+  mensajeCotizacion,
+  totalAmount,
+  nacionalOptions,
+  onSelectUbicacion,
+  ubigeoLoading,
+  storeConfig,
+  currencyFormatter,
+}) {
+  const ubicacionLabel = [form.distrito, form.provincia, form.departamento].filter(Boolean).join(', ');
   return (
     <div>
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -516,9 +591,19 @@ function ProvinciaFlow({ form, handleChange, mensajeCotizacion, totalAmount }) {
 
       <form className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
         <Field label="Nombre completo" name="nombre" value={form.nombre} onChange={handleChange} full />
-        <Field label="Departamento" name="departamento" value={form.departamento} onChange={handleChange} placeholder="Ej. Cusco" />
-        <Field label="Provincia" name="provincia" value={form.provincia} onChange={handleChange} placeholder="Ej. Cusco" />
-        <Field label="Distrito" name="distrito" value={form.distrito} onChange={handleChange} full placeholder="Ej. Wanchaq" />
+        <div className="sm:col-span-2">
+          <LocationSearch
+            label="Distrito"
+            options={nacionalOptions}
+            value={ubicacionLabel}
+            onSelect={onSelectUbicacion}
+            placeholder="Busca tu distrito (ej. Wanchaq)..."
+            disabled={ubigeoLoading}
+          />
+          {ubicacionLabel && (
+            <p className="mt-1.5 text-xs text-neutral-500">Destino: {ubicacionLabel}</p>
+          )}
+        </div>
       </form>
 
       <div className="mt-6 flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
