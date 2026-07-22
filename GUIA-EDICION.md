@@ -45,29 +45,41 @@ productos listos, o agrega una línea nueva:
 
 ## 2. Subir tus fotos
 
-1. Copia tus fotos a la carpeta `public/images/` del proyecto.
-2. Usa nombres simples sin espacios: `ropero-6-puertas.jpg`, `sofa-cama-gris.jpg`.
-3. En el producto, referencia la foto así: `baseImage: '/images/ropero-6-puertas.jpg'`.
+Forma recomendada (sin tocar código): en el panel `/pedidos` → **Editar página** →
+**Productos**, al crear o editar un producto usa el botón **"📷 Subir"** junto al
+campo de imagen. Elige el archivo y la URL se completa sola — no necesitas copiar
+archivos a ninguna carpeta ni editar `catalog.js`.
+
+**Formato de archivo:**
+- Aceptados: **JPG, PNG o WEBP**.
+- Peso máximo: **4 MB** por foto.
+- Ancho recomendado: **1200 px** es suficiente para verse nítido sin pesar de más.
 
 **¿Foto gris o foto a color?**
-- Si subes la foto del mueble en **tonos grises/neutros** → pon `tintable: true`.
-  La web la teñirá automáticamente con cada color que elija el cliente.
-- Si subes la foto **ya con su acabado real** (ej. melamina roble) → pon `tintable: false`.
-  La foto se muestra tal cual. (En este caso los círculos de color son solo referenciales;
-  si quieres una foto distinta por acabado, crea un producto por cada acabado — ver
-  "Foto propia por color" más abajo.)
+- Si subes la foto del mueble en **tonos grises/neutros** → marca
+  "La foto está en tonos grises..." (`tintable: true`). La web la teñirá
+  automáticamente con cada color que elija el cliente.
+- Si subes la foto **ya con su acabado real** (ej. melamina roble) → desmarca esa
+  opción (`tintable: false`). La foto se muestra tal cual. (En este caso los
+  círculos de color son solo referenciales; si quieres una foto distinta por
+  acabado, usa "Foto propia por color" dentro del mismo producto.)
 
-**Importante si usas `tintable: true`: sube la foto SIN FONDO (PNG transparente).**
-El teñido usa la transparencia de tu propia foto para saber "hasta dónde" pintar. Si tu
-foto es un JPG con fondo (pared, piso, etc.), el color se aplicará sobre TODO el
-rectángulo, incluido el fondo — se va a ver mal. La solución:
+**Importante si tu foto es para teñir (`tintable: true`): debe ser PNG con fondo
+transparente.** El teñido usa la transparencia de tu propia foto para saber
+"hasta dónde" pintar. Si subes un JPG con fondo (pared, piso, etc.), el color se
+aplicará sobre TODO el rectángulo, incluido el fondo — se va a ver mal. La solución:
 1. Recorta el mueble dejando el fondo transparente (hay editores gratis online tipo
    "remove background" — busca "quitar fondo de imagen gratis").
 2. Guarda el archivo como **PNG** (no JPG — el JPG no admite transparencia).
-3. Súbelo con el botón "📷 Subir" del panel como siempre.
+3. Súbelo con el botón "📷 Subir" del panel.
 
 Con el fondo transparente, el color solo pinta el mueble; el resto de la tarjeta queda
 con tu fondo neutro de la web, limpio.
+
+*Método alternativo (avanzado, editando código directo):* copiar el archivo a
+`public/images/` y referenciarlo como `baseImage: '/images/nombre.jpg'` en
+`src/data/catalog.js`. Solo tiene sentido si prefieres editar el catálogo por
+código en vez del panel — para el uso normal, usa el botón "📷 Subir".
 
 ## 3. Agregar un producto
 
