@@ -1,13 +1,19 @@
 import { isValidTipo, listPromoCodes, savePromoCodes, validatePromo } from './_promo.js';
 import { hasDB } from './_store.js';
 import { s } from './_pricing.js';
+import { checkAdminAuth } from './_auth.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
-// GET   ?validar=CODE&total=123   -> público, sin clave. Valida un código para el checkout.
-// GET   ?key=admin                -> lista todos los códigos (panel).
-// POST  ?key=admin                -> crea o edita un código (upsert por "code").
-// DELETE?key=admin&code=XXX       -> elimina un código.
+// GET   ?validar=CODE&total=123           -> público, sin clave. Valida un código para el checkout.
+// GET   Authorization: Bearer <admin>     -> lista todos los códigos (panel).
+// POST  Authorization: Bearer <admin>     -> crea o edita un código (upsert por "code").
+// DELETE Authorization: Bearer <admin>&code=XXX -> elimina un código.
 export default async function handler(req, res) {
   if (req.method === 'GET' && req.query.validar) {
+    // Sin límite, alguien podría probar códigos al azar hasta adivinar uno.
+    if (await rateLimitRequest(`promo-validar:${clientIp(req)}`, 20, 300)) {
+      return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+    }
     const total = Number(req.query.total);
     const result = await validatePromo(req.query.validar, total);
     if (!result.valid) return res.status(400).json({ error: result.motivo });
@@ -20,10 +26,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const adminKey = process.env.ORDERS_ADMIN_KEY;
-  if (!adminKey || (req.query.key || '') !== adminKey) {
-    return res.status(401).json({ error: 'Clave incorrecta.' });
-  }
+  const auth = await checkAdminAuth(req);
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
 
   if (req.method === 'GET') {
     const codes = await listPromoCodes();

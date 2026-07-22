@@ -2,17 +2,22 @@ import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, sa
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, validatePromo } from './_promo.js';
+import { checkAdminAuth } from './_auth.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
 
 // POST   -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
 // GET    -> ?code=  seguimiento público de UN pedido (sin datos sensibles, sin clave).
-//        -> ?key=   lista todos los pedidos del negocio (panel admin).
+//        -> Authorization: Bearer <admin>  lista todos los pedidos del negocio (panel admin).
 // PATCH  -> el dueño cambia estado y/o método de un pedido. Notifica la hoja + correo.
 // DELETE -> el dueño elimina un pedido del panel.
 export default async function handler(req, res) {
   if (req.method === 'POST') {
+    if (await rateLimitRequest(`orders-post:${clientIp(req)}`, 15, 3600)) {
+      return res.status(429).json({ error: 'Demasiados pedidos seguidos. Espera unos minutos o escríbenos por WhatsApp.' });
+    }
     const body = req.body || {};
     const metodo = s(body.metodo, 40);
     const nombre = s(body.nombre, 120);
@@ -75,6 +80,9 @@ export default async function handler(req, res) {
     // Seguimiento público: cualquier persona con el código puede ver el estado
     // (no requiere clave). Solo se devuelven campos no sensibles.
     if (req.query.code) {
+      if (await rateLimitRequest(`orders-track:${clientIp(req)}`, 40, 600)) {
+        return res.status(429).json({ error: 'Demasiadas búsquedas seguidas. Espera un momento.' });
+      }
       const code = s(req.query.code, 30);
       if (!hasDB) {
         return res.status(501).json({ error: 'El seguimiento aún no está disponible.' });
@@ -94,13 +102,11 @@ export default async function handler(req, res) {
       });
     }
 
-    const adminKey = process.env.ORDERS_ADMIN_KEY;
-    if (!adminKey) {
+    if (!process.env.ORDERS_ADMIN_KEY) {
       return res.status(501).json({ error: 'Configura la variable ORDERS_ADMIN_KEY en Vercel para ver los pedidos.' });
     }
-    if ((req.query.key || '') !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     try {
       const orders = await listOrders();
       if (orders === null) {
@@ -116,10 +122,8 @@ export default async function handler(req, res) {
 
   // PATCH: el dueño cambia el estado y/o el método de un pedido.
   if (req.method === 'PATCH') {
-    const adminKey = process.env.ORDERS_ADMIN_KEY;
-    if (!adminKey || (req.query.key || '') !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const code = s(req.body?.code, 30);
     const estado = req.body?.estado != null ? s(req.body.estado, 30) : null;
@@ -160,10 +164,8 @@ export default async function handler(req, res) {
 
   // DELETE: el dueño elimina un pedido del panel (no borra la fila ya escrita en Sheets).
   if (req.method === 'DELETE') {
-    const adminKey = process.env.ORDERS_ADMIN_KEY;
-    if (!adminKey || (req.query.key || '') !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const code = s(req.query.code, 30);
     if (!code) return res.status(400).json({ error: 'Falta el código del pedido.' });

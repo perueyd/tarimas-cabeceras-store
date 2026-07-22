@@ -22,7 +22,7 @@ export default function PromoEditor({ adminKey }) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/promo?key=${encodeURIComponent(adminKey)}`);
+      const res = await fetch('/api/promo', { headers: { Authorization: `Bearer ${adminKey}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'No se pudo cargar.');
       setCodes(data.codes || []);
@@ -40,9 +40,9 @@ export default function PromoEditor({ adminKey }) {
   }, []);
 
   async function guardar(codigo) {
-    const res = await fetch(`/api/promo?key=${encodeURIComponent(adminKey)}`, {
+    const res = await fetch('/api/promo', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey}` },
       body: JSON.stringify(codigo),
     });
     const data = await res.json();
@@ -62,8 +62,9 @@ export default function PromoEditor({ adminKey }) {
 
   async function eliminar(codigo) {
     if (!window.confirm(`¿Eliminar el código ${codigo.code}? Esta acción no se puede deshacer.`)) return;
-    const res = await fetch(`/api/promo?key=${encodeURIComponent(adminKey)}&code=${encodeURIComponent(codigo.code)}`, {
+    const res = await fetch(`/api/promo?code=${encodeURIComponent(codigo.code)}`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminKey}` },
     });
     const data = await res.json();
     if (res.ok) setCodes(data.codes);

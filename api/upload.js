@@ -1,8 +1,19 @@
 import { put } from '@vercel/blob';
 import { s } from './_pricing.js';
+import { checkAdminAuth } from './_auth.js';
 
 const EXTENSIONES = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 const MAX_BYTES = 4.4 * 1024 * 1024; // límite práctico de las funciones de Vercel (~4.5 MB)
+
+// Revisa los primeros bytes del archivo (no el nombre) para confirmar que es
+// una imagen de verdad — evita que alguien suba, por ejemplo, un HTML o SVG
+// con script adentro disfrazado de "foto.jpg".
+function sniffImageType(buf) {
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'png';
+  if (buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+  return null;
+}
 
 // Sube una foto al almacén de Vercel Blob y devuelve su URL pública.
 // Protegido con la clave de administrador — solo el dueño puede subir.
@@ -10,10 +21,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
-  const adminKey = process.env.ORDERS_ADMIN_KEY;
-  if (!adminKey || (req.query.key || '') !== adminKey) {
-    return res.status(401).json({ error: 'Clave incorrecta.' });
-  }
+  const auth = await checkAdminAuth(req);
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return res.status(501).json({
       error: 'El almacén de fotos no está conectado. En Vercel: Storage → Create Database → Blob → conectar al proyecto → Redeploy.',
@@ -39,6 +48,11 @@ export default async function handler(req, res) {
   }
   if (body.length > MAX_BYTES) {
     return res.status(413).json({ error: 'La foto pesa más de 4 MB. Redúcela un poco (1200 px de ancho es suficiente).' });
+  }
+  const tipoReal = sniffImageType(body);
+  const extNormalizada = ext === 'jpeg' ? 'jpg' : ext;
+  if (!tipoReal || tipoReal !== extNormalizada) {
+    return res.status(400).json({ error: 'El archivo no es una imagen JPG, PNG o WEBP válida.' });
   }
 
   const safe = rawName

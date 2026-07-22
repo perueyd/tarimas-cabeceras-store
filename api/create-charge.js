@@ -2,12 +2,19 @@ import { newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, validatePromo } from './_promo.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  // Límite por IP: un intento de "probar" tarjetas robadas hace muchos cargos
+  // pequeños seguidos — esto lo frena sin afectar una compra normal.
+  if (await rateLimitRequest(`charge:${clientIp(req)}`, 8, 600)) {
+    return res.status(429).json({ error: 'Demasiados intentos de pago seguidos. Espera unos minutos e intenta de nuevo.' });
   }
 
   const body = req.body || {};

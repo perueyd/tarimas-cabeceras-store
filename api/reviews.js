@@ -1,25 +1,25 @@
-import { products } from '../src/data/catalog.js';
 import { hasDB, redisCmd } from './_store.js';
 import { s } from './_pricing.js';
+import { getCatalog } from './_catalog.js';
+import { checkAdminAuth } from './_auth.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 // Reseñas de productos (comentarios + estrellas).
-// GET  ?product=<id>          -> reseñas públicas de un producto
-// GET  ?all=1&key=<admin>     -> todas las reseñas (panel admin)
+// GET  ?product=<id>                     -> reseñas públicas de un producto
+// GET  ?all=1  Authorization: Bearer <admin>  -> todas las reseñas (panel admin)
 // POST {productId, nombre, estrellas, comentario} -> crea una reseña
-// DELETE ?key=<admin>&product=<id>&id=<reviewId>  -> elimina una reseña (admin)
+// DELETE Authorization: Bearer <admin>, ?product=<id>&id=<reviewId>  -> elimina una reseña (admin)
 export default async function handler(req, res) {
-  const adminKey = process.env.ORDERS_ADMIN_KEY;
-
   if (req.method === 'GET') {
     if (req.query.all) {
-      if (!adminKey || req.query.key !== adminKey) {
-        return res.status(401).json({ error: 'Clave incorrecta.' });
-      }
+      const auth = await checkAdminAuth(req);
+      if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
       if (!hasDB) return res.status(200).json({ reviews: [], saved: false });
       const data = await redisCmd(['LRANGE', 'reviews:all', '0', '499']);
       return res.status(200).json({ reviews: parseAll(data) });
     }
     const productId = s(req.query.product, 60);
+    const { products } = await getCatalog();
     if (!products.some((p) => p.id === productId)) {
       return res.status(400).json({ error: 'Producto inválido.' });
     }
@@ -29,11 +29,15 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    if (await rateLimitRequest(`reviews-post:${clientIp(req)}`, 8, 3600)) {
+      return res.status(429).json({ error: 'Ya enviaste varias reseñas seguidas. Intenta más tarde.' });
+    }
     const body = req.body || {};
     const productId = s(body.productId, 60);
     const nombre = s(body.nombre, 60).trim();
     const comentario = s(body.comentario, 500).trim();
     const estrellas = Math.min(Math.max(parseInt(body.estrellas, 10) || 0, 1), 5);
+    const { products } = await getCatalog();
     if (!products.some((p) => p.id === productId) || !nombre || !comentario) {
       return res.status(400).json({ error: 'Completa tu nombre y comentario.' });
     }
@@ -57,9 +61,8 @@ export default async function handler(req, res) {
 
   // PUT: el dueño edita una reseña (estrellas y/o comentario).
   if (req.method === 'PUT') {
-    if (!adminKey || req.query.key !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const productId = s(req.body?.productId, 60);
     const id = s(req.body?.id, 40);
@@ -90,9 +93,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    if (!adminKey || req.query.key !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const productId = s(req.query.product, 60);
     const id = s(req.query.id, 40);

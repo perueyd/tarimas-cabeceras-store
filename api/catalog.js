@@ -1,21 +1,20 @@
 import { getCatalog, listKeyFor, saveConfig, saveList } from './_catalog.js';
 import { hasDB } from './_store.js';
 import { s } from './_pricing.js';
+import { checkAdminAuth } from './_auth.js';
 
 // GET     -> catálogo completo (público, lo usa la tienda para mostrarse).
-// POST    -> ?key=admin&resource=product|category|color|size|showcase   body: el objeto (crea o edita por id)
-//         -> ?key=admin&resource=config                                 body: cambios parciales de storeConfig
-// DELETE  -> ?key=admin&resource=product|category|color|size|showcase&id=xxx
+// POST    -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase   body: el objeto (crea o edita por id)
+//         -> ?resource=config                                                                body: cambios parciales de storeConfig
+// DELETE  -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase&id=xxx
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const catalog = await getCatalog();
     return res.status(200).json(catalog);
   }
 
-  const adminKey = process.env.ORDERS_ADMIN_KEY;
-  if (!adminKey || (req.query.key || '') !== adminKey) {
-    return res.status(401).json({ error: 'Clave incorrecta.' });
-  }
+  const auth = await checkAdminAuth(req);
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
   if (!hasDB) {
     return res.status(501).json({
       error: 'Base de datos no conectada. Conecta la integración gratuita "Upstash Redis" en Vercel (Storage → Marketplace) para poder editar el catálogo desde aquí.',

@@ -368,7 +368,20 @@ INDECOPI si aplica a tu caso), consulta con un abogado o contador en Perú.
 
 - El **precio siempre se recalcula en el servidor** desde el catálogo: aunque
   alguien manipule la página, no puede pagar menos del precio real.
-- Cabeceras de seguridad (anti-clickjacking, anti-sniffing, HSTS).
+- Cabeceras de seguridad (anti-clickjacking, anti-sniffing, HSTS, permisos del
+  navegador restringidos) y una Política de Seguridad de Contenido (CSP) en
+  modo de solo-aviso, preparando el terreno para bloquear contenido no
+  autorizado más adelante sin arriesgar que se rompa el pago con Culqi.
+- Tu clave de administrador se manda por una cabecera segura (no en la URL),
+  se compara de una forma que no se puede adivinar midiendo tiempos, y se
+  bloquea automáticamente por 5 minutos tras 20 intentos fallidos seguidos
+  desde la misma conexión — a tu uso normal del panel nunca le afecta, solo
+  frena a quien intente adivinar la clave a la fuerza.
+- Límites de intentos en los formularios públicos (pagos, pedidos, reseñas,
+  reclamos, códigos de descuento) para frenar spam y intentos de probar
+  tarjetas robadas, sin afectar el uso normal de un cliente real.
+- Las fotos que subes se revisan por su contenido real, no solo por el
+  nombre del archivo — así no se puede subir algo disfrazado de imagen.
 - Textos de clientes recortados y validados contra datos maliciosos.
 - La llave secreta de Culqi y tu clave de administrador viven SOLO en Vercel,
   nunca en el código ni en el navegador.

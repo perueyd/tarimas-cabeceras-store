@@ -1,5 +1,7 @@
 import { hasDB, redisCmd } from './_store.js';
 import { s } from './_pricing.js';
+import { checkAdminAuth } from './_auth.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 // Libro de Reclamaciones Virtual — exigido por el Código de Protección y
 // Defensa del Consumidor (Ley 29571) y su reglamento (D.S. 011-2011-PCM y
@@ -7,9 +9,12 @@ import { s } from './_pricing.js';
 // online. Debe estar accesible sin necesidad de comprar ni iniciar sesión.
 //
 // POST  -> registra un reclamo o queja (público, cualquier visitante, sin clave).
-// GET   -> ?key=admin  lista todos los reclamos (panel del negocio).
-// PATCH -> ?key=admin  el dueño registra su respuesta a un reclamo (por folio).
+// GET   -> Authorization: Bearer <admin>  lista todos los reclamos (panel del negocio).
+// PATCH -> Authorization: Bearer <admin>  el dueño registra su respuesta a un reclamo (por folio).
 // No hay DELETE a propósito: los reclamos son un registro legal, no se borran.
+//
+// El límite de intentos del POST es generoso a propósito: por ley el libro
+// debe quedar accesible sin fricción para cualquier visitante.
 
 const TIPOS_DOC = ['DNI', 'CE', 'Pasaporte'];
 const TIPOS_RECLAMO = ['Reclamo', 'Queja'];
@@ -28,6 +33,9 @@ async function nextFolio() {
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
+    if (await rateLimitRequest(`reclamos-post:${clientIp(req)}`, 8, 3600)) {
+      return res.status(429).json({ error: 'Ya registraste varios reclamos seguidos. Si necesitas enviar más, escríbenos por WhatsApp.' });
+    }
     const body = req.body || {};
     const tipo = TIPOS_RECLAMO.includes(body.tipo) ? body.tipo : null;
     const nombre = s(body.nombre, 150).trim();
@@ -72,10 +80,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'GET') {
-    const adminKey = process.env.ORDERS_ADMIN_KEY;
-    if (!adminKey || (req.query.key || '') !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(200).json({ reclamos: [] });
     const data = await redisCmd(['LRANGE', 'reclamos', '0', '499']);
     const reclamos = (data.result || [])
@@ -87,10 +93,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const adminKey = process.env.ORDERS_ADMIN_KEY;
-    if (!adminKey || (req.query.key || '') !== adminKey) {
-      return res.status(401).json({ error: 'Clave incorrecta.' });
-    }
+    const auth = await checkAdminAuth(req);
+    if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const folio = s(req.body?.folio, 30);
     const respuesta = s(req.body?.respuesta, 2000).trim();

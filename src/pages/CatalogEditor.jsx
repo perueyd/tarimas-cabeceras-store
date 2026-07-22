@@ -18,8 +18,12 @@ function UploadButton({ adminKey, onUploaded, label = '📷 Subir' }) {
     setBusy(true);
     try {
       const res = await fetch(
-        `/api/upload?key=${encodeURIComponent(adminKey)}&filename=${encodeURIComponent(file.name)}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file }
+        `/api/upload?filename=${encodeURIComponent(file.name)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${adminKey}` },
+          body: file,
+        }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'No se pudo subir la foto.');
@@ -61,9 +65,12 @@ export default function CatalogEditor({ adminKey }) {
   }
 
   async function api(method, resource, body, extraQuery = '') {
-    const res = await fetch(`/api/catalog?key=${encodeURIComponent(adminKey)}&resource=${resource}${extraQuery}`, {
+    const res = await fetch(`/api/catalog?resource=${resource}${extraQuery}`, {
       method,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        Authorization: `Bearer ${adminKey}`,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json();

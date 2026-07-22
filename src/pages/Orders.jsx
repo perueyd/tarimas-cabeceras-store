@@ -70,18 +70,19 @@ export default function Orders() {
   async function cargar(k) {
     setLoading(true);
     setError('');
+    const authHeader = { Authorization: `Bearer ${k}` };
     try {
-      const res = await fetch(`/api/orders?key=${encodeURIComponent(k)}`);
+      const res = await fetch('/api/orders', { headers: authHeader });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'No se pudo cargar.');
       setOrders(data.orders);
       localStorage.setItem('ed-orders-key', k);
       setKey(k);
-      fetch(`/api/reviews?all=1&key=${encodeURIComponent(k)}`)
+      fetch('/api/reviews?all=1', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setReviews(d.reviews || []))
         .catch(() => {});
-      fetch(`/api/reclamos?key=${encodeURIComponent(k)}`)
+      fetch('/api/reclamos', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setReclamos(d.reclamos || []))
         .catch(() => {});
@@ -100,9 +101,9 @@ export default function Orders() {
 
   async function actualizarPedido(o, cambios) {
     try {
-      const res = await fetch(`/api/orders?key=${encodeURIComponent(key)}`, {
+      const res = await fetch('/api/orders', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({ code: o.code, ...cambios }),
       });
       if (res.ok) setOrders(orders.map((x) => (x.code === o.code ? { ...x, ...cambios } : x)));
@@ -112,8 +113,9 @@ export default function Orders() {
   async function eliminarPedido(o) {
     if (!window.confirm(`¿Eliminar el pedido ${o.code} de ${o.nombre}? Esta acción no se puede deshacer.`)) return;
     try {
-      const res = await fetch(`/api/orders?key=${encodeURIComponent(key)}&code=${encodeURIComponent(o.code)}`, {
+      const res = await fetch(`/api/orders?code=${encodeURIComponent(o.code)}`, {
         method: 'DELETE',
+        headers: { Authorization: `Bearer ${key}` },
       });
       if (res.ok) setOrders(orders.filter((x) => x.code !== o.code));
     } catch { /* no-op */ }
@@ -123,8 +125,8 @@ export default function Orders() {
     if (!window.confirm(`¿Eliminar la reseña de ${r.nombre}?`)) return;
     try {
       const res = await fetch(
-        `/api/reviews?key=${encodeURIComponent(key)}&product=${encodeURIComponent(r.productId)}&id=${encodeURIComponent(r.id)}`,
-        { method: 'DELETE' }
+        `/api/reviews?product=${encodeURIComponent(r.productId)}&id=${encodeURIComponent(r.id)}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${key}` } }
       );
       if (res.ok) setReviews(reviews.filter((x) => x.id !== r.id));
     } catch { /* no-op */ }
@@ -132,9 +134,9 @@ export default function Orders() {
 
   async function guardarEdicion(r) {
     try {
-      const res = await fetch(`/api/reviews?key=${encodeURIComponent(key)}`, {
+      const res = await fetch('/api/reviews', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({ productId: r.productId, id: r.id, estrellas: editando.estrellas, comentario: editando.comentario }),
       });
       const data = await res.json();
@@ -146,9 +148,9 @@ export default function Orders() {
   }
 
   async function responderReclamo(r, respuesta) {
-    const res = await fetch(`/api/reclamos?key=${encodeURIComponent(key)}`, {
+    const res = await fetch('/api/reclamos', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({ folio: r.folio, respuesta }),
     });
     const data = await res.json();
