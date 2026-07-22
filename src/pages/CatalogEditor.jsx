@@ -147,12 +147,25 @@ function PortadaTab({ catalog, api, flash }) {
     categoriasTitulo: '',
     categoriasDescripcion: '',
     comoFunciona: COMO_FUNCIONA_VACIO,
+    confianza: [],
     ...(catalog.storeConfig.landing || {}),
   });
   const [saving, setSaving] = useState(false);
 
   function set(field, value) {
     setLanding((prev) => ({ ...prev, [field]: value }));
+  }
+  function setConfianza(i, field, value) {
+    setLanding((prev) => ({
+      ...prev,
+      confianza: prev.confianza.map((c, idx) => (idx === i ? { ...c, [field]: value } : c)),
+    }));
+  }
+  function addConfianza() {
+    setLanding((prev) => ({ ...prev, confianza: [...prev.confianza, { icono: '✅', texto: '' }] }));
+  }
+  function removeConfianza(i) {
+    setLanding((prev) => ({ ...prev, confianza: prev.confianza.filter((_, idx) => idx !== i) }));
   }
   function setPaso(i, field, value) {
     setLanding((prev) => ({
@@ -266,6 +279,32 @@ function PortadaTab({ catalog, api, flash }) {
         ))}
       </div>
       <button onClick={addPaso} className="mt-2 text-xs text-sky-700 hover:underline">+ Agregar paso</button>
+
+      <p className="mb-1 mt-6 text-sm font-medium">Fila de confianza en el checkout</p>
+      <p className="mb-4 text-xs text-neutral-400">
+        Iconos cortos que ve el cliente justo antes de pagar (ej. "🚚 Entrega a tu casa"). Si
+        quitas todos, esa fila no se muestra.
+      </p>
+      <div className="space-y-2">
+        {landing.confianza.map((c, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input
+              value={c.icono}
+              onChange={(e) => setConfianza(i, 'icono', e.target.value)}
+              placeholder="🚚"
+              className="w-14 rounded-lg border border-neutral-300 px-2 py-1.5 text-center text-sm outline-none focus:border-ink"
+            />
+            <input
+              value={c.texto}
+              onChange={(e) => setConfianza(i, 'texto', e.target.value)}
+              placeholder="Entrega a tu casa"
+              className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+            />
+            <button onClick={() => removeConfianza(i)} className="text-xs text-red-600 hover:underline">Eliminar</button>
+          </div>
+        ))}
+      </div>
+      <button onClick={addConfianza} className="mt-2 text-xs text-sky-700 hover:underline">+ Agregar ítem</button>
 
       <button onClick={guardar} disabled={saving} className="mt-6 block rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
         {saving ? 'Guardando...' : 'Guardar página principal'}

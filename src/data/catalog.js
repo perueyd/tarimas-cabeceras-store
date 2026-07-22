@@ -54,6 +54,13 @@ export const storeConfig = {
         { titulo: 'Recíbelo en casa', texto: 'Coordinamos la entrega e instalación según tu distrito.' },
       ],
     },
+    // Fila de confianza en el checkout (iconos + texto corto). Deja la lista
+    // vacía para no mostrar nada.
+    confianza: [
+      { icono: '🚚', texto: 'Entrega a tu casa' },
+      { icono: '🔒', texto: 'Compra 100% segura' },
+      { icono: '💬', texto: 'Ayuda por WhatsApp' },
+    ],
   },
 };
 

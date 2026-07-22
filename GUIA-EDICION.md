@@ -324,9 +324,13 @@ Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
   de nuevo con el mismo ID).
 - **Página principal**: los textos del hero (lo primero que ve el cliente),
   los botones, la palabra grande de la animación, el título y descripción de
-  la sección "Todo para tu hogar", y el título + los pasos de "Comprar es
+  la sección "Todo para tu hogar", el título + los pasos de "Comprar es
   simple" (puedes agregar o quitar pasos — si los quitas todos, esa sección
-  no se muestra pero el botón "Ir a la tienda" sigue apareciendo igual).
+  no se muestra pero el botón "Ir a la tienda" sigue apareciendo igual), y la
+  **fila de confianza del checkout** (ej. "🚚 Entrega a tu casa") — un ícono
+  (puede ser un emoji) + texto corto por ítem, se ve justo antes de que el
+  cliente empiece a llenar sus datos de pago. Si quitas todos los ítems, esa
+  fila no se muestra.
 - **Vitrina animada**: los paneles del carrusel 3D que se arrastra en la
   portada (el de "arrastra o toca un panel"). Por cada panel puedes cambiar la
   imagen (con el botón "📷 Subir"), el color de fondo, el nombre (ahora se

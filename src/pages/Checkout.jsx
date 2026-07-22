@@ -18,6 +18,14 @@ function useUbigeo() {
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 
+// Respaldo si el negocio aún no guardó su propia fila de confianza (o si
+// guardó una configuración de portada de antes de que existiera este campo).
+const CONFIANZA_DEFAULT = [
+  { icono: '🚚', texto: 'Entrega a tu casa' },
+  { icono: '🔒', texto: 'Compra 100% segura' },
+  { icono: '💬', texto: 'Ayuda por WhatsApp' },
+];
+
 // Fecha mínima de entrega: hoy + días de fabricación.
 function minDeliveryDate(deliveryMinDays) {
   const d = new Date(Date.now() + deliveryMinDays * 86400000);
@@ -28,6 +36,10 @@ export default function Checkout() {
   const { items, totalAmount, clearCart } = useCart();
   const { storeConfig, currencyFormatter, getColorById, getSizeById } = useCatalog();
   const navigate = useNavigate();
+  // Array.isArray, no ".length ? ...": una lista vacía significa que el
+  // dueño la quitó a propósito — no debe "revivir" con el respaldo (mismo
+  // criterio que se usa para no ignorar un catálogo real que quedó vacío).
+  const confianza = Array.isArray(storeConfig.landing?.confianza) ? storeConfig.landing.confianza : CONFIANZA_DEFAULT;
   const [zona, setZona] = useState('lima'); // 'lima' | 'provincia'
   const [form, setForm] = useState({
     nombre: '',
@@ -345,7 +357,18 @@ export default function Checkout() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Datos de envío y pago</h1>
+      <h1 className="mb-4 text-2xl font-semibold tracking-tight">Datos de envío y pago</h1>
+
+      {confianza.length > 0 && (
+        <div className="mb-6 grid grid-cols-1 gap-2 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600 sm:grid-cols-3">
+          {confianza.map((c, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-base">{c.icono}</span>
+              <span>{c.texto}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <p className="mb-2 text-sm font-medium text-neutral-700">¿Dónde entregamos?</p>
       <div className="mb-6 flex gap-3">
