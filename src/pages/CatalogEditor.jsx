@@ -797,16 +797,26 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       {/* Precios por tamaño: regular y de oferta */}
       <div className="mt-5">
         <p className="mb-1 text-sm font-medium text-neutral-700">Precios por tamaño (S/)</p>
-        <p className="mb-3 text-xs text-neutral-500">
+        <p className="mb-2 text-xs text-neutral-500">
           Precio de oferta es opcional e independiente para cada tamaño. Si lo llenas, la tienda
-          muestra ese precio con el precio regular tachado al lado. Debe ser menor al precio
-          regular — si no, se ignora y se vende al precio regular.
+          muestra ese precio con el precio regular tachado al lado y el descuento calculado. Debe
+          ser menor al precio regular — si no, se ignora y se vende al precio regular.
+        </p>
+        <p className="mb-3 text-xs text-neutral-400">
+          ¿Cada tamaño tiene su propia foto o sus propios colores? Más abajo, en
+          «Colores por tamaño» y «Foto propia por tamaño».
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {catalog.sizes.map((s) => {
             const regular = p.sizePricing[s.id] ?? '';
             const oferta = p.offerPricing?.[s.id] ?? '';
             const ofertaInvalida = oferta !== '' && regular !== '' && Number(oferta) >= Number(regular);
+            // Descuento real de ESTE tamaño (el mismo que verá el cliente).
+            const ofertaValida = oferta !== '' && regular !== '' && !ofertaInvalida && Number(oferta) > 0;
+            const dctoPct = ofertaValida
+              ? Math.round(((Number(regular) - Number(oferta)) / Number(regular)) * 1000) / 10
+              : null;
+            const ahorro = ofertaValida ? Number(regular) - Number(oferta) : null;
             return (
               <div key={s.id} className="rounded-lg border border-neutral-200 p-3">
                 <p className="mb-2 text-xs font-medium text-neutral-600">{s.label}</p>
@@ -835,6 +845,14 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
                 </label>
                 {ofertaInvalida && (
                   <p className="mt-1 text-[11px] text-red-600">Debe ser menor al precio regular; si no, se ignora al guardar.</p>
+                )}
+                {dctoPct !== null && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                    <span className="rounded-full bg-red-50 px-1.5 py-0.5 font-semibold text-red-600">-{dctoPct}%</span>
+                    <span className="text-neutral-500">
+                      ahorra {catalog.currencyFormatter.format(ahorro)}
+                    </span>
+                  </p>
                 )}
               </div>
             );
