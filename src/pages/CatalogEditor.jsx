@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { PALETAS } from '../data/paletas.js';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -1196,6 +1197,7 @@ function CategoriasTab({ catalog, api, flash }) {
 // ============================================================
 function ColoresTab({ catalog, api, flash }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '', hex: '#8b8d91' });
+  const [cargando, setCargando] = useState('');
 
   async function eliminar(c) {
     if (!window.confirm(`¿Eliminar el color "${c.label}"?`)) return;
@@ -1208,13 +1210,49 @@ function ColoresTab({ catalog, api, flash }) {
     setNuevo({ id: '', label: '', hex: '#8b8d91' });
     flash('Color agregado.');
   }
+  // Guarda el tono ajustado de un color que ya existe (mismo id = se actualiza).
+  async function cambiarTono(c, hex) {
+    await api('POST', 'color', { ...c, hex });
+  }
+  // Carga una carta de tela completa. Solo agrega los que falten: si ya tienes
+  // un color con ese id, no se toca (para no pisar tonos que ya ajustaste).
+  async function cargarPaleta(paleta) {
+    const existentes = new Set(catalog.colors.map((c) => c.id));
+    const faltantes = paleta.colores.filter((c) => !existentes.has(c.id));
+    if (faltantes.length === 0) {
+      alert(`Ya tienes cargada la carta "${paleta.nombre}".`);
+      return;
+    }
+    if (!window.confirm(`Se agregarán ${faltantes.length} colores de «${paleta.nombre}». Los que ya tengas no se modifican. ¿Continuar?`)) return;
+    setCargando(paleta.id);
+    try {
+      for (const c of faltantes) {
+        await api('POST', 'color', c);
+      }
+      flash(`${faltantes.length} colores agregados. Ajusta los tonos que no coincidan con tu tela real.`);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCargando('');
+    }
+  }
 
   return (
     <div>
+      <p className="mb-3 text-xs text-neutral-500">
+        Toca el cuadrito de color de cualquiera para ajustar su tono. El cambio se guarda solo y
+        se refleja al instante en la tienda.
+      </p>
       <div className="flex flex-wrap gap-3">
         {catalog.colors.map((c) => (
           <div key={c.id} className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2">
-            <span className="h-5 w-5 rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />
+            <input
+              type="color"
+              value={c.hex}
+              onChange={(e) => cambiarTono(c, e.target.value)}
+              title={`Ajustar el tono de ${c.label}`}
+              className="h-6 w-6 cursor-pointer rounded-full border border-black/10 bg-transparent p-0"
+            />
             <span className="text-sm">{c.label}</span>
             <button onClick={() => eliminar(c)} className="text-xs text-red-600 hover:underline">✕</button>
           </div>
@@ -1236,6 +1274,41 @@ function ColoresTab({ catalog, api, flash }) {
         <button onClick={agregar} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
           + Agregar color
         </button>
+      </div>
+
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <p className="text-sm font-medium text-neutral-700">Cargar una carta de telas</p>
+        <p className="mb-3 mt-1 text-xs text-neutral-500">
+          Agrega de golpe todos los colores de una carta. Los tonos son una aproximación tomada de
+          la foto de la carta — después ajústalos con el cuadrito de color hasta que coincidan con
+          tu tela real. Los colores que ya tengas no se modifican.
+        </p>
+        <div className="space-y-2">
+          {PALETAS.map((pal) => (
+            <div key={pal.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium">{pal.nombre}</span>
+                <button
+                  onClick={() => cargarPaleta(pal)}
+                  disabled={cargando === pal.id}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:border-ink disabled:opacity-60"
+                >
+                  {cargando === pal.id ? 'Cargando...' : `+ Cargar ${pal.colores.length} colores`}
+                </button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {pal.colores.map((c) => (
+                  <span
+                    key={c.id}
+                    title={c.label}
+                    className="h-5 w-5 rounded-full border border-black/10"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
