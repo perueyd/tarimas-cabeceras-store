@@ -31,6 +31,44 @@ function isValidOffer(offer, original) {
   return Number.isFinite(n) && n > 0 && n < original;
 }
 
+// Opciones del producto (ej. "Con brazos / Sin brazos", tipo de patas, tipo de
+// botón). Devuelve cuánto suman al precio y el detalle legible de lo elegido.
+//
+// SEGURIDAD: solo cuenta grupos y valores que existan DE VERDAD en el producto
+// del catálogo — si el navegador manda una opción inventada o un recargo
+// distinto, se ignora y se usa el del catálogo. Los recargos negativos se
+// tratan como 0 (para "más barato sin brazos", pon el precio base sin brazos
+// y cobra un extra por ponerlos).
+export function resolveOpciones(product, seleccion) {
+  const grupos = Array.isArray(product?.opciones) ? product.opciones : [];
+  const sel = seleccion && typeof seleccion === 'object' ? seleccion : {};
+  let extra = 0;
+  const detalle = [];
+  for (const g of grupos) {
+    const valor = (g.valores || []).find((v) => v.id === sel[g.id]);
+    if (!valor) continue;
+    const precioExtra = Math.max(Number(valor.precioExtra) || 0, 0);
+    extra += precioExtra;
+    detalle.push({
+      grupoId: g.id,
+      grupoLabel: g.label,
+      valorId: valor.id,
+      valorLabel: valor.label,
+      precioExtra,
+    });
+  }
+  return { extra: round2(extra), detalle };
+}
+
+// Precio unitario final: precio del tamaño (con su oferta si tiene) + los
+// recargos de las opciones elegidas.
+export function getUnitPrice(product, sizeId, seleccionOpciones) {
+  const base = getEffectivePrice(product, sizeId);
+  if (!base) return null;
+  const { extra, detalle } = resolveOpciones(product, seleccionOpciones);
+  return { ...base, extra, detalle, unitPrice: round2(base.final + extra) };
+}
+
 export function clampPercent(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;

@@ -335,7 +335,8 @@ export default function Checkout() {
     const lineas = items.map((i) => {
       const size = getSizeById(i.sizeId);
       const color = getColorById(i.colorId);
-      return `• ${i.productName} x${i.qty} (${size?.label || i.sizeId}, ${color?.label || i.colorId}) — ${currencyFormatter.format(i.unitPrice * i.qty)}`;
+      const ops = (i.opcionesDetalle || []).map((d) => `${d.grupoLabel}: ${d.valorLabel}`).join(', ');
+      return `• ${i.productName} x${i.qty} (${size?.label || i.sizeId}, ${color?.label || i.colorId}${ops ? `, ${ops}` : ''}) — ${currencyFormatter.format(i.unitPrice * i.qty)}`;
     });
     const destino = [form.distrito, form.provincia, form.departamento].filter(Boolean).join(', ');
     return encodeURIComponent(

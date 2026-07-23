@@ -3,7 +3,7 @@ import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
-import { getEffectivePrice } from '../lib/pricing.js';
+import { getUnitPrice } from '../lib/pricing.js';
 
 export default function Cart() {
   const { items, updateQty, removeItem, totalAmount, lineKey } = useCart();
@@ -28,7 +28,7 @@ export default function Cart() {
           const color = getColorById(item.colorId);
           const size = getSizeById(item.sizeId);
           const product = getProductByIdSafe(item.productId);
-          const priceInfo = product ? getEffectivePrice(product, item.sizeId) : null;
+          const priceInfo = product ? getUnitPrice(product, item.sizeId, item.opciones) : null;
           return (
             <div key={lineKey(item)} className="flex gap-4 p-4">
               <ProductImage
@@ -45,12 +45,17 @@ export default function Cart() {
                     <p className="text-sm text-neutral-500">
                       {size?.label || item.sizeId} · {color?.label || item.colorId}
                     </p>
+                    {item.opcionesDetalle?.length > 0 && (
+                      <p className="text-xs text-neutral-400">
+                        {item.opcionesDetalle.map((d) => `${d.grupoLabel}: ${d.valorLabel}`).join(' · ')}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-medium">{currencyFormatter.format(item.unitPrice * item.qty)}</p>
                     {priceInfo?.discountPercent > 0 && (
                       <p className="text-xs text-neutral-400 line-through">
-                        {currencyFormatter.format(priceInfo.original * item.qty)}
+                        {currencyFormatter.format((priceInfo.original + priceInfo.extra) * item.qty)}
                       </p>
                     )}
                   </div>

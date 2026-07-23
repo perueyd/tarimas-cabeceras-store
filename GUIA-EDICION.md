@@ -116,6 +116,32 @@ disponibles". El cliente ve automáticamente solo los colores que correspondan
 al tamaño que eligió — si tenía seleccionado un color que ya no aplica al
 cambiar de tamaño, se cambia solo al primero disponible.
 
+**Opciones del producto (opcional):** para elegir cosas además del tamaño y el
+color — «Brazos: con / sin», «Tipo de patas», «Tipo de botón» de una cabecera
+capitoneada, etc. En el panel → editar el producto → sección **"Opciones del
+producto"**:
+
+1. Toca **"+ Agregar grupo de opciones"** y ponle nombre al grupo (ej. `Brazos`).
+2. Dentro del grupo, toca **"+ Agregar opción"** por cada alternativa
+   (ej. `Sin brazos` y `Con brazos`).
+3. Si una opción cuesta más, escribe el **recargo** en el campo `+S/`
+   (ej. 80 para "Con brazos"). Déjalo en 0 si no cambia el precio.
+
+Cómo se ve para el cliente: aparecen como botones debajo del color, con el
+recargo visible (ej. "+S/ 80.00"), y el precio de arriba se actualiza al
+instante. En el carrito cada combinación es una línea aparte — la misma
+cabecera con brazos y sin brazos no se suman como si fueran el mismo producto.
+Las opciones elegidas aparecen en el carrito, en el mensaje de WhatsApp y en el
+detalle del pedido en tu panel.
+
+**Truco para "más barato sin X":** pon el precio del tamaño como el precio SIN
+el extra, y cobra el recargo en la opción que lo lleva. Los recargos negativos
+se ignoran a propósito (evita que un error de tipeo deje un precio en cero).
+
+**Seguridad:** igual que los precios, los recargos se vuelven a calcular en el
+servidor desde tu catálogo al momento de pagar — si alguien manipula la página
+para pedir "con brazos" sin pagar el extra, igual se le cobra el precio real.
+
 ## 3. Agregar un producto
 
 Copia una de las **plantillas** que están al final de la lista `products`

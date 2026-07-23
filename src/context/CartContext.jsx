@@ -12,8 +12,15 @@ function loadInitialState() {
   }
 }
 
+// Identifica una línea del carrito. Incluye las opciones elegidas (brazos,
+// patas, botones...) para que la MISMA cabecera con y sin brazos sean dos
+// líneas distintas y no se sumen como si fueran el mismo producto.
 function lineKey(item) {
-  return `${item.productId}__${item.sizeId}__${item.colorId}`;
+  const ops = Object.entries(item.opciones || {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}:${v}`)
+    .join(',');
+  return `${item.productId}__${item.sizeId}__${item.colorId}__${ops}`;
 }
 
 function reducer(state, action) {

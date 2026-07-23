@@ -6,7 +6,7 @@ import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
-import { getEffectivePrice } from '../lib/pricing.js';
+import { getUnitPrice } from '../lib/pricing.js';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -28,6 +28,20 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  // Opciones del producto (ej. brazos, tipo de patas, tipo de botón).
+  // Arranca con el primer valor de cada grupo ya elegido.
+  const gruposOpciones = useMemo(
+    () => (Array.isArray(product?.opciones) ? product.opciones : []),
+    [product]
+  );
+  const [opciones, setOpciones] = useState(() =>
+    Object.fromEntries(
+      (Array.isArray(product?.opciones) ? product.opciones : [])
+        .filter((g) => g.valores?.length)
+        .map((g) => [g.id, g.valores[0].id])
+    )
+  );
+
   // Si el color elegido ya no está disponible para el tamaño recién
   // seleccionado, cambia solo al primero disponible (mismo patrón que el
   // checkout usa para los métodos de pago).
@@ -40,10 +54,10 @@ export default function ProductDetail() {
 
   const selectedColor = colors.find((c) => c.id === colorId);
   const priceInfo = useMemo(
-    () => (product ? getEffectivePrice(product, sizeId) : null),
-    [product, sizeId]
+    () => (product ? getUnitPrice(product, sizeId, opciones) : null),
+    [product, sizeId, opciones]
   );
-  const unitPrice = priceInfo?.final ?? 0;
+  const unitPrice = priceInfo?.unitPrice ?? 0;
   // Imagen según color y tamaño: foto propia del color, si no la del tamaño,
   // si no la imagen base teñida (ver resolveProductImage).
   const img = product ? resolveProductImage(product, colorId, sizeId) : null;
@@ -67,6 +81,10 @@ export default function ProductDetail() {
       tintable: img.tintable,
       sizeId,
       colorId,
+      opciones,
+      // Detalle legible ("Brazos: Con brazos") para mostrarlo en el carrito
+      // sin tener que volver a buscarlo en el catálogo.
+      opcionesDetalle: priceInfo?.detalle || [],
       qty,
       unitPrice,
     };
@@ -101,7 +119,11 @@ export default function ProductDetail() {
             <p className="text-xl font-semibold">{currencyFormatter.format(unitPrice)}</p>
             {priceInfo?.discountPercent > 0 && (
               <>
-                <p className="text-sm text-neutral-400 line-through">{currencyFormatter.format(priceInfo.original)}</p>
+                {/* El tachado incluye los recargos de opciones, para comparar
+                    manzanas con manzanas contra el precio final de arriba. */}
+                <p className="text-sm text-neutral-400 line-through">
+                  {currencyFormatter.format(priceInfo.original + priceInfo.extra)}
+                </p>
                 <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">
                   -{priceInfo.discountPercent}%
                 </span>
@@ -134,6 +156,33 @@ export default function ProductDetail() {
               <ColorPicker colors={availableColors} selectedId={colorId} onSelect={setColorId} />
             </div>
           )}
+
+          {/* Opciones del producto: brazos, tipo de patas, tipo de botón... */}
+          {gruposOpciones.map((g) => (
+            <div key={g.id} className="mt-6">
+              <p className="mb-2 text-sm font-medium text-neutral-700">{g.label}</p>
+              <div className="flex flex-wrap gap-2">
+                {(g.valores || []).map((v) => {
+                  const activo = opciones[g.id] === v.id;
+                  const extra = Math.max(Number(v.precioExtra) || 0, 0);
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setOpciones((prev) => ({ ...prev, [g.id]: v.id }))}
+                      className={`rounded-lg border px-3 py-2 text-sm transition ${
+                        activo ? 'border-ink bg-ink text-white' : 'border-neutral-300 hover:border-neutral-500'
+                      }`}
+                    >
+                      <span className="block font-medium">{v.label}</span>
+                      {extra > 0 && (
+                        <span className="block text-xs opacity-70">+{currencyFormatter.format(extra)}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
           <div className="mt-6 flex items-center gap-3">
             <p className="text-sm font-medium text-neutral-700">Cantidad</p>

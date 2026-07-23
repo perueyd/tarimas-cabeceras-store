@@ -484,6 +484,7 @@ const PRODUCTO_VACIO = {
   colorImages: {},
   sizeImages: {},
   colorsBySize: {},
+  opciones: [],
 };
 
 function ProductosTab({ catalog, api, flash, adminKey }) {
@@ -640,6 +641,38 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       return { ...prev, colorsBySize: cbs };
     });
   }
+  // --- Opciones del producto (brazos, tipo de patas, tipo de botón...) ---
+  function setGrupos(fn) {
+    setP((prev) => ({ ...prev, opciones: fn(prev.opciones || []) }));
+  }
+  function addGrupo() {
+    setGrupos((gs) => [...gs, { id: `g${Date.now().toString(36)}`, label: '', valores: [] }]);
+  }
+  function setGrupo(gi, field, value) {
+    setGrupos((gs) => gs.map((g, i) => (i === gi ? { ...g, [field]: value } : g)));
+  }
+  function removeGrupo(gi) {
+    setGrupos((gs) => gs.filter((_, i) => i !== gi));
+  }
+  function addValor(gi) {
+    setGrupos((gs) =>
+      gs.map((g, i) =>
+        i === gi
+          ? { ...g, valores: [...(g.valores || []), { id: `v${Date.now().toString(36)}`, label: '', precioExtra: 0 }] }
+          : g
+      )
+    );
+  }
+  function setValor(gi, vi, field, value) {
+    setGrupos((gs) =>
+      gs.map((g, i) =>
+        i === gi ? { ...g, valores: g.valores.map((v, j) => (j === vi ? { ...v, [field]: value } : v)) } : g
+      )
+    );
+  }
+  function removeValor(gi, vi) {
+    setGrupos((gs) => gs.map((g, i) => (i === gi ? { ...g, valores: g.valores.filter((_, j) => j !== vi) } : g)));
+  }
 
   async function handleSave() {
     if (!p.id.trim() || !p.name.trim() || !p.category) {
@@ -664,9 +697,15 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       const regular = p.sizePricing[sizeId];
       if (regular != null && valor > 0 && valor < regular) offerPricing[sizeId] = valor;
     }
+    // Los grupos de opciones sin nombre o sin opciones con nombre no sirven de
+    // nada y se verían rotos en la tienda — se descartan al guardar.
+    const opciones = (p.opciones || [])
+      .map((g) => ({ ...g, valores: (g.valores || []).filter((v) => v.label.trim()) }))
+      .filter((g) => g.label.trim() && g.valores.length > 0);
+
     setSaving(true);
     try {
-      await onSave({ ...p, offerPricing });
+      await onSave({ ...p, offerPricing, opciones });
     } catch (err) {
       alert(err.message);
     } finally {
@@ -961,6 +1000,66 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
           </div>
         </div>
       )}
+
+      {/* Opciones del producto (brazos, tipo de patas, tipo de botón...) */}
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <p className="text-sm font-medium text-neutral-700">Opciones del producto (opcional)</p>
+        <p className="mb-3 mt-1 text-xs text-neutral-500">
+          Para elegir cosas además del tamaño y el color: «Brazos: con / sin», «Tipo de patas»,
+          «Tipo de botón»… El cliente elige una opción de cada grupo. Si una opción cuesta más,
+          ponle un recargo (déjalo en 0 si no cambia el precio). El recargo se suma al precio del
+          tamaño y se vuelve a calcular en el servidor al pagar, así nadie puede alterarlo.
+        </p>
+
+        <div className="space-y-3">
+          {(p.opciones || []).map((g, gi) => (
+            <div key={g.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={g.label}
+                  onChange={(e) => setGrupo(gi, 'label', e.target.value)}
+                  placeholder="Nombre del grupo (ej. Brazos, Tipo de patas)"
+                  className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                />
+                <button onClick={() => removeGrupo(gi)} className="text-xs text-red-600 hover:underline">
+                  Eliminar grupo
+                </button>
+              </div>
+
+              <div className="mt-2 space-y-2 pl-3">
+                {(g.valores || []).map((v, vi) => (
+                  <div key={v.id} className="flex items-center gap-2">
+                    <input
+                      value={v.label}
+                      onChange={(e) => setValor(gi, vi, 'label', e.target.value)}
+                      placeholder="Opción (ej. Con brazos)"
+                      className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                    />
+                    <label className="flex items-center gap-1 text-xs text-neutral-500">
+                      +S/
+                      <input
+                        type="number"
+                        min="0"
+                        value={v.precioExtra ?? 0}
+                        onChange={(e) => setValor(gi, vi, 'precioExtra', Math.max(Number(e.target.value) || 0, 0))}
+                        className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+                      />
+                    </label>
+                    <button onClick={() => removeValor(gi, vi)} className="text-xs text-red-600">✕</button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => addValor(gi)} className="mt-2 pl-3 text-xs text-sky-700 hover:underline">
+                + Agregar opción a «{g.label || 'este grupo'}»
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={addGrupo} className="mt-2 text-xs text-sky-700 hover:underline">
+          + Agregar grupo de opciones
+        </button>
+      </div>
 
       <div className="mt-6 flex gap-2">
         <button onClick={handleSave} disabled={saving} className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
