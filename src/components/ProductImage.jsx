@@ -5,23 +5,36 @@
 //
 //                   NO hace falta subir la foto en tonos grises: la web la
 //                   desatura sola. Cómo funciona:
-//                     1. Se pinta el color elegido, recortado a la silueta del
-//                        mueble (usando la transparencia de la propia foto).
-//                     2. Encima va la foto desaturada con blend "luminosity",
-//                        que aporta SOLO las luces y sombras — así se conserva
-//                        la textura (pliegues del velvet, capitoné, costuras)
-//                        pero el tono es el del color elegido.
+//                     1. La foto se pasa a grises y se ACLARA, para que sus
+//                        zonas iluminadas queden cerca del blanco.
+//                     2. Encima se multiplica el color elegido, recortado a la
+//                        silueta del mueble (con la transparencia de la foto).
 //
-//                   Se usa "luminosity" y no "multiply" porque multiply solo
-//                   oscurece: teñía todo apagado y sucio (un magenta salía
-//                   marrón oscuro). Con luminosity el color sale vivo, como
-//                   cuando recoloreas una imagen en Canva.
+//                   Al multiplicar sobre una base casi blanca, las zonas
+//                   iluminadas dan EXACTAMENTE el color elegido y los pliegues
+//                   quedan más oscuros — se conserva la textura (velvet,
+//                   capitoné, costuras) y el color es fiel al que se eligió.
 //
-//                   Si subes una foto SIN FONDO (PNG transparente) el color
-//                   solo pinta el mueble. Con un JPG (sin transparencia) se
-//                   tiñe todo el rectángulo, incluido el fondo.
+//                   Por qué NO se usa "luminosity": ese modo toma solo el tono
+//                   del color y conserva la claridad de la foto, así que con una
+//                   foto clara un vino salía rosado y un negro salía gris. Con
+//                   multiply el color elegido es el TECHO: un color oscuro se ve
+//                   oscuro. Si la foto es muy oscura, el peor caso es que salga
+//                   más apagado — nunca un color equivocado.
+//
+//                   Si subes una foto SIN FONDO (PNG transparente) el color solo
+//                   pinta el mueble. Con un JPG (sin transparencia) se tiñe todo
+//                   el rectángulo, incluido el fondo.
 //
 // tintable=false -> muestra la foto tal cual (para fotos reales ya con su acabado).
+
+// Cuánto se aclara la foto antes de multiplicar el color.
+// 1.15 es el punto donde las zonas más iluminadas dan EXACTAMENTE el color
+// elegido conservando casi todo el rango de sombras. Subirlo aplana los
+// pliegues (más zonas quedan de un color plano); bajarlo hace que nunca se
+// llegue al color elegido y todo salga más oscuro.
+const BRILLO_BASE = 1.15;
+
 export default function ProductImage({ baseImage, colorHex, alt, className = '', tintable = true }) {
   // Sin foto todavía para esta combinación (ej. tamaño recién agregado, sin
   // subir su imagen aún) -> aviso en vez de un ícono de imagen rota.
@@ -55,18 +68,18 @@ export default function ProductImage({ baseImage, colorHex, alt, className = '',
   };
 
   return (
-    // "isolate" encierra la mezcla dentro de esta tarjeta: sin eso, el blend
-    // se mezclaría también con el fondo de la página.
+    // "isolate" encierra la mezcla dentro de esta tarjeta: sin eso, el blend se
+    // mezclaría también con el fondo de la página.
     <div className={`relative isolate overflow-hidden bg-neutral-100 ${className}`}>
-      <div
-        className="absolute inset-0 transition-colors duration-150"
-        style={{ backgroundColor: colorHex, ...maskStyle }}
-      />
       <img
         src={baseImage}
         alt={alt}
-        className="absolute inset-0 h-full w-full object-contain mix-blend-luminosity"
-        style={{ filter: 'grayscale(1)' }}
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{ filter: `grayscale(1) brightness(${BRILLO_BASE})` }}
+      />
+      <div
+        className="absolute inset-0 mix-blend-multiply transition-colors duration-150"
+        style={{ backgroundColor: colorHex, ...maskStyle }}
       />
     </div>
   );
