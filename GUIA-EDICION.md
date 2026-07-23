@@ -66,17 +66,24 @@ archivos a ninguna carpeta ni editar `catalog.js`.
 - Peso máximo: **4 MB** por foto.
 - Ancho recomendado: **1200 px** es suficiente para verse nítido sin pesar de más.
 
-**¿Foto gris o foto a color?**
-- Si subes la foto del mueble en **tonos grises/neutros** → marca
-  "La foto está en tonos grises..." (`tintable: true`). La web la teñirá
-  automáticamente con cada color que elija el cliente.
-- Si subes la foto **ya con su acabado real** (ej. melamina roble) → desmarca esa
-  opción (`tintable: false`). La foto se muestra tal cual. (En este caso los
+**¿Repintar la foto con el color elegido, o dejarla tal cual?**
+- Marca **"Repintar esta foto con el color que elija el cliente"**
+  (`tintable: true`) para que el mueble cambie de color al instante según lo
+  que elija el cliente. **Ya NO necesitas subir la foto en tonos grises**: sube
+  tu foto a color y la web la desatura sola antes de repintarla.
+- Desmárcalo (`tintable: false`) solo si quieres que la foto se vea **siempre
+  tal cual la subiste** (ej. un acabado de madera real). En ese caso los
   círculos de color son solo referenciales; si quieres una foto distinta por
-  acabado, usa "Foto propia por color" dentro del mismo producto.)
+  acabado, usa "Foto propia por color" dentro del mismo producto.
 
-**Importante si tu foto es para teñir (`tintable: true`): debe ser PNG con fondo
-transparente.** El teñido usa la transparencia de tu propia foto para saber
+**Cómo funciona el repintado** (por si te interesa): se pinta el color elegido
+debajo y encima va tu foto desaturada aportando solo las luces y las sombras.
+Así se conserva la textura real —los pliegues del velvet, el capitoné, las
+costuras— pero el tono es el color que eligió el cliente. Es la misma operación
+que hacen los editores tipo Canva al recolorear una imagen.
+
+**Importante si vas a repintar la foto: debe ser PNG con fondo
+transparente.** El repintado usa la transparencia de tu propia foto para saber
 "hasta dónde" pintar. Si subes un JPG con fondo (pared, piso, etc.), el color se
 aplicará sobre TODO el rectángulo, incluido el fondo — se va a ver mal. La solución:
 1. Recorta el mueble dejando el fondo transparente (hay editores gratis online tipo

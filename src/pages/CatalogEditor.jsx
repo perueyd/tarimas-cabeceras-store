@@ -747,10 +747,17 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
         </label>
       </div>
 
-      <label className="mt-4 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={p.tintable} onChange={(e) => set('tintable', e.target.checked)} />
-        La foto está en tonos grises y se debe teñir con el color elegido (desmarca si la foto ya tiene su color real)
-      </label>
+      <div className="mt-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={p.tintable} onChange={(e) => set('tintable', e.target.checked)} />
+          Repintar esta foto con el color que elija el cliente
+        </label>
+        <p className="mt-1 pl-6 text-xs text-neutral-500">
+          Puedes subir la foto <strong>a color</strong> — la web la desatura sola y le aplica el
+          color elegido conservando la textura y los pliegues. Desmárcalo solo si quieres que la
+          foto se vea siempre tal cual la subiste (ej. un acabado de madera real).
+        </p>
+      </div>
 
       <label className="mt-4 block text-sm">
         <span className="mb-1 block font-medium text-neutral-700">Descripción corta</span>
