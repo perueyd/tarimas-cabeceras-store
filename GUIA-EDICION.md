@@ -76,11 +76,21 @@ archivos a ninguna carpeta ni editar `catalog.js`.
   círculos de color son solo referenciales; si quieres una foto distinta por
   acabado, usa "Foto propia por color" dentro del mismo producto.
 
-**Cómo funciona el repintado** (por si te interesa): se pinta el color elegido
-debajo y encima va tu foto desaturada aportando solo las luces y las sombras.
-Así se conserva la textura real —los pliegues del velvet, el capitoné, las
-costuras— pero el tono es el color que eligió el cliente. Es la misma operación
-que hacen los editores tipo Canva al recolorear una imagen.
+**Cómo funciona el repintado** (por si te interesa): la web pasa tu foto a
+grises, la aclara hasta que sus zonas más iluminadas quedan casi blancas, y
+encima multiplica el color elegido. Así las zonas iluminadas quedan del color
+exacto que eligió el cliente y los pliegues quedan más oscuros — se conserva la
+textura real (velvet, capitoné, costuras). Cuánto hay que aclarar **se mide
+solo en cada foto**, así que funciona igual con una foto clara que con una gris
+u oscura, sin que tengas que configurar nada.
+
+⚠️ **Un límite que sí tienes que saber:** no se puede hacer que un mueble
+oscuro se vea de un color claro de forma creíble. Si fotografías una cabecera
+marrón oscura, nunca se va a ver blanca o beige convincentemente. Por eso los
+catálogos de muebles fotografían la pieza en **tela clara** (blanco, crema o
+gris claro): desde un color claro se puede bajar a cualquier color, pero desde
+uno oscuro solo se puede ir a colores más oscuros aún. Una sola foto clara y
+bien iluminada te sirve para todos tus colores.
 
 **Importante si vas a repintar la foto: debe ser PNG con fondo
 transparente.** El repintado usa la transparencia de tu propia foto para saber
