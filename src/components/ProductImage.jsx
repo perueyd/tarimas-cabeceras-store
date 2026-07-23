@@ -63,12 +63,20 @@ function medirBrillo(img) {
   }
   if (luces.length < 20) return BRILLO_BASE; // muy poca info para confiar
 
-  // Percentil 95 en vez del máximo: así un par de píxeles brillantes sueltos
-  // (un reflejo, un borde) no arruinan la medición de toda la foto.
   luces.sort((a, b) => a - b);
+  const p75 = luces[Math.floor(luces.length * 0.75)];
   const p95 = luces[Math.floor(luces.length * 0.95)];
-  if (!(p95 > 0.05)) return BRILLO_MAX; // foto casi negra: se aclara al máximo
-  return Math.min(Math.max(1 / p95, 1), BRILLO_MAX);
+
+  // Se usa el percentil 95 como "zona más iluminada del mueble", pero acotado a
+  // p75 * 1.35. Por qué: si la foto tiene una mancha clara que no es el mueble
+  // (un trozo de fondo que quedó sin recortar, un reflejo fuerte), el p95 mide
+  // ESA mancha y no el mueble, y el resultado es que no se aclara nada. Cuando
+  // eso pasa hay un salto grande entre p75 y p95; el tope lo detecta y se queda
+  // dentro del grueso de la foto. En una foto normal p95 y p75 están cerca, así
+  // que el tope no se activa y la medición no cambia.
+  const referencia = Math.min(p95, p75 * 1.35);
+  if (!(referencia > 0.05)) return BRILLO_MAX; // foto casi negra: al máximo
+  return Math.min(Math.max(1 / referencia, 1), BRILLO_MAX);
 }
 
 function useBrilloAuto(src, activo) {
