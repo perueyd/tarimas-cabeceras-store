@@ -300,6 +300,11 @@ pedir autorización de nuevo.
 - Pestaña **📋 Reclamos**: ver y responder los reclamos/quejas del Libro de
   Reclamaciones (ver sección propia más abajo). Muestra cuántos están
   pendientes en el número junto al nombre de la pestaña.
+- Pestaña **📧 Suscriptores**: los correos que se suscribieron a tu newsletter
+  desde el pie de página. Puedes descargarlos en CSV para tu herramienta de
+  correos. No se guardan duplicados.
+- Pestaña **📊 Encuestas**: las respuestas de la encuesta post-compra que
+  dejaron tus clientes (opcional para ellos).
 - Cambiar el estado de un pedido también actualiza la fila en tu hoja de
   Google y le envía un correo automático al cliente (si configuraste
   `SHEETS_WEBHOOK_URL`, ver sección anterior).
@@ -338,6 +343,21 @@ Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
   y agregar paneles. La forma del blob y el balanceo son automáticos, no hay
   que configurarlos. Si quitas todos los paneles, esa sección simplemente no
   se muestra en la portada (no rompe nada).
+- **Datos de la tienda** también incluye ahora: **redes sociales** (pega el
+  enlace de Instagram/Facebook/TikTok/YouTube/X — solo se muestra el ícono de
+  las que llenes en el pie de página) y el **newsletter** (interruptor para
+  mostrarlo o no en el pie de página, con título y descripción editables).
+- **Legal**: los textos de tu **Política de Privacidad** y **Términos y
+  Condiciones**, cada uno con su interruptor para mostrarlo o no (aparecen como
+  enlaces en el pie de página). Vienen con plantillas orientativas para Perú;
+  {{proveedor}} y {{whatsapp}} se reemplazan solos con tus datos. ⚠️ Hazlas
+  revisar por un abogado antes de confiar en ellas — no reemplazan asesoría
+  legal profesional.
+- **Encuesta**: la encuesta opcional que aparece después de comprar (en la
+  página de gracias). Interruptor para mostrarla o no, título/descripción y
+  preguntas editables (de opciones o de texto libre). El cliente puede
+  responderla o tocar "Ahora no". Las respuestas las ves en la pestaña
+  **📊 Encuestas** del panel.
 
 ## Seguimiento de pedido para el cliente (/seguimiento)
 

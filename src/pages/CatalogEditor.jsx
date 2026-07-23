@@ -97,6 +97,8 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'config', label: 'Datos de la tienda' },
           { id: 'portada', label: 'Página principal' },
           { id: 'vitrina', label: 'Vitrina animada' },
+          { id: 'legal', label: 'Legal' },
+          { id: 'encuesta', label: 'Encuesta' },
         ].map((t) => (
           <button
             key={t.id}
@@ -117,6 +119,8 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
+      {sub === 'legal' && <LegalTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'encuesta' && <EncuestaTab catalog={catalog} api={api} flash={flash} />}
     </div>
   );
 }
@@ -1235,6 +1239,12 @@ function ConfigTab({ catalog, api, flash }) {
   function removeSlot(i) {
     setCfg((prev) => ({ ...prev, deliverySlots: prev.deliverySlots.filter((_, idx) => idx !== i) }));
   }
+  function setSocial(red, value) {
+    setCfg((prev) => ({ ...prev, social: { ...(prev.social || {}), [red]: value } }));
+  }
+  function setNewsletter(field, value) {
+    setCfg((prev) => ({ ...prev, newsletter: { ...(prev.newsletter || {}), [field]: value } }));
+  }
 
   async function guardar() {
     const pm = cfg.paymentMethods || {};
@@ -1352,8 +1362,244 @@ function ConfigTab({ catalog, api, flash }) {
         <button onClick={addBank} className="mt-2 text-xs text-sky-700 hover:underline">+ Agregar cuenta bancaria</button>
       </div>
 
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <p className="mb-1 text-sm font-medium text-neutral-700">Redes sociales (pie de página)</p>
+        <p className="mb-3 text-xs text-neutral-500">
+          Pega el enlace completo de cada red. Solo se muestra el ícono de las que llenes.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Instagram" value={cfg.social?.instagram || ''} onChange={(v) => setSocial('instagram', v)} placeholder="https://instagram.com/tu-tienda" />
+          <Field label="Facebook" value={cfg.social?.facebook || ''} onChange={(v) => setSocial('facebook', v)} placeholder="https://facebook.com/tu-tienda" />
+          <Field label="TikTok" value={cfg.social?.tiktok || ''} onChange={(v) => setSocial('tiktok', v)} placeholder="https://tiktok.com/@tu-tienda" />
+          <Field label="YouTube" value={cfg.social?.youtube || ''} onChange={(v) => setSocial('youtube', v)} placeholder="https://youtube.com/@tu-tienda" />
+          <Field label="X (Twitter)" value={cfg.social?.x || ''} onChange={(v) => setSocial('x', v)} placeholder="https://x.com/tu-tienda" />
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+          <input
+            type="checkbox"
+            checked={cfg.newsletter?.activo ?? true}
+            onChange={(e) => setNewsletter('activo', e.target.checked)}
+          />
+          Mostrar el formulario de suscripción (newsletter) en el pie de página
+        </label>
+        {(cfg.newsletter?.activo ?? true) && (
+          <div className="mt-3 space-y-3">
+            <Field label="Título" value={cfg.newsletter?.titulo || ''} onChange={(v) => setNewsletter('titulo', v)} placeholder="Recibe nuestras ofertas y novedades" />
+            <Field label="Descripción" value={cfg.newsletter?.descripcion || ''} onChange={(v) => setNewsletter('descripcion', v)} placeholder="Suscríbete y entérate primero de descuentos..." />
+            <p className="text-xs text-neutral-400">
+              Los correos suscritos los ves en el panel → pestaña <strong>📧 Suscriptores</strong>.
+            </p>
+          </div>
+        )}
+      </div>
+
       <button onClick={guardar} disabled={saving} className="mt-6 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
         {saving ? 'Guardando...' : 'Guardar datos de la tienda'}
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// LEGAL (Política de Privacidad y Términos y Condiciones)
+// ============================================================
+function LegalTab({ catalog, api, flash }) {
+  const [legal, setLegal] = useState({
+    privacidadActiva: true,
+    privacidadTitulo: 'Política de Privacidad',
+    privacidadTexto: '',
+    terminosActivo: true,
+    terminosTitulo: 'Términos y Condiciones',
+    terminosTexto: '',
+    ...(catalog.storeConfig.legal || {}),
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set(field, value) {
+    setLegal((prev) => ({ ...prev, [field]: value }));
+  }
+  async function guardar() {
+    setSaving(true);
+    try {
+      await api('POST', 'config', { legal });
+      flash('Páginas legales guardadas.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="mb-5 rounded-lg bg-amber-50 p-3 text-xs text-amber-900">
+        ⚠️ Estos textos son plantillas orientativas. Antes de confiar en ellas, haz que un
+        abogado en Perú las revise. Los datos <strong>{'{{proveedor}}'}</strong> y{' '}
+        <strong>{'{{whatsapp}}'}</strong> se reemplazan solos con tu razón social/RUC/domicilio y tu
+        número de WhatsApp (edítalos en «Datos de la tienda»).
+      </div>
+
+      {/* Política de Privacidad */}
+      <div className="rounded-lg border border-neutral-200 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+          <input type="checkbox" checked={legal.privacidadActiva} onChange={(e) => set('privacidadActiva', e.target.checked)} />
+          Mostrar la Política de Privacidad (enlace en el pie de página)
+        </label>
+        {legal.privacidadActiva && (
+          <div className="mt-3 space-y-2">
+            <Field label="Título" value={legal.privacidadTitulo} onChange={(v) => set('privacidadTitulo', v)} />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-neutral-700">Texto</span>
+              <textarea
+                value={legal.privacidadTexto}
+                onChange={(e) => set('privacidadTexto', e.target.value)}
+                rows={12}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+              />
+              <span className="mt-1 block text-xs text-neutral-400">Separa los párrafos con una línea en blanco.</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Términos y Condiciones */}
+      <div className="mt-4 rounded-lg border border-neutral-200 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+          <input type="checkbox" checked={legal.terminosActivo} onChange={(e) => set('terminosActivo', e.target.checked)} />
+          Mostrar los Términos y Condiciones (enlace en el pie de página)
+        </label>
+        {legal.terminosActivo && (
+          <div className="mt-3 space-y-2">
+            <Field label="Título" value={legal.terminosTitulo} onChange={(v) => set('terminosTitulo', v)} />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-neutral-700">Texto</span>
+              <textarea
+                value={legal.terminosTexto}
+                onChange={(e) => set('terminosTexto', e.target.value)}
+                rows={12}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+              />
+              <span className="mt-1 block text-xs text-neutral-400">Separa los párrafos con una línea en blanco.</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      <button onClick={guardar} disabled={saving} className="mt-6 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+        {saving ? 'Guardando...' : 'Guardar páginas legales'}
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// ENCUESTA POST-COMPRA
+// ============================================================
+function EncuestaTab({ catalog, api, flash }) {
+  const [encuesta, setEncuesta] = useState({
+    activa: true,
+    titulo: '¿Nos ayudas con una encuesta rápida?',
+    descripcion: '',
+    preguntas: [],
+    ...(catalog.storeConfig.encuesta || {}),
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set(field, value) {
+    setEncuesta((prev) => ({ ...prev, [field]: value }));
+  }
+  function setPregunta(i, field, value) {
+    setEncuesta((prev) => ({
+      ...prev,
+      preguntas: prev.preguntas.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)),
+    }));
+  }
+  function setOpciones(i, value) {
+    // Las opciones se editan como texto separado por comas.
+    const opciones = value.split(',').map((o) => o.trim()).filter(Boolean);
+    setPregunta(i, 'opciones', opciones);
+  }
+  function addPregunta(tipo) {
+    const id = `p${Date.now().toString(36)}`;
+    const nueva = tipo === 'opciones'
+      ? { id, label: '', tipo: 'opciones', opciones: [] }
+      : { id, label: '', tipo: 'texto' };
+    setEncuesta((prev) => ({ ...prev, preguntas: [...prev.preguntas, nueva] }));
+  }
+  function removePregunta(i) {
+    setEncuesta((prev) => ({ ...prev, preguntas: prev.preguntas.filter((_, idx) => idx !== i) }));
+  }
+  async function guardar() {
+    setSaving(true);
+    try {
+      await api('POST', 'config', { encuesta });
+      flash('Encuesta guardada.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <p className="mb-3 text-xs text-neutral-500">
+        La encuesta aparece en la página de gracias, después de comprar. Es opcional para el
+        cliente (puede tocar «Ahora no»). Las respuestas las ves en el panel → pestaña{' '}
+        <strong>📊 Encuestas</strong>.
+      </p>
+
+      <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+        <input type="checkbox" checked={encuesta.activa} onChange={(e) => set('activa', e.target.checked)} />
+        Mostrar la encuesta después de la compra
+      </label>
+
+      {encuesta.activa && (
+        <>
+          <div className="mt-4 space-y-3">
+            <Field label="Título" value={encuesta.titulo} onChange={(v) => set('titulo', v)} placeholder="¿Nos ayudas con una encuesta rápida?" />
+            <Field label="Descripción" value={encuesta.descripcion} onChange={(v) => set('descripcion', v)} placeholder="Es opcional y nos ayuda a mejorar." />
+          </div>
+
+          <p className="mb-2 mt-6 text-sm font-medium text-neutral-700">Preguntas</p>
+          <div className="space-y-3">
+            {encuesta.preguntas.map((p, i) => (
+              <div key={p.id} className="rounded-lg bg-neutral-50 p-3">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
+                    {p.tipo === 'opciones' ? 'Opciones' : 'Texto libre'}
+                  </span>
+                  <input
+                    value={p.label}
+                    onChange={(e) => setPregunta(i, 'label', e.target.value)}
+                    placeholder="Escribe la pregunta"
+                    className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                  />
+                  <button onClick={() => removePregunta(i)} className="text-xs text-red-600 hover:underline">Eliminar</button>
+                </div>
+                {p.tipo === 'opciones' && (
+                  <input
+                    value={(p.opciones || []).join(', ')}
+                    onChange={(e) => setOpciones(i, e.target.value)}
+                    placeholder="Opciones separadas por coma: Google, Instagram, Recomendación"
+                    className="mt-2 w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-3">
+            <button onClick={() => addPregunta('opciones')} className="text-xs text-sky-700 hover:underline">+ Pregunta de opciones</button>
+            <button onClick={() => addPregunta('texto')} className="text-xs text-sky-700 hover:underline">+ Pregunta de texto libre</button>
+          </div>
+        </>
+      )}
+
+      <button onClick={guardar} disabled={saving} className="mt-6 block rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+        {saving ? 'Guardando...' : 'Guardar encuesta'}
       </button>
     </div>
   );

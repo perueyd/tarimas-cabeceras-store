@@ -62,6 +62,104 @@ export const storeConfig = {
       { icono: '💬', texto: 'Ayuda por WhatsApp' },
     ],
   },
+
+  // ---------- REDES SOCIALES (pie de página) ----------
+  // Solo se muestra el ícono de la red que tenga una URL. Deja vacío lo que no uses.
+  social: {
+    instagram: '',
+    facebook: '',
+    tiktok: '',
+    youtube: '',
+    x: '',
+  },
+
+  // ---------- NEWSLETTER (suscripción por correo) ----------
+  newsletter: {
+    activo: true,
+    titulo: 'Recibe nuestras ofertas y novedades',
+    descripcion: 'Suscríbete y entérate primero de descuentos y nuevos diseños.',
+  },
+
+  // ---------- ENCUESTA POST-COMPRA (opcional, en la página de gracias) ----------
+  // El cliente decide si la responde o no. tipo: 'opciones' (una sola) o 'texto'.
+  encuesta: {
+    activa: true,
+    titulo: '¿Nos ayudas con una encuesta rápida?',
+    descripcion: 'Es opcional y nos ayuda muchísimo a mejorar. Toma 20 segundos.',
+    preguntas: [
+      {
+        id: 'origen',
+        label: '¿Cómo nos encontraste?',
+        tipo: 'opciones',
+        opciones: ['Google', 'Instagram / Facebook', 'TikTok', 'Recomendación de un amigo', 'Otro'],
+      },
+      { id: 'comentario', label: '¿Algo que podamos mejorar? (opcional)', tipo: 'texto' },
+    ],
+  },
+
+  // ---------- PÁGINAS LEGALES ----------
+  // Textos editables. {{proveedor}} y {{whatsapp}} se reemplazan solos con tus
+  // datos (razón social, RUC, domicilio y número de WhatsApp). ⚠️ Son plantillas
+  // orientativas: haz que un abogado en Perú las revise antes de confiar en ellas.
+  legal: {
+    privacidadActiva: true,
+    privacidadTitulo: 'Política de Privacidad',
+    privacidadTexto: `En {{proveedor}} valoramos y respetamos tu privacidad. Esta Política de Privacidad explica qué datos personales recopilamos, con qué finalidad y cuáles son tus derechos, conforme a la Ley N.° 29733 (Ley de Protección de Datos Personales del Perú) y su reglamento.
+
+1. Responsable del tratamiento
+Los datos personales que nos brindas son tratados por {{proveedor}}. Para cualquier consulta sobre tus datos, escríbenos por WhatsApp al {{whatsapp}}.
+
+2. Datos que recopilamos
+Recopilamos los datos que nos brindas al hacer un pedido o contactarnos: nombre, número de documento (cuando aplica), teléfono, correo electrónico, dirección de entrega y la ubicación que marques en el mapa. Los datos de tu tarjeta son procesados directamente por nuestra pasarela de pagos (Culqi); nosotros no los almacenamos.
+
+3. Finalidad
+Usamos tus datos para procesar y entregar tu pedido, contactarte sobre el estado de tu compra, emitir el comprobante, atender tus consultas y reclamos y —solo si te suscribes voluntariamente— enviarte ofertas y novedades.
+
+4. Conservación
+Conservamos tus datos mientras exista una relación comercial o mientras sean necesarios para las finalidades descritas, y luego durante los plazos que exija la ley (por ejemplo, tributarios o de protección al consumidor).
+
+5. Con quién compartimos tus datos
+No vendemos tus datos. Solo los compartimos con proveedores que hacen posible tu compra: la pasarela de pagos (Culqi) y las agencias de transporte o el personal de entrega, únicamente para completar tu pedido.
+
+6. Tus derechos (Derechos ARCO)
+Tienes derecho a acceder, rectificar, cancelar y oponerte al tratamiento de tus datos personales. Para ejercerlos, escríbenos por WhatsApp al {{whatsapp}} indicando tu solicitud y tu número de documento. Atenderemos tu pedido en los plazos que establece la ley.
+
+7. Seguridad
+Aplicamos medidas técnicas y organizativas razonables para proteger tus datos. Ninguna transmisión por internet es 100% segura, pero trabajamos para reducir los riesgos.
+
+8. Cambios
+Podemos actualizar esta política. La versión vigente es la publicada en esta página.`,
+    terminosActivo: true,
+    terminosTitulo: 'Términos y Condiciones',
+    terminosTexto: `Estos Términos y Condiciones regulan la compra de productos en esta tienda. Al realizar un pedido, aceptas estas condiciones.
+
+1. Identificación
+Esta tienda es operada por {{proveedor}}. Puedes contactarnos por WhatsApp al {{whatsapp}}.
+
+2. Productos
+Nuestros muebles se fabrican a pedido según el tamaño y color que elijas. Las imágenes son referenciales; pueden existir ligeras variaciones de tono según tu pantalla.
+
+3. Precios
+Los precios están expresados en Soles (S/) e incluyen los impuestos de ley. El precio válido es el que ves al momento de completar tu compra.
+
+4. Pagos
+Aceptamos los medios de pago que se muestran en el checkout (tarjeta o Yape mediante Culqi, Yape/Plin directo o transferencia bancaria). El pedido se confirma cuando se verifica el pago.
+
+5. Entrega
+El tiempo de fabricación y entrega es referencial y se indica en cada producto y en el checkout. En Lima Metropolitana coordinamos la entrega según tu distrito; para provincia, el envío se cotiza aparte y corre por cuenta del cliente a través de la agencia que elija.
+
+6. Cambios y devoluciones
+Al tratarse de productos fabricados a medida, aplican condiciones especiales para cambios y devoluciones. Escríbenos apenas notes cualquier inconveniente con tu pedido y buscaremos una solución.
+
+7. Garantía
+Nuestros productos cuentan con la garantía indicada en sus especificaciones frente a defectos de fabricación, en condiciones normales de uso.
+
+8. Libro de Reclamaciones
+Contamos con un Libro de Reclamaciones virtual a tu disposición, conforme a la normativa de protección al consumidor.
+
+9. Ley aplicable
+Estos términos se rigen por las leyes de la República del Perú.`,
+  },
 };
 
 // ---------- CATEGORÍAS ----------

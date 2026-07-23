@@ -54,6 +54,19 @@ function descargarHoja(orders) {
   URL.revokeObjectURL(a.href);
 }
 
+// Descarga los correos suscritos como CSV (correo + fecha).
+function descargarSuscriptores(suscriptores) {
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = suscriptores.map((s) => [s.email, new Date(s.fecha).toLocaleString('es-PE')]);
+  const csv = '﻿' + [['Correo', 'Fecha'], ...rows].map((r) => r.map(esc).join(';')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `suscriptores-ED-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 export default function Orders() {
   const { currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
   const [key, setKey] = useState(() => localStorage.getItem('ed-orders-key') || '');
@@ -61,6 +74,8 @@ export default function Orders() {
   const [orders, setOrders] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reclamos, setReclamos] = useState([]);
+  const [suscriptores, setSuscriptores] = useState([]);
+  const [encuestas, setEncuestas] = useState([]);
   const [tab, setTab] = useState('resumen');
   const [filtro, setFiltro] = useState('todos');
   const [error, setError] = useState('');
@@ -85,6 +100,14 @@ export default function Orders() {
       fetch('/api/reclamos', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setReclamos(d.reclamos || []))
+        .catch(() => {});
+      fetch('/api/newsletter', { headers: authHeader })
+        .then((r) => r.json())
+        .then((d) => setSuscriptores(d.suscriptores || []))
+        .catch(() => {});
+      fetch('/api/encuesta', { headers: authHeader })
+        .then((r) => r.json())
+        .then((d) => setEncuestas(d.encuestas || []))
         .catch(() => {});
     } catch (err) {
       setError(err.message);
@@ -238,6 +261,8 @@ export default function Orders() {
           { id: 'pedidos', label: `Pedidos (${orders.length})` },
           { id: 'resenas', label: `Reseñas (${reviews.length})` },
           { id: 'reclamos', label: `📋 Reclamos${reclamosPendientes.length ? ` (${reclamosPendientes.length})` : ''}` },
+          { id: 'suscriptores', label: `📧 Suscriptores (${suscriptores.length})` },
+          { id: 'encuestas', label: `📊 Encuestas (${encuestas.length})` },
           { id: 'promos', label: '🏷️ Promociones' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
@@ -387,6 +412,63 @@ export default function Orders() {
           {reclamos.map((r) => (
             <ReclamoCard key={r.folio} r={r} onResponder={responderReclamo} />
           ))}
+        </div>
+      )}
+
+      {tab === 'suscriptores' && (
+        <div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-neutral-500">
+              Correos suscritos a tu newsletter. Puedes copiarlos o descargarlos para tu
+              herramienta de correos.
+            </p>
+            {suscriptores.length > 0 && (
+              <button
+                onClick={() => descargarSuscriptores(suscriptores)}
+                className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-ink"
+              >
+                ⬇️ Descargar CSV
+              </button>
+            )}
+          </div>
+          {suscriptores.length === 0 ? (
+            <p className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-neutral-500">
+              Aún no hay suscriptores.
+            </p>
+          ) : (
+            <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
+              {suscriptores.map((s, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span className="font-mono">{s.email}</span>
+                  <span className="text-xs text-neutral-400">{new Date(s.fecha).toLocaleDateString('es-PE')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'encuestas' && (
+        <div className="space-y-3">
+          {encuestas.length === 0 ? (
+            <p className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-neutral-500">
+              Aún no hay respuestas de encuestas.
+            </p>
+          ) : (
+            encuestas.map((e, i) => (
+              <div key={i} className="rounded-xl border border-neutral-200 bg-white p-4">
+                <div className="mb-2 flex items-center justify-between text-xs text-neutral-400">
+                  <span>{new Date(e.fecha).toLocaleString('es-PE')}</span>
+                  {e.orderCode && <span className="font-mono">{e.orderCode}</span>}
+                </div>
+                <div className="space-y-1 text-sm">
+                  {Object.entries(e.respuestas || {}).map(([k, v]) => (
+                    <p key={k}><span className="text-neutral-500">{k}:</span> {v}</p>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
 
