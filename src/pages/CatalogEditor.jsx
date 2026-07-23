@@ -115,7 +115,7 @@ export default function CatalogEditor({ adminKey }) {
 
       {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'tamanos' && <TamanosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
@@ -1195,7 +1195,7 @@ function CategoriasTab({ catalog, api, flash }) {
 // ============================================================
 // COLORES
 // ============================================================
-function ColoresTab({ catalog, api, flash }) {
+function ColoresTab({ catalog, api, flash, adminKey }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '', hex: '#8b8d91' });
   const [cargando, setCargando] = useState('');
 
@@ -1213,6 +1213,14 @@ function ColoresTab({ catalog, api, flash }) {
   // Guarda el tono ajustado de un color que ya existe (mismo id = se actualiza).
   async function cambiarTono(c, hex) {
     await api('POST', 'color', { ...c, hex });
+  }
+  // Guarda (o quita) la foto de muestra de la tela real de un color.
+  async function cambiarMuestra(c, url) {
+    const actualizado = { ...c };
+    if (url) actualizado.img = url;
+    else delete actualizado.img;
+    await api('POST', 'color', actualizado);
+    flash(url ? `Muestra de "${c.label}" guardada.` : `Muestra de "${c.label}" quitada.`);
   }
   // Carga una carta de tela completa. Solo agrega los que falten: si ya tienes
   // un color con ese id, no se toca (para no pisar tonos que ya ajustaste).
@@ -1240,21 +1248,40 @@ function ColoresTab({ catalog, api, flash }) {
   return (
     <div>
       <p className="mb-3 text-xs text-neutral-500">
-        Toca el cuadrito de color de cualquiera para ajustar su tono. El cambio se guarda solo y
-        se refleja al instante en la tienda.
+        Toca el cuadrito de color para ajustar su tono. Y con <strong>«📷 Muestra»</strong> puedes
+        subir una foto real de la tela: así el círculo de color en la tienda muestra la textura y
+        el tono verdadero en vez de un color plano (mucho más fiel para el cliente).
       </p>
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {catalog.colors.map((c) => (
-          <div key={c.id} className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2">
-            <input
-              type="color"
-              value={c.hex}
-              onChange={(e) => cambiarTono(c, e.target.value)}
-              title={`Ajustar el tono de ${c.label}`}
-              className="h-6 w-6 cursor-pointer rounded-full border border-black/10 bg-transparent p-0"
-            />
-            <span className="text-sm">{c.label}</span>
-            <button onClick={() => eliminar(c)} className="text-xs text-red-600 hover:underline">✕</button>
+          <div key={c.id} className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-2">
+            {c.img ? (
+              <span
+                className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-cover bg-center"
+                style={{ backgroundImage: `url(${c.img})` }}
+                title="Muestra de tela"
+              />
+            ) : (
+              <input
+                type="color"
+                value={c.hex}
+                onChange={(e) => cambiarTono(c, e.target.value)}
+                title={`Ajustar el tono de ${c.label}`}
+                className="h-8 w-8 shrink-0 cursor-pointer rounded-full border border-black/10 bg-transparent p-0"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm">{c.label}</p>
+              <div className="flex items-center gap-2 text-[11px]">
+                <UploadButton adminKey={adminKey} onUploaded={(url) => cambiarMuestra(c, url)} label="📷 Muestra" />
+                {c.img && (
+                  <button onClick={() => cambiarMuestra(c, '')} className="text-neutral-400 hover:text-neutral-600">
+                    quitar
+                  </button>
+                )}
+              </div>
+            </div>
+            <button onClick={() => eliminar(c)} className="shrink-0 text-xs text-red-600 hover:underline">✕</button>
           </div>
         ))}
       </div>
@@ -1515,6 +1542,21 @@ function ConfigTab({ catalog, api, flash }) {
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
+        <p className="mb-1 text-sm font-medium text-neutral-700">Aviso de color en la página del producto</p>
+        <p className="mb-2 text-xs text-neutral-500">
+          Aparece en letra pequeña debajo del selector de color. Sirve para avisar que el tono
+          puede variar. Déjalo vacío para no mostrar nada.
+        </p>
+        <textarea
+          value={cfg.avisoColor ?? ''}
+          onChange={(e) => set('avisoColor', e.target.value)}
+          rows={2}
+          placeholder="El color de la foto es referencial. El tono real puede variar según tu pantalla..."
+          className="w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+        />
       </div>
 
       <div className="mt-5">

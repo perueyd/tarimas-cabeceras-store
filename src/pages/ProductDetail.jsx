@@ -46,10 +46,21 @@ export default function ProductDetail() {
     )
   );
 
-  // Si el color elegido ya no está disponible para el tamaño recién
-  // seleccionado, cambia solo al primero disponible (mismo patrón que el
-  // checkout usa para los métodos de pago).
+  // Identifica la lista de colores disponible. Cambia tanto al elegir otro
+  // tamaño como cuando el catálogo termina de cargar (llega async), así que
+  // sirve para corregir el color en ambos casos.
+  const colorKey = availableColors.map((c) => c.id).join(',');
+  // El tamaño también puede quedar sin elegir si al montar el catálogo aún no
+  // había cargado — este key detecta cuándo aparecen los tamaños.
+  const sizeKey = availableSizes.map((s) => s.id).join(',');
+
+  // Corrige la selección cuando el color/tamaño elegido no está en la lista
+  // vigente (color que no aplica al nuevo tamaño, o valores que quedaron sin
+  // fijar porque el catálogo cargó después del primer render).
   useEffect(() => {
+    if (availableSizes.length && !availableSizes.some((s) => s.id === sizeId)) {
+      setSizeId(availableSizes[0].id);
+    }
     if (availableColors.length && !availableColors.some((c) => c.id === colorId)) {
       setColorId(availableColors[0].id);
     }
@@ -57,10 +68,12 @@ export default function ProductDetail() {
       setColorId2(availableColors[0].id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sizeId]);
+  }, [sizeKey, colorKey]);
 
-  const selectedColor = colors.find((c) => c.id === colorId);
-  const selectedColor2 = colors.find((c) => c.id === colorId2);
+  // Para pintar: si el estado aún no se corrigió (justo tras cargar), se usa el
+  // primer color disponible como respaldo, así la imagen nunca sale sin color.
+  const selectedColor = colors.find((c) => c.id === colorId) || availableColors[0];
+  const selectedColor2 = colors.find((c) => c.id === colorId2) || availableColors[0];
   const priceInfo = useMemo(
     () => (product ? getUnitPrice(product, sizeId, opciones) : null),
     [product, sizeId, opciones]
@@ -68,7 +81,7 @@ export default function ProductDetail() {
   const unitPrice = priceInfo?.unitPrice ?? 0;
   // Imagen según color y tamaño: foto propia del color, si no la del tamaño,
   // si no la imagen base teñida (ver resolveProductImage).
-  const img = product ? resolveProductImage(product, colorId, sizeId) : null;
+  const img = product ? resolveProductImage(product, selectedColor?.id, sizeId) : null;
 
   if (!product) {
     return (
@@ -88,9 +101,11 @@ export default function ProductDetail() {
       baseImage: img.src,
       tintable: img.tintable,
       sizeId,
-      colorId,
+      // Se usa el color efectivo (con respaldo) por si el estado aún no se
+      // corrigió tras la carga async del catálogo.
+      colorId: selectedColor?.id,
       // Solo se guarda el segundo color si la foto realmente tiene dos telas.
-      colorId2: dosTelas ? colorId2 : undefined,
+      colorId2: dosTelas ? selectedColor2?.id : undefined,
       opciones,
       // Detalle legible ("Brazos: Con brazos") para mostrarlo en el carrito
       // sin tener que volver a buscarlo en el catálogo.
@@ -170,6 +185,7 @@ export default function ProductDetail() {
                 selectedId={colorId}
                 onSelect={setColorId}
                 titulo={dosTelas ? 'Color principal' : 'Color'}
+                aviso={dosTelas ? undefined : storeConfig.avisoColor}
               />
             </div>
           )}
@@ -182,6 +198,7 @@ export default function ProductDetail() {
                 selectedId={colorId2}
                 onSelect={setColorId2}
                 titulo="Color del detalle"
+                aviso={storeConfig.avisoColor}
               />
             </div>
           )}

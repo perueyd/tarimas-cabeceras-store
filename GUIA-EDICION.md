@@ -84,6 +84,20 @@ textura real (velvet, capitoné, costuras). Cuánto hay que aclarar **se mide
 solo en cada foto**, así que funciona igual con una foto clara que con una gris
 u oscura, sin que tengas que configurar nada.
 
+**Foto real de la tela en cada color (recomendado):** en el panel → Editar
+página → **Colores**, cada color tiene un botón **«📷 Muestra»**. Sube ahí un
+recorte de la foto real de esa tela y el círculo de color en la tienda mostrará
+esa foto (con su textura y tono verdadero) en vez de un color plano. Es la forma
+más fiel de mostrarle el color al cliente y la que menos reclamos genera por
+diferencia de tono. Puedes ponerle muestra a los colores que quieras; los que no
+tengan foto siguen mostrando el color plano. El recorte no repinta la foto del
+mueble (esa sigue usando el tono) — la muestra es solo para el círculo selector.
+
+**Aviso de color:** en el panel → Editar página → Datos de la tienda →
+«Aviso de color en la página del producto» puedes editar (o quitar) el texto en
+letra pequeña que aparece bajo el selector de color, avisando que el tono puede
+variar según la pantalla y el lote de la tela. Viene con un texto por defecto.
+
 **Muebles de dos telas:** si tu foto tiene dos telas distintas (ej. cuerpo
 oscuro + panel claro), la web lo **detecta sola** al cargar la imagen y muestra
 **dos selectores de color** al cliente: «Color principal» y «Color del

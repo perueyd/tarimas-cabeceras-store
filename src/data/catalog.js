@@ -18,6 +18,9 @@ export const storeConfig = {
   // Métodos de pago visibles en el checkout — apaga el que no uses (ej. si
   // no tienes cuenta bancaria para transferencia, o no quieres exponer Yape).
   paymentMethods: { culqi: true, yapePlin: true, transferencia: true },
+  // Aviso que aparece bajo el selector de color en la página del producto.
+  // Deja vacío para no mostrar nada.
+  avisoColor: 'El color de la foto es referencial. El tono real puede variar según tu pantalla, la iluminación y el lote de la tela.',
   whatsapp: '51951278010',
   // Número que recibe Yape/Plin directo (se muestra al cliente en el checkout).
   yape: '951 278 010',
