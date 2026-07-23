@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
+import ProductZoomModal from '../components/ProductZoomModal.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
@@ -31,6 +32,7 @@ export default function ProductDetail() {
   const [dosTelas, setDosTelas] = useState(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const [zoom, setZoom] = useState(false); // ventana ampliada de la imagen
 
   // Opciones del producto (ej. brazos, tipo de patas, tipo de botón).
   // Arranca con el primer valor de cada grupo ya elegido.
@@ -129,15 +131,27 @@ export default function ProductDetail() {
       <Link to="/" className="text-sm text-neutral-500 hover:text-ink">← Volver al catálogo</Link>
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
-        <ProductImage
-          baseImage={img.src}
-          colorHex={selectedColor?.hex}
-          colorHex2={selectedColor2?.hex}
-          onDosTelas={setDosTelas}
-          alt={product.name}
-          className="aspect-[4/3] w-full rounded-xl"
-          tintable={img.tintable}
-        />
+        <div>
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            className="group relative block w-full cursor-zoom-in"
+            aria-label="Ver la imagen en grande"
+          >
+            <ProductImage
+              baseImage={img.src}
+              colorHex={selectedColor?.hex}
+              colorHex2={selectedColor2?.hex}
+              onDosTelas={setDosTelas}
+              alt={product.name}
+              className="aspect-[4/3] w-full rounded-xl"
+              tintable={img.tintable}
+            />
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+              🔍 Ver en grande
+            </span>
+          </button>
+        </div>
 
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
@@ -287,6 +301,23 @@ export default function ProductDetail() {
       />
 
       <ReviewsSection productId={product.id} />
+
+      <ProductZoomModal
+        open={zoom}
+        onClose={() => setZoom(false)}
+        img={img}
+        selectedColor={selectedColor}
+        selectedColor2={selectedColor2}
+        availableColors={availableColors}
+        colorId={colorId}
+        colorId2={colorId2}
+        onSelectColor={setColorId}
+        onSelectColor2={setColorId2}
+        dosTelas={dosTelas}
+        setDosTelas={setDosTelas}
+        aviso={storeConfig.avisoColor}
+        productName={product.name}
+      />
     </main>
   );
 }

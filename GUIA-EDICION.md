@@ -93,6 +93,12 @@ diferencia de tono. Puedes ponerle muestra a los colores que quieras; los que no
 tengan foto siguen mostrando el color plano. El recorte no repinta la foto del
 mueble (esa sigue usando el tono) — la muestra es solo para el círculo selector.
 
+**Ventana ampliada («🔍 Ver en grande»):** en la página del producto, al tocar
+la foto se abre una ventana grande que muestra juntos: la imagen del modelo, un
+cuadro grande con el color/tela elegido, y el selector de color. Así el cliente
+aprecia bien el tono (los círculos son chicos). Lo que elija ahí se conserva al
+cerrar. No hay nada que configurar — funciona solo.
+
 **Aviso de color:** en el panel → Editar página → Datos de la tienda →
 «Aviso de color en la página del producto» puedes editar (o quitar) el texto en
 letra pequeña que aparece bajo el selector de color, avisando que el tono puede
