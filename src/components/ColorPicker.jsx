@@ -1,8 +1,8 @@
-export default function ColorPicker({ colors, selectedId, onSelect }) {
+export default function ColorPicker({ colors, selectedId, onSelect, titulo = 'Color' }) {
   return (
     <div>
       <p className="mb-2 text-sm font-medium text-neutral-700">
-        Color: <span className="font-normal text-neutral-500">
+        {titulo}: <span className="font-normal text-neutral-500">
           {colors.find((c) => c.id === selectedId)?.label}
         </span>
       </p>

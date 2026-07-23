@@ -84,6 +84,14 @@ textura real (velvet, capitoné, costuras). Cuánto hay que aclarar **se mide
 solo en cada foto**, así que funciona igual con una foto clara que con una gris
 u oscura, sin que tengas que configurar nada.
 
+**Muebles de dos telas:** si tu foto tiene dos telas distintas (ej. cuerpo
+oscuro + panel claro), la web lo **detecta sola** al cargar la imagen y muestra
+**dos selectores de color** al cliente: «Color principal» y «Color del
+detalle». Cada zona se repinta por separado y con su propio ajuste de brillo,
+porque una tela oscura necesita aclararse mucho más que una clara. No tienes
+que configurar nada: si la foto tiene una sola tela, aparece un solo selector
+como siempre. Ambos colores quedan registrados en el pedido para tu taller.
+
 ⚠️ **Un límite que sí tienes que saber:** no se puede hacer que un mueble
 oscuro se vea de un color claro de forma creíble. Si fotografías una cabecera
 marrón oscura, nunca se va a ver blanca o beige convincentemente. Por eso los

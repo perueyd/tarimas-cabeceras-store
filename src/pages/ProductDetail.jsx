@@ -25,6 +25,10 @@ export default function ProductDetail() {
   const availableColors = colors.filter((c) => colorIdsForSize.includes(c.id));
 
   const [colorId, setColorId] = useState(availableColors[0]?.id);
+  // Segundo color: solo se usa si la foto tiene dos telas distintas (se
+  // detecta sola al cargar la imagen — ver ProductImage/imagenRegiones).
+  const [colorId2, setColorId2] = useState(availableColors[0]?.id);
+  const [dosTelas, setDosTelas] = useState(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -49,10 +53,14 @@ export default function ProductDetail() {
     if (availableColors.length && !availableColors.some((c) => c.id === colorId)) {
       setColorId(availableColors[0].id);
     }
+    if (availableColors.length && !availableColors.some((c) => c.id === colorId2)) {
+      setColorId2(availableColors[0].id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizeId]);
 
   const selectedColor = colors.find((c) => c.id === colorId);
+  const selectedColor2 = colors.find((c) => c.id === colorId2);
   const priceInfo = useMemo(
     () => (product ? getUnitPrice(product, sizeId, opciones) : null),
     [product, sizeId, opciones]
@@ -81,6 +89,8 @@ export default function ProductDetail() {
       tintable: img.tintable,
       sizeId,
       colorId,
+      // Solo se guarda el segundo color si la foto realmente tiene dos telas.
+      colorId2: dosTelas ? colorId2 : undefined,
       opciones,
       // Detalle legible ("Brazos: Con brazos") para mostrarlo en el carrito
       // sin tener que volver a buscarlo en el catálogo.
@@ -107,6 +117,8 @@ export default function ProductDetail() {
         <ProductImage
           baseImage={img.src}
           colorHex={selectedColor?.hex}
+          colorHex2={selectedColor2?.hex}
+          onDosTelas={setDosTelas}
           alt={product.name}
           className="aspect-[4/3] w-full rounded-xl"
           tintable={img.tintable}
@@ -153,7 +165,24 @@ export default function ProductDetail() {
 
           {availableColors.length > 0 && (
             <div className="mt-6">
-              <ColorPicker colors={availableColors} selectedId={colorId} onSelect={setColorId} />
+              <ColorPicker
+                colors={availableColors}
+                selectedId={colorId}
+                onSelect={setColorId}
+                titulo={dosTelas ? 'Color principal' : 'Color'}
+              />
+            </div>
+          )}
+
+          {/* Segundo selector: aparece solo si la foto tiene dos telas. */}
+          {dosTelas && availableColors.length > 0 && (
+            <div className="mt-6">
+              <ColorPicker
+                colors={availableColors}
+                selectedId={colorId2}
+                onSelect={setColorId2}
+                titulo="Color del detalle"
+              />
             </div>
           )}
 

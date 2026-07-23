@@ -24,6 +24,8 @@ export function priceOrder(products, rawItems) {
       productName: p.name,
       sizeId: String(it.sizeId).slice(0, 30),
       colorId: String(it.colorId || '').slice(0, 30),
+      // Segundo color, solo en muebles de dos telas.
+      colorId2: it.colorId2 ? String(it.colorId2).slice(0, 30) : undefined,
       qty,
       unitPrice,
       // Texto legible de las opciones elegidas, ej. "Brazos: Con brazos".

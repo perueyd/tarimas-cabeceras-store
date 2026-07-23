@@ -44,6 +44,7 @@ export default function Cart() {
                     <p className="font-medium">{item.productName}</p>
                     <p className="text-sm text-neutral-500">
                       {size?.label || item.sizeId} · {color?.label || item.colorId}
+                      {item.colorId2 && ` + ${getColorById(item.colorId2)?.label || item.colorId2}`}
                     </p>
                     {item.opcionesDetalle?.length > 0 && (
                       <p className="text-xs text-neutral-400">

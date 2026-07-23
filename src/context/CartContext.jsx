@@ -20,7 +20,7 @@ function lineKey(item) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([k, v]) => `${k}:${v}`)
     .join(',');
-  return `${item.productId}__${item.sizeId}__${item.colorId}__${ops}`;
+  return `${item.productId}__${item.sizeId}__${item.colorId}__${item.colorId2 || ''}__${ops}`;
 }
 
 function reducer(state, action) {

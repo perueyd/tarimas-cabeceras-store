@@ -515,6 +515,7 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
             <li key={idx}>
               • {i.productName} x{i.qty} — {getSizeById(i.sizeId)?.label || i.sizeId},{' '}
               {getColorById(i.colorId)?.label || i.colorId}
+              {i.colorId2 && ` + ${getColorById(i.colorId2)?.label || i.colorId2}`}
               {i.opciones?.length > 0 && `, ${i.opciones.map((o) => `${o.label}: ${o.valor}`).join(', ')}`}
               {' — '}{currencyFormatter.format(i.unitPrice * i.qty)}
             </li>
