@@ -398,7 +398,11 @@ Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
   ya guardados; eliminar un tamaño hace que los productos con precio ahí dejen
   de poder comprarse en ese tamaño (el precio queda guardado por si lo agregas
   de nuevo con el mismo ID).
-- **Página principal**: los textos del hero (lo primero que ve el cliente),
+- **Página principal**: ojo con el **segundo botón** del inicio (el que decía
+  «Ver cabeceras»): ahora **rota solo** entre tus categorías activas, así que
+  el texto y vínculo que pongas ahí solo se usan si no tienes ninguna categoría
+  activa. Con una sola activa se queda fija en esa. El resto son los textos del
+  hero (lo primero que ve el cliente),
   los botones, la palabra grande de la animación, el título y descripción de
   la sección "Todo para tu hogar", el título + los pasos de "Comprar es
   simple" (puedes agregar o quitar pasos — si los quitas todos, esa sección

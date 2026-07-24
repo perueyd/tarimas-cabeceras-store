@@ -71,6 +71,28 @@ export default function Landing() {
     return () => clearInterval(timer);
   }, [products.length]);
   const heroProduct = products.length ? products[heroIdx % products.length] : null;
+
+  // Segundo botón: va rotando entre las categorías ACTIVAS ("Ver cabeceras",
+  // "Ver tarimas"...). Con una sola categoría activa se queda fija en esa, y si
+  // no hay ninguna activa usa el texto/vínculo configurados en el panel.
+  const categoriasActivas = categories.filter((c) => c.active);
+  const [ctaIdx, setCtaIdx] = useState(0);
+  useEffect(() => {
+    if (categoriasActivas.length <= 1) return undefined;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return undefined;
+    const timer = setInterval(() => {
+      setCtaIdx((i) => (i + 1) % categoriasActivas.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, [categoriasActivas.length]);
+
+  const catCta = categoriasActivas.length
+    ? categoriasActivas[ctaIdx % categoriasActivas.length]
+    : null;
+  const cta2 = catCta
+    ? { label: `Ver ${catCta.label.toLowerCase()}`, url: `/tienda?categoria=${catCta.id}` }
+    : { label: landing.cta2Label, url: landing.cta2Url };
   const heroCheapestSizeId = heroProduct
     ? Object.entries(heroProduct.sizePricing || {}).sort((a, b) => a[1] - b[1])[0]?.[0]
     : null;
@@ -157,10 +179,10 @@ export default function Landing() {
                 {landing.cta1Label}
               </CtaLink>
               <CtaLink
-                to={landing.cta2Url}
-                className="rounded-lg border border-neutral-300 px-7 py-3 text-sm font-medium transition hover:border-ink"
+                to={cta2.url}
+                className="rounded-lg border border-neutral-300 px-7 py-3 text-sm font-medium capitalize transition hover:border-ink"
               >
-                {landing.cta2Label}
+                {cta2.label}
               </CtaLink>
             </div>
           </div>
