@@ -5,6 +5,8 @@
 //   URL del Apps Script en SHEETS_WEBHOOK_URL (instrucciones en GUIA-EDICION.md).
 // Si nada está configurado, los pedidos quedan en los logs de Vercel como respaldo.
 
+import { randomBytes } from 'crypto';
+
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 const SHEETS_URL = process.env.SHEETS_WEBHOOK_URL;
@@ -24,9 +26,22 @@ export async function redisCmd(command) {
   return res.json();
 }
 
+// Código de pedido. El seguimiento público (/api/orders?code=) devuelve datos
+// del pedido a quien tenga el código, así que el código ES la credencial: tiene
+// que ser IMPOSIBLE de adivinar.
+//
+// Antes se usaba Date.now() + 2 caracteres de Math.random(): la fecha es
+// predecible y 2 caracteres son ~1300 combinaciones, así que alguien podía
+// probar códigos hasta encontrar pedidos ajenos. Ahora los 10 caracteres
+// aleatorios salen de crypto (≈50 bits), lo que vuelve inviable adivinarlos.
+// Se mantiene el prefijo ED- y el formato corto para que sea fácil de dictar.
+const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin O/0/I/1 (se confunden)
+
 export function newOrderCode() {
-  const rand = Math.random().toString(36).slice(2, 4).toUpperCase();
-  return `ED-${Date.now().toString(36).toUpperCase()}${rand}`;
+  const bytes = randomBytes(10);
+  let code = '';
+  for (const b of bytes) code += ALFABETO[b % ALFABETO.length];
+  return `ED-${code}`;
 }
 
 // Notifica al Apps Script de Google: agrega/actualiza la fila en la hoja y

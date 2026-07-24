@@ -67,9 +67,46 @@ function descargarSuscriptores(suscriptores) {
   URL.revokeObjectURL(a.href);
 }
 
+// La clave de administrador se guarda en sessionStorage (no en localStorage) y
+// con fecha de caducidad. Motivo: la clave es la credencial completa del panel.
+// En localStorage quedaba guardada para siempre, así que en una computadora
+// compartida o prestada el siguiente que abriera /pedidos entraba directo. En
+// sessionStorage se borra al cerrar la pestaña, y además caduca a las 8 horas.
+const CLAVE_STORAGE = 'ed-orders-key';
+const CLAVE_HORAS = 8;
+
+function leerClaveGuardada() {
+  try {
+    // Limpieza de la versión anterior, que guardaba la clave sin caducidad.
+    localStorage.removeItem(CLAVE_STORAGE);
+    const raw = sessionStorage.getItem(CLAVE_STORAGE);
+    if (!raw) return '';
+    const { key, exp } = JSON.parse(raw);
+    if (!key || !exp || Date.now() > exp) {
+      sessionStorage.removeItem(CLAVE_STORAGE);
+      return '';
+    }
+    return key;
+  } catch {
+    return '';
+  }
+}
+
+function guardarClave(key) {
+  try {
+    sessionStorage.setItem(
+      CLAVE_STORAGE,
+      JSON.stringify({ key, exp: Date.now() + CLAVE_HORAS * 3600 * 1000 })
+    );
+  } catch {
+    // Si el navegador bloquea el almacenamiento, el panel sigue funcionando
+    // en esta pantalla; solo habrá que reingresar la clave al recargar.
+  }
+}
+
 export default function Orders() {
   const { currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
-  const [key, setKey] = useState(() => localStorage.getItem('ed-orders-key') || '');
+  const [key, setKey] = useState(leerClaveGuardada);
   const [input, setInput] = useState('');
   const [orders, setOrders] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -91,7 +128,7 @@ export default function Orders() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'No se pudo cargar.');
       setOrders(data.orders);
-      localStorage.setItem('ed-orders-key', k);
+      guardarClave(k);
       setKey(k);
       fetch('/api/reviews?all=1', { headers: authHeader })
         .then((r) => r.json())

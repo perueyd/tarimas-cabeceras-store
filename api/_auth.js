@@ -18,10 +18,15 @@ import { bump, clientIp, isOverLimit } from './_ratelimit.js';
 const MAX_INTENTOS_FALLIDOS = 20;
 const VENTANA_SEGUNDOS = 300; // 5 minutos
 
+// La clave SOLO se acepta por cabecera. Antes también se leía de ?key= en la
+// URL como respaldo, pero una clave en la URL termina copiada en los logs de
+// acceso del servidor, en el historial del navegador y en la cabecera Referer
+// al salir a otro sitio. Como el panel ya manda la cabecera, ese respaldo se
+// eliminó.
 function getProvidedKey(req) {
   const header = req.headers.authorization || req.headers.Authorization;
   if (header && header.startsWith('Bearer ')) return header.slice(7).trim();
-  return String(req.query?.key || '');
+  return '';
 }
 
 function safeEqual(a, b) {
