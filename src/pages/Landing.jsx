@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ShowcaseMarquee from '../components/ShowcaseMarquee.jsx';
+import ProductImage from '../components/ProductImage.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { getEffectivePrice } from '../lib/pricing.js';
 
@@ -50,6 +51,9 @@ export default function Landing() {
   const { categories, colors, storeConfig, products, currencyFormatter } = useCatalog();
   const landing = { ...LANDING_DEFAULTS, ...(storeConfig.landing || {}) };
   const [heroColor, setHeroColor] = useState(() => colors.find((c) => c.id === 'azul') || colors[0]);
+  // El hero avisa si el mueble mostrado combina dos telas, para invitar a
+  // entrar al producto y elegirlas (aquí solo se muestra una: ver abajo).
+  const [heroDosTelas, setHeroDosTelas] = useState(false);
   const sceneRef = useRef(null);
   const revealRefs = useRef([]);
 
@@ -173,51 +177,31 @@ export default function Landing() {
               >
                 <div key={heroProduct.id} className="hero-slide relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
                   <div className="relative aspect-[4/3] w-full p-6">
-                    {/* El tinte usa la MISMA foto como máscara: si subiste el mueble
-                        sin fondo (PNG transparente), el color solo pinta el objeto. */}
-                    <div className="relative h-full w-full">
-                      <img
-                        src={heroImg.src}
-                        alt={heroProduct.name}
-                        className="absolute inset-0 h-full w-full object-contain"
-                      />
-                      {heroImg.tintable && (
-                        <>
-                          <div
-                            className="absolute inset-0 mix-blend-multiply transition-colors duration-200"
-                            style={{
-                              backgroundColor: heroColor.hex,
-                              WebkitMaskImage: `url(${heroImg.src})`,
-                              WebkitMaskSize: 'contain',
-                              WebkitMaskRepeat: 'no-repeat',
-                              WebkitMaskPosition: 'center',
-                              maskImage: `url(${heroImg.src})`,
-                              maskSize: 'contain',
-                              maskRepeat: 'no-repeat',
-                              maskPosition: 'center',
-                            }}
-                          />
-                          <div
-                            className="absolute inset-0 bg-white/25 mix-blend-overlay"
-                            style={{
-                              WebkitMaskImage: `url(${heroImg.src})`,
-                              WebkitMaskSize: 'contain',
-                              WebkitMaskRepeat: 'no-repeat',
-                              WebkitMaskPosition: 'center',
-                              maskImage: `url(${heroImg.src})`,
-                              maskSize: 'contain',
-                              maskRepeat: 'no-repeat',
-                              maskPosition: 'center',
-                            }}
-                          />
-                        </>
-                      )}
-                    </div>
+                    {/* Usa el MISMO componente que la página del producto en vez de
+                        repetir aquí la lógica de teñido: así el hero hereda solos el
+                        ajuste de brillo por foto, la detección de dos telas y el
+                        aviso cuando falta la imagen. Antes esto estaba duplicado y
+                        se quedó atrás cuando se corrigió el teñido. */}
+                    <ProductImage
+                      baseImage={heroImg.src}
+                      colorHex={heroColor.hex}
+                      onDosTelas={setHeroDosTelas}
+                      alt={heroProduct.name}
+                      className="h-full w-full bg-transparent"
+                      tintable={heroImg.tintable}
+                    />
                   </div>
                   {/* Etiqueta del producto */}
                   <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10 text-white">
                     <div>
-                      <p className="text-sm font-medium">{heroProduct.name}</p>
+                      <p className="text-sm font-medium">
+                        {heroProduct.name}
+                        {heroDosTelas && (
+                          <span className="ml-2 rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium">
+                            combina 2 telas
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs opacity-80">
                         Desde {currencyFormatter.format(heroMin)}
                         {heroPrice?.discountPercent > 0 && (
