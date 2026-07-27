@@ -614,6 +614,7 @@ const PRODUCTO_VACIO = {
   colorsBySize: {},
   opciones: [],
   oculto: false,
+  gallery: [],
 };
 
 function ProductosTab({ catalog, api, flash, adminKey }) {
@@ -623,15 +624,20 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   const [ultimoIdx, setUltimoIdx] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const [vista, setVista] = useState('lista'); // 'lista' | 'mosaico'
+  const [catFiltro, setCatFiltro] = useState('todos'); // filtrar por categoría
 
   // Filtro por nombre o categoría (sin tildes/mayúsculas).
   const normaliza = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const q = normaliza(busqueda.trim());
   const visibles = catalog.products.filter((p) => {
+    if (catFiltro !== 'todos' && p.category !== catFiltro) return false;
     if (!q) return true;
     const catLabel = catalog.categories.find((c) => c.id === p.category)?.label || p.category;
     return normaliza(`${p.name} ${catLabel}`).includes(q);
   });
+  // Reordenar por arrastre solo tiene sentido sobre la lista COMPLETA (los
+  // índices del filtro no mapean al orden real), así que se desactiva al filtrar.
+  const filtrando = q !== '' || catFiltro !== 'todos';
   const todosSeleccionados = visibles.length > 0 && visibles.every((p) => seleccion.has(p.id));
   const orden = useReordenar(
     catalog.products.map((p) => p.id),
@@ -770,6 +776,28 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
         </div>
       </div>
 
+      {/* Filtro por categoría: mostrar solo cabeceras, solo tarimas, etc. */}
+      {catalog.categories.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {[{ id: 'todos', label: 'Todos' }, ...catalog.categories.map((c) => ({ id: c.id, label: c.label }))].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setCatFiltro(t.id)}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                catFiltro === t.id ? 'border-ink bg-ink text-white' : 'border-neutral-300 text-neutral-600 hover:border-neutral-500'
+              }`}
+            >
+              {t.label}
+              {t.id !== 'todos' && (
+                <span className={catFiltro === t.id ? 'ml-1 text-white/70' : 'ml-1 text-neutral-400'}>
+                  {catalog.products.filter((p) => p.category === t.id).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {catalog.products.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2">
           <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
@@ -779,7 +807,9 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
           <span className="text-xs text-neutral-400">
             {seleccion.size > 0
               ? `${seleccion.size} seleccionado(s)`
-              : `Marca las casillas (Shift = rango) para borrar. Arrastra ${vista === 'mosaico' ? 'una tarjeta' : 'una fila'} para reordenar.`}
+              : filtrando
+                ? 'Marca las casillas para borrar. (Quita el filtro/búsqueda para poder reordenar.)'
+                : `Marca las casillas (Shift = rango) para borrar. Arrastra ${vista === 'mosaico' ? 'una tarjeta' : 'una fila'} para reordenar.`}
           </span>
           {seleccion.size > 0 && (
             <button
@@ -821,17 +851,17 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
           const incompleto = estaIncompleto(p);
           // Posición real en la tienda (con búsqueda activa el índice del filtro
           // no sirve). El arrastre solo se habilita sin búsqueda.
-          const pos = q ? catalog.products.findIndex((x) => x.id === p.id) : i;
+          const pos = filtrando ? catalog.products.findIndex((x) => x.id === p.id) : i;
           return (
             <div
               key={p.id}
-              {...(!q ? orden.props(i) : {})}
-              className={`flex items-center justify-between gap-3 rounded-lg border p-4 transition ${!q ? 'cursor-move select-none' : ''} ${
+              {...(!filtrando ? orden.props(i) : {})}
+              className={`flex items-center justify-between gap-3 rounded-lg border p-4 transition ${!filtrando ? 'cursor-move select-none' : ''} ${
                 orden.arrastrando === i ? 'opacity-40' : ''
               } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
                 sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
               }`}
-              title={!q ? 'Arrastra para reordenar' : undefined}
+              title={!filtrando ? 'Arrastra para reordenar' : undefined}
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="w-6 shrink-0 text-center text-xs font-medium text-neutral-400">{pos + 1}</span>
@@ -860,7 +890,7 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-xs">
-                {!q && (
+                {!filtrando && (
                   <span className="flex flex-col">
                     <button
                       onClick={(e) => { e.stopPropagation(); mover(p.id, -1); }}
@@ -916,17 +946,17 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
             const min = precios.length ? Math.min(...precios) : 0;
             const sel = seleccion.has(p.id);
             const incompleto = estaIncompleto(p);
-            const pos = q ? catalog.products.findIndex((x) => x.id === p.id) : i;
+            const pos = filtrando ? catalog.products.findIndex((x) => x.id === p.id) : i;
             return (
               <div
                 key={p.id}
-                {...(!q ? orden.props(i) : {})}
-                className={`overflow-hidden rounded-xl border bg-white transition ${!q ? 'cursor-move' : ''} ${
+                {...(!filtrando ? orden.props(i) : {})}
+                className={`overflow-hidden rounded-xl border bg-white transition ${!filtrando ? 'cursor-move' : ''} ${
                   orden.arrastrando === i ? 'opacity-40' : ''
                 } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
                   sel ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'
                 }`}
-                title={!q ? 'Arrastra para reordenar' : undefined}
+                title={!filtrando ? 'Arrastra para reordenar' : undefined}
               >
                 <div className="relative aspect-square w-full bg-neutral-100">
                   {p.baseImage ? (
@@ -1044,6 +1074,13 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
       else si[sizeId] = url.trim();
       return { ...prev, sizeImages: si };
     });
+  }
+  // Galería: fotos adicionales del producto (ángulos, detalle, ambientado).
+  function agregarFotos(subidos) {
+    setP((prev) => ({ ...prev, gallery: [...(prev.gallery || []), ...subidos.map((s) => s.url)] }));
+  }
+  function quitarFoto(url) {
+    setP((prev) => ({ ...prev, gallery: (prev.gallery || []).filter((u) => u !== url) }));
   }
   // Medida propia de ESTE mueble para un tamaño. Una cabecera "2 plazas" mide
   // distinto que una tarima "2 plazas", así que cada producto puede fijar su
@@ -1213,6 +1250,32 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
           color elegido conservando la textura y los pliegues. Desmárcalo solo si quieres que la
           foto se vea siempre tal cual la subiste (ej. un acabado de madera real).
         </p>
+      </div>
+
+      {/* Galería: fotos adicionales del producto (varias a la vez). */}
+      <div className="mt-4">
+        <p className="mb-1 text-sm font-medium text-neutral-700">Fotos adicionales (galería)</p>
+        <p className="mb-2 text-xs text-neutral-500">
+          Fotos extra del mueble (otros ángulos, detalle de la tela, ambientado). Se muestran en la
+          página del producto además de la principal. Puedes subir <strong>varias a la vez</strong>.
+        </p>
+        {(p.gallery || []).length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {(p.gallery || []).map((url) => (
+              <div key={url} className="relative">
+                <img src={url} alt="" className="h-16 w-16 rounded-lg border border-neutral-200 object-cover" />
+                <button
+                  onClick={() => quitarFoto(url)}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white"
+                  title="Quitar foto"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <UploadButton adminKey={adminKey} multiple onBatch={agregarFotos} label="📷 Subir fotos" />
       </div>
 
       <label className="mt-4 block text-sm">

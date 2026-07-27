@@ -33,6 +33,7 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [zoom, setZoom] = useState(false); // ventana ampliada de la imagen
+  const [fotoGaleria, setFotoGaleria] = useState(null); // foto de galería que se ve en grande (null = la principal que cambia de color)
 
   // Opciones del producto (ej. brazos, tipo de patas, tipo de botón).
   // Arranca con el primer valor de cada grupo ya elegido.
@@ -137,25 +138,58 @@ export default function ProductDetail() {
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div>
-          <button
-            type="button"
-            onClick={() => setZoom(true)}
-            className="group relative block w-full cursor-zoom-in"
-            aria-label="Ver la imagen en grande"
-          >
-            <ProductImage
-              baseImage={img.src}
-              colorHex={selectedColor?.hex}
-              colorHex2={selectedColor2?.hex}
-              onDosTelas={setDosTelas}
+          {fotoGaleria ? (
+            // Una foto de la galería (no cambia de color).
+            <img
+              src={fotoGaleria}
               alt={product.name}
-              className="aspect-[4/3] w-full rounded-xl"
-              tintable={img.tintable}
+              className="aspect-[4/3] w-full rounded-xl object-cover"
             />
-            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
-              🔍 Ver en grande
-            </span>
-          </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setZoom(true)}
+              className="group relative block w-full cursor-zoom-in"
+              aria-label="Ver la imagen en grande"
+            >
+              <ProductImage
+                baseImage={img.src}
+                colorHex={selectedColor?.hex}
+                colorHex2={selectedColor2?.hex}
+                onDosTelas={setDosTelas}
+                alt={product.name}
+                className="aspect-[4/3] w-full rounded-xl"
+                tintable={img.tintable}
+              />
+              <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+                🔍 Ver en grande
+              </span>
+            </button>
+          )}
+
+          {/* Miniaturas: la principal (que cambia de color) + las fotos extra. */}
+          {Array.isArray(product.gallery) && product.gallery.length > 0 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setFotoGaleria(null)}
+                className={`shrink-0 overflow-hidden rounded-lg border ${fotoGaleria === null ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'}`}
+                title="Foto principal (cambia de color)"
+              >
+                <img src={img.src} alt="" className="h-16 w-16 object-cover" />
+              </button>
+              {product.gallery.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setFotoGaleria(url)}
+                  className={`shrink-0 overflow-hidden rounded-lg border ${fotoGaleria === url ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'}`}
+                >
+                  <img src={url} alt="" className="h-16 w-16 object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
