@@ -356,6 +356,28 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ================= PREGUNTAS FRECUENTES ================= */}
+      {Array.isArray(storeConfig.faq) && storeConfig.faq.length > 0 && (
+        <section className="border-t border-neutral-200">
+          <div className="mx-auto max-w-3xl px-4 py-16">
+            <h2 ref={addReveal} className="reveal text-2xl font-semibold tracking-tight">
+              Preguntas frecuentes
+            </h2>
+            <div ref={addReveal} className="reveal mt-6 divide-y divide-neutral-200 border-y border-neutral-200">
+              {storeConfig.faq.map((item, i) => (
+                <details key={i} className="group py-4">
+                  <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-neutral-800 marker:content-['']">
+                    {item.q}
+                    <span className="shrink-0 text-neutral-400 transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-neutral-500">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

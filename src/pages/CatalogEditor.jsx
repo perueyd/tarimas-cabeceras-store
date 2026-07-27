@@ -166,6 +166,7 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'config', label: 'Datos de la tienda' },
           { id: 'portada', label: 'Página principal' },
           { id: 'vitrina', label: 'Vitrina animada' },
+          { id: 'faq', label: 'Preguntas' },
           { id: 'legal', label: 'Legal' },
           { id: 'encuesta', label: 'Encuesta' },
         ].map((t) => (
@@ -187,6 +188,7 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'tamanos' && <TamanosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'faq' && <FaqTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'legal' && <LegalTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'encuesta' && <EncuestaTab catalog={catalog} api={api} flash={flash} />}
@@ -1657,6 +1659,86 @@ function TamanosTab({ catalog, api, flash }) {
 // ============================================================
 // CONFIGURACIÓN DE LA TIENDA
 // ============================================================
+// ============================================================
+// PREGUNTAS FRECUENTES (se muestran en la portada)
+// ============================================================
+function FaqTab({ catalog, api, flash }) {
+  const [faq, setFaq] = useState(() => (Array.isArray(catalog.storeConfig.faq) ? catalog.storeConfig.faq : []));
+  const [saving, setSaving] = useState(false);
+
+  function setItem(i, campo, valor) {
+    setFaq((prev) => prev.map((it, idx) => (idx === i ? { ...it, [campo]: valor } : it)));
+  }
+  function agregar() {
+    setFaq((prev) => [...prev, { q: '', a: '' }]);
+  }
+  function quitar(i) {
+    setFaq((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  function mover(i, dir) {
+    setFaq((prev) => {
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const copia = [...prev];
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  }
+  async function guardar() {
+    setSaving(true);
+    try {
+      // Descarta preguntas vacías al guardar.
+      const limpio = faq.map((it) => ({ q: (it.q || '').trim(), a: (it.a || '').trim() })).filter((it) => it.q && it.a);
+      await api('POST', 'config', { faq: limpio });
+      setFaq(limpio);
+      flash('Preguntas frecuentes guardadas.');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-neutral-500">
+        Se muestran en la portada, al final. El cliente toca una pregunta y se despliega la
+        respuesta. Deja la lista vacía si no quieres mostrarlas.
+      </p>
+      <div className="space-y-3">
+        {faq.map((it, i) => (
+          <div key={i} className="rounded-lg border border-neutral-200 bg-white p-3">
+            <div className="flex items-center gap-2">
+              <input
+                value={it.q}
+                onChange={(e) => setItem(i, 'q', e.target.value)}
+                placeholder="Pregunta (ej. ¿Cuánto demora la entrega?)"
+                className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium outline-none focus:border-ink"
+              />
+              <button onClick={() => mover(i, -1)} disabled={i === 0} className="text-xs text-neutral-400 disabled:opacity-30" title="Subir">▲</button>
+              <button onClick={() => mover(i, 1)} disabled={i === faq.length - 1} className="text-xs text-neutral-400 disabled:opacity-30" title="Bajar">▼</button>
+              <button onClick={() => quitar(i)} className="text-xs text-red-600" title="Eliminar">✕</button>
+            </div>
+            <textarea
+              value={it.a}
+              onChange={(e) => setItem(i, 'a', e.target.value)}
+              placeholder="Respuesta"
+              rows={2}
+              className="mt-2 w-full resize-none rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+            />
+          </div>
+        ))}
+      </div>
+      <button onClick={agregar} className="mt-3 text-xs text-sky-700 hover:underline">+ Agregar pregunta</button>
+      <div className="mt-4">
+        <button onClick={guardar} disabled={saving} className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
+          {saving ? 'Guardando...' : 'Guardar preguntas'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ConfigTab({ catalog, api, flash }) {
   const [cfg, setCfg] = useState(catalog.storeConfig);
   const [saving, setSaving] = useState(false);

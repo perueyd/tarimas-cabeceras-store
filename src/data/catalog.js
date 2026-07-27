@@ -39,6 +39,14 @@ export const storeConfig = {
     { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
     { id: 'tarde', label: 'Tarde (2:00 p.m. – 6:00 p.m.)' },
   ],
+  // Preguntas frecuentes (editable desde el panel). Se muestran en la portada.
+  // Deja la lista vacía para no mostrar la sección.
+  faq: [
+    { q: '¿Cuánto demora la entrega?', a: 'Fabricamos a pedido y entregamos en 3 a 4 días hábiles en Lima. A provincias, el tiempo depende de la agencia de envío.' },
+    { q: '¿El color real es igual al de la foto?', a: 'Es muy parecido, pero el tono puede variar un poco según tu pantalla, la luz y el lote de la tela. Si tienes dudas, escríbenos y te enviamos una foto real de la tela.' },
+    { q: '¿Puedo pedir una medida distinta?', a: 'Sí, trabajamos a medida. Escríbenos por WhatsApp con la medida que necesitas y te cotizamos.' },
+    { q: '¿Cómo puedo pagar?', a: 'Aceptamos Yape/Plin, transferencia bancaria y tarjeta. Verás todas las opciones al finalizar tu compra.' },
+  ],
   // Textos y vínculos de la página principal (editables desde el panel).
   landing: {
     eyebrow: 'Hecho en Perú · Envíos a todo el país',
