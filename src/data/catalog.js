@@ -29,6 +29,11 @@ export const storeConfig = {
   // { banco: 'BCP', titular: 'Nombre Apellido', cuenta: '191-xxxxxxx-x-xx', cci: '00219100xxxxxxxxxx' },
   banks: [],
   leadTime: '3 a 4 días hábiles',
+  // Cuotas referenciales: muestra "o N cuotas de S/ X" en cada producto. Es solo
+  // informativo (para animar la compra de un ticket alto); no cobra en cuotas.
+  // Pon cuotasNumero: 0 para no mostrarlo.
+  cuotasNumero: 3,
+  cuotasTexto: 'sin intereses con tu tarjeta',
   deliveryMinDays: 4,
   deliverySlots: [
     { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },

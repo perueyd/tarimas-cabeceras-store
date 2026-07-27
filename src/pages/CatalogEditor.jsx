@@ -1742,7 +1742,23 @@ function ConfigTab({ catalog, api, flash }) {
           onChange={(v) => set('deliveryMinDays', Number(v) || 0)}
           type="number"
         />
+        <Field
+          label="Cuotas a mostrar (0 = no mostrar)"
+          value={cfg.cuotasNumero ?? 0}
+          onChange={(v) => set('cuotasNumero', Math.max(Number(v) || 0, 0))}
+          type="number"
+        />
+        <Field
+          label="Texto junto a las cuotas"
+          value={cfg.cuotasTexto ?? ''}
+          onChange={(v) => set('cuotasTexto', v)}
+          placeholder="sin intereses con tu tarjeta"
+        />
       </div>
+      <p className="mt-1 text-xs text-neutral-400">
+        Las cuotas son solo informativas para animar la compra («o 3 cuotas de S/ X»); no cobran en
+        cuotas de verdad. Ponlo en 0 si no quieres mostrarlo.
+      </p>
 
       <div className="mt-5 rounded-lg bg-neutral-50 p-3">
         <p className="mb-1 text-sm font-medium text-neutral-700">Métodos de pago en el checkout</p>

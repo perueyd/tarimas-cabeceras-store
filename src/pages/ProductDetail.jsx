@@ -171,6 +171,16 @@ export default function ProductDetail() {
               </>
             )}
           </div>
+          {/* Cuotas referenciales (informativo, no cobra en cuotas). */}
+          {storeConfig.cuotasNumero > 1 && unitPrice > 0 && (
+            <p className="mt-1 text-sm text-neutral-500">
+              o {storeConfig.cuotasNumero} cuotas de{' '}
+              <span className="font-medium text-neutral-700">
+                {currencyFormatter.format(unitPrice / storeConfig.cuotasNumero)}
+              </span>
+              {storeConfig.cuotasTexto ? ` ${storeConfig.cuotasTexto}` : ''}
+            </p>
+          )}
 
           <div className="mt-6">
             <p className="mb-2 text-sm font-medium text-neutral-700">Tamaño</p>

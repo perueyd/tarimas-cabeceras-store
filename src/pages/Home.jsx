@@ -8,6 +8,7 @@ export default function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('categoria') || 'todos';
   const [tab, setTab] = useState(initialTab);
+  const [busqueda, setBusqueda] = useState('');
 
   // Las pestañas se generan solas desde `categories` (editable desde el panel):
   // al activar una categoría nueva, aparece aquí automáticamente.
@@ -16,7 +17,16 @@ export default function Home() {
     ...categories.filter((c) => c.active).map(({ id, label }) => ({ id, label })),
   ];
 
-  const visibleProducts = products.filter((p) => tab === 'todos' || p.category === tab);
+  // Filtra por categoría y por texto (nombre o descripción). Sin tildes y en
+  // minúsculas para que "cabecera" encuentre "Cabecera" y "capitoné".
+  const normaliza = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const q = normaliza(busqueda.trim());
+  const visibleProducts = products.filter((p) => {
+    const enCategoria = tab === 'todos' || p.category === tab;
+    if (!q) return enCategoria;
+    const texto = normaliza(`${p.name} ${p.shortDescription || ''}`);
+    return enCategoria && texto.includes(q);
+  });
 
   function selectTab(id) {
     setTab(id);
@@ -34,7 +44,20 @@ export default function Home() {
         </p>
       </section>
 
-      <div className="mb-8 flex gap-2">
+      <div className="mb-5">
+        <div className="relative max-w-md">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔎</span>
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar mueble (ej. cabecera, capitoné...)"
+            className="w-full rounded-full border border-neutral-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-ink"
+          />
+        </div>
+      </div>
+
+      <div className="mb-8 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -55,6 +78,19 @@ export default function Home() {
           {visibleProducts.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
+        </div>
+      ) : q ? (
+        <div className="rounded-xl border border-neutral-200 bg-white px-6 py-14 text-center">
+          <p className="text-lg font-medium">Sin resultados para «{busqueda.trim()}» 🔎</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+            Prueba con otra palabra, o escríbenos y te ayudamos a encontrar lo que buscas.
+          </p>
+          <button
+            onClick={() => setBusqueda('')}
+            className="mt-6 rounded-lg border border-neutral-300 px-6 py-2.5 text-sm font-medium transition hover:border-ink"
+          >
+            Limpiar búsqueda
+          </button>
         </div>
       ) : (
         <div className="rounded-xl border border-neutral-200 bg-white px-6 py-14 text-center">
