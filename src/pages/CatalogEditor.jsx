@@ -126,11 +126,19 @@ function Seccion({ titulo, resumen, defaultOpen = false, children }) {
 export default function CatalogEditor({ adminKey }) {
   const catalog = useCatalog();
   const [sub, setSub] = useState('productos');
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState(null); // { text, undo? }
 
-  function flash(text) {
-    setMsg(text);
-    setTimeout(() => setMsg(''), 2500);
+  // flash(texto) muestra un aviso 2.5 s. flash(texto, fn) agrega un botón
+  // "Deshacer" que corre fn (para recuperar algo recién borrado) durante 8 s.
+  function flash(text, undo) {
+    setMsg({ text, undo });
+    setTimeout(() => setMsg((m) => (m && m.text === text ? null : m)), undo ? 8000 : 2500);
+  }
+  async function deshacer() {
+    if (!msg?.undo) return;
+    const fn = msg.undo;
+    setMsg(null);
+    try { await fn(); } catch (err) { alert(err.message); }
   }
 
   async function api(method, resource, body, extraQuery = '') {
@@ -155,7 +163,19 @@ export default function CatalogEditor({ adminKey }) {
         datos de contacto) — no necesitas editar código ni esperar un deploy.
       </div>
 
-      {msg && <p className="mb-4 rounded-lg bg-green-50 px-4 py-2 text-sm text-green-800">{msg}</p>}
+      {msg && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-green-50 px-4 py-2 text-sm text-green-800">
+          <span>{msg.text}</span>
+          {msg.undo && (
+            <button
+              onClick={deshacer}
+              className="shrink-0 rounded-lg border border-green-300 bg-white px-3 py-1 text-xs font-medium text-green-800 hover:bg-green-100"
+            >
+              ↩ Deshacer
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-2 text-sm">
         {[
@@ -591,7 +611,18 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   async function eliminar(p) {
     if (!window.confirm(`¿Eliminar "${p.name}"? Ya no aparecerá en la tienda.`)) return;
     await api('DELETE', 'product', null, `&id=${encodeURIComponent(p.id)}`);
-    flash(`Producto "${p.name}" eliminado.`);
+    flash(`Producto "${p.name}" eliminado.`, () => api('POST', 'product', p));
+  }
+
+  // Mueve un producto en el orden de la tienda (▲ sube, ▼ baja). Opera sobre la
+  // lista completa; por eso se desactiva mientras haya una búsqueda activa.
+  async function mover(id, dir) {
+    const ids = catalog.products.map((x) => x.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    await api('POST', 'product', { ids }, '&action=reorder');
   }
 
   // Muestra u oculta un producto de la tienda sin borrarlo (borrador).
@@ -643,13 +674,15 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
     setSeleccion(todosSeleccionados ? new Set() : new Set(visibles.map((p) => p.id)));
   }
   async function eliminarSeleccionados() {
-    const ids = visibles.filter((p) => seleccion.has(p.id)).map((p) => p.id);
-    if (!ids.length) return;
-    if (!window.confirm(`¿Eliminar ${ids.length} producto(s)? No se puede deshacer.`)) return;
+    const borrados = visibles.filter((p) => seleccion.has(p.id));
+    if (!borrados.length) return;
+    if (!window.confirm(`¿Eliminar ${borrados.length} producto(s)?`)) return;
     setOcupado(true);
     try {
-      for (const id of ids) await api('DELETE', 'product', null, `&id=${encodeURIComponent(id)}`);
-      flash(`${ids.length} producto(s) eliminado(s).`);
+      for (const p of borrados) await api('DELETE', 'product', null, `&id=${encodeURIComponent(p.id)}`);
+      flash(`${borrados.length} producto(s) eliminado(s).`, async () => {
+        for (const p of borrados) await api('POST', 'product', p);
+      });
       setSeleccion(new Set());
       setUltimoIdx(null);
     } catch (err) {
@@ -760,7 +793,21 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
                   </p>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-wrap justify-end gap-2 text-xs">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-xs">
+                {!q && (
+                  <span className="flex flex-col">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); mover(p.id, -1); }}
+                      className="leading-none text-neutral-400 hover:text-ink"
+                      title="Subir"
+                    >▲</button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); mover(p.id, 1); }}
+                      className="leading-none text-neutral-400 hover:text-ink"
+                      title="Bajar"
+                    >▼</button>
+                  </span>
+                )}
                 <a
                   href={`/producto/${p.id}`}
                   target="_blank"
@@ -1593,15 +1640,17 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
     setSeleccion(todosSeleccionados ? new Set() : new Set(catalog.colors.map((c) => c.id)));
   }
   async function eliminarSeleccionados() {
-    const ids = catalog.colors.filter((c) => seleccion.has(c.id)).map((c) => c.id);
-    if (!ids.length) return;
-    if (!window.confirm(`¿Eliminar ${ids.length} color(es) seleccionado(s)? No se puede deshacer.`)) return;
+    const borrados = catalog.colors.filter((c) => seleccion.has(c.id));
+    if (!borrados.length) return;
+    if (!window.confirm(`¿Eliminar ${borrados.length} color(es) seleccionado(s)?`)) return;
     setCargando('bulk');
     try {
-      for (const id of ids) {
-        await api('DELETE', 'color', null, `&id=${encodeURIComponent(id)}`);
+      for (const c of borrados) {
+        await api('DELETE', 'color', null, `&id=${encodeURIComponent(c.id)}`);
       }
-      flash(`${ids.length} color(es) eliminado(s).`);
+      flash(`${borrados.length} color(es) eliminado(s).`, async () => {
+        for (const c of borrados) await api('POST', 'color', c);
+      });
       setSeleccion(new Set());
       setUltimoIdx(null);
     } catch (err) {
@@ -1614,7 +1663,17 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
   async function eliminar(c) {
     if (!window.confirm(`¿Eliminar el color "${c.label}"?`)) return;
     await api('DELETE', 'color', null, `&id=${encodeURIComponent(c.id)}`);
-    flash('Color eliminado.');
+    flash('Color eliminado.', () => api('POST', 'color', c));
+  }
+
+  // Mueve un color en el orden (afecta el orden de los círculos en la tienda).
+  async function mover(id, dir) {
+    const ids = catalog.colors.map((x) => x.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    await api('POST', 'color', { ids }, '&action=reorder');
   }
   async function agregar() {
     if (!nuevo.id.trim() || !nuevo.label.trim()) return;
@@ -1757,7 +1816,11 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
                 )}
               </div>
             </div>
-            <button onClick={() => eliminar(c)} className="shrink-0 text-xs text-red-600 hover:underline">✕</button>
+            <span className="flex shrink-0 flex-col leading-none">
+              <button onClick={(e) => { e.stopPropagation(); mover(c.id, -1); }} className="text-neutral-400 hover:text-ink" title="Subir">▲</button>
+              <button onClick={(e) => { e.stopPropagation(); mover(c.id, 1); }} className="text-neutral-400 hover:text-ink" title="Bajar">▼</button>
+            </span>
+            <button onClick={(e) => { e.stopPropagation(); eliminar(c); }} className="shrink-0 text-xs text-red-600 hover:underline">✕</button>
           </div>
           );
         })}

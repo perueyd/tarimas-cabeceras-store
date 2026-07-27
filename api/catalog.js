@@ -35,6 +35,24 @@ export default async function handler(req, res) {
     const listKey = listKeyFor(resource);
     if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color, size, showcase o config).' });
 
+    // Reordenar: el body trae { ids: [...] } con el nuevo orden. No cambia los
+    // datos de cada elemento, solo su posición (el orden del array = orden en
+    // la tienda). Los ids desconocidos se ignoran y los que falten se dejan al
+    // final, para no perder ningún elemento por un desajuste.
+    if (s(req.query.action, 20) === 'reorder') {
+      const catalog = await getCatalog();
+      const actual = catalog[listKey] || [];
+      const orden = Array.isArray(req.body?.ids) ? req.body.ids : [];
+      const porId = new Map(actual.map((x) => [x.id, x]));
+      const reordenado = [];
+      for (const id of orden) {
+        if (porId.has(id)) { reordenado.push(porId.get(id)); porId.delete(id); }
+      }
+      for (const restante of porId.values()) reordenado.push(restante); // los no listados, al final
+      await saveList(listKey, reordenado);
+      return res.status(200).json({ ok: true, [listKey]: reordenado });
+    }
+
     const item = req.body;
     const id = s(item?.id, 60).trim();
     if (!id) return res.status(400).json({ error: 'Falta el id del elemento.' });
