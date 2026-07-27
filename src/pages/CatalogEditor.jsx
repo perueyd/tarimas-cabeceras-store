@@ -96,6 +96,29 @@ function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = f
   );
 }
 
+// Sección plegable (acordeón). Sirve para que el formulario de producto no sea
+// un scroll larguísimo: cada bloque se abre/cierra con un clic. `resumen` es un
+// texto corto opcional que se ve en la cabecera aunque esté cerrada.
+function Seccion({ titulo, resumen, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-neutral-200">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 bg-neutral-50 px-4 py-3 text-left hover:bg-neutral-100"
+      >
+        <span className="text-sm font-medium text-neutral-700">
+          {titulo}
+          {resumen && <span className="ml-2 font-normal text-neutral-400">{resumen}</span>}
+        </span>
+        <span className={`shrink-0 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {open && <div className="border-t border-neutral-200 p-4">{children}</div>}
+    </div>
+  );
+}
+
 // Panel "Editar página": agrega/edita/elimina productos, categorías, colores
 // y los datos de la tienda (WhatsApp, cuentas bancarias, horarios de entrega)
 // directamente desde el navegador. Todo se guarda en la base de datos y se
@@ -529,6 +552,7 @@ const PRODUCTO_VACIO = {
   availableColors: [],
   colorImages: {},
   sizeImages: {},
+  sizeDims: {},
   colorsBySize: {},
   opciones: [],
 };
@@ -561,6 +585,7 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
         onCancel={() => setEditando(null)}
         onSave={guardar}
         adminKey={adminKey}
+        api={api}
       />
     );
   }
@@ -614,10 +639,13 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   );
 }
 
-function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
+function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
   const [p, setP] = useState(initial);
   const [saving, setSaving] = useState(false);
   const isNew = !catalog.products.some((x) => x.id === initial.id);
+  // Opciones reutilizables guardadas (ej. "Laterales", "Tipo de botón"): se
+  // guardan en la config de la tienda para no reescribirlas en cada producto.
+  const presets = catalog.storeConfig.opcionPresets || [];
 
   function set(field, value) {
     setP((prev) => ({ ...prev, [field]: value }));
@@ -671,6 +699,17 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
       return { ...prev, sizeImages: si };
     });
   }
+  // Medida propia de ESTE mueble para un tamaño. Una cabecera "2 plazas" mide
+  // distinto que una tarima "2 plazas", así que cada producto puede fijar su
+  // propia medida; si se deja vacío, usa la medida general del tamaño.
+  function setSizeDim(sizeId, value) {
+    setP((prev) => {
+      const sd = { ...(prev.sizeDims || {}) };
+      if (value.trim() === '') delete sd[sizeId];
+      else sd[sizeId] = value;
+      return { ...prev, sizeDims: sd };
+    });
+  }
   function setColoresPersonalizados(sizeId, activar) {
     setP((prev) => {
       const cbs = { ...(prev.colorsBySize || {}) };
@@ -718,6 +757,31 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
   }
   function removeValor(gi, vi) {
     setGrupos((gs) => gs.map((g, i) => (i === gi ? { ...g, valores: g.valores.filter((_, j) => j !== vi) } : g)));
+  }
+  // Inserta una opción guardada como grupo nuevo (con ids nuevos, para que
+  // editarla en este producto no toque la plantilla guardada).
+  function aplicarPreset(preset) {
+    const copia = {
+      id: `g${Date.now().toString(36)}`,
+      label: preset.label,
+      valores: (preset.valores || []).map((v, i) => ({ ...v, id: `v${Date.now().toString(36)}${i}` })),
+    };
+    setGrupos((gs) => [...gs, copia]);
+  }
+  // Guarda un grupo del producto como opción reutilizable. Si ya existe una con
+  // el mismo nombre, la reemplaza (así "editar" es volver a guardarla).
+  async function guardarPreset(grupo) {
+    const label = grupo.label.trim();
+    if (!label) { alert('Ponle nombre al grupo (ej. "Laterales") antes de guardarlo.'); return; }
+    const valores = (grupo.valores || []).filter((v) => v.label.trim());
+    if (!valores.length) { alert('Agrega al menos una opción con nombre.'); return; }
+    const otros = presets.filter((pr) => pr.label.toLowerCase() !== label.toLowerCase());
+    const nuevo = { id: `op${Date.now().toString(36)}`, label, valores };
+    await api('POST', 'config', { opcionPresets: [...otros, nuevo] });
+  }
+  async function eliminarPreset(id) {
+    if (!window.confirm('¿Eliminar esta opción guardada? (No afecta a los productos que ya la usan.)')) return;
+    await api('POST', 'config', { opcionPresets: presets.filter((pr) => pr.id !== id) });
   }
 
   async function handleSave() {
@@ -815,6 +879,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
         />
       </label>
 
+      <Seccion titulo="Especificaciones (material, altura, garantía…)">
       {/* Especificaciones */}
       <div className="mt-5">
         <p className="mb-2 text-sm font-medium text-neutral-700">Especificaciones (Material, Altura, Garantía, etc.)</p>
@@ -839,7 +904,9 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
         </div>
         <button onClick={addSpec} className="mt-2 text-xs text-sky-700 hover:underline">+ Agregar especificación</button>
       </div>
+      </Seccion>
 
+      <Seccion titulo="Precios y medidas por tamaño" defaultOpen>
       {/* Precios por tamaño: regular y de oferta */}
       <div className="mt-5">
         <p className="mb-1 text-sm font-medium text-neutral-700">Precios por tamaño (S/)</p>
@@ -900,6 +967,15 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
                     </span>
                   </p>
                 )}
+                <label className="mt-2 block text-xs">
+                  <span className="mb-1 block text-neutral-500">Medida de este mueble (opcional)</span>
+                  <input
+                    value={p.sizeDims?.[s.id] ?? ''}
+                    onChange={(e) => setSizeDim(s.id, e.target.value)}
+                    placeholder={s.dims || 'ej. 160 x 60 cm'}
+                    className="w-full rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+                  />
+                </label>
               </div>
             );
           })}
@@ -937,7 +1013,9 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
           </div>
         )}
       </div>
+      </Seccion>
 
+      <Seccion titulo="Colores">
       {/* Colores disponibles */}
       <div className="mt-5">
         <p className="mb-2 text-sm font-medium text-neutral-700">Colores disponibles para este producto</p>
@@ -1071,7 +1149,9 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
           </div>
         </div>
       )}
+      </Seccion>
 
+      <Seccion titulo="Opciones (laterales, botones, patas…)">
       {/* Opciones del producto (brazos, tipo de patas, tipo de botón...) */}
       <div className="mt-5 rounded-lg bg-neutral-50 p-3">
         <p className="text-sm font-medium text-neutral-700">Opciones del producto (opcional)</p>
@@ -1081,6 +1161,35 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
           ponle un recargo (déjalo en 0 si no cambia el precio). El recargo se suma al precio del
           tamaño y se vuelve a calcular en el servidor al pagar, así nadie puede alterarlo.
         </p>
+
+        {/* Opciones guardadas: se insertan con un clic para no reescribirlas. */}
+        {presets.length > 0 && (
+          <div className="mb-3 rounded-lg border border-dashed border-neutral-300 bg-white p-3">
+            <p className="mb-2 text-xs font-medium text-neutral-600">Opciones guardadas (toca para agregar)</p>
+            <div className="flex flex-wrap gap-2">
+              {presets.map((pr) => (
+                <span key={pr.id} className="inline-flex items-center overflow-hidden rounded-full border border-neutral-300 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => aplicarPreset(pr)}
+                    className="py-1 pl-3 pr-2 hover:bg-neutral-100"
+                    title={`Agregar «${pr.label}» (${(pr.valores || []).length} opciones)`}
+                  >
+                    + {pr.label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => eliminarPreset(pr.id)}
+                    className="border-l border-neutral-300 px-2 py-1 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                    title="Borrar esta opción guardada"
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3">
           {(p.opciones || []).map((g, gi) => (
@@ -1092,6 +1201,13 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
                   placeholder="Nombre del grupo (ej. Brazos, Tipo de patas)"
                   className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                 />
+                <button
+                  onClick={() => guardarPreset(g)}
+                  className="shrink-0 text-xs text-sky-700 hover:underline"
+                  title="Guardar este grupo para reutilizarlo en otros productos"
+                >
+                  💾 Guardar
+                </button>
                 <button onClick={() => removeGrupo(gi)} className="text-xs text-red-600 hover:underline">
                   Eliminar grupo
                 </button>
@@ -1158,6 +1274,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
           + Agregar grupo de opciones
         </button>
       </div>
+      </Seccion>
 
       <div className="mt-6 flex gap-2">
         <button onClick={handleSave} disabled={saving} className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">

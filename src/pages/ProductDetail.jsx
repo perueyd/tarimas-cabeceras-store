@@ -186,7 +186,7 @@ export default function ProductDetail() {
                   }`}
                 >
                   <span className="block font-medium">{s.label}</span>
-                  <span className="block text-xs opacity-70">{s.dims}</span>
+                  <span className="block text-xs opacity-70">{product.sizeDims?.[s.id] || s.dims}</span>
                 </button>
               ))}
             </div>
