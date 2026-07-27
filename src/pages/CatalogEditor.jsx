@@ -119,6 +119,42 @@ function Seccion({ titulo, resumen, defaultOpen = false, children }) {
   );
 }
 
+// Reordenar arrastrando (drag & drop nativo, sin librerías). Recibe el orden
+// actual de ids y una función que guarda el nuevo orden. Devuelve el estado
+// visual (qué se arrastra, sobre qué está) y los manejadores para cada tarjeta.
+// El arrastre no existe en móvil; por eso cada lista mantiene además flechas ▲▼.
+function useReordenar(ids, guardar) {
+  const [arrastrando, setArrastrando] = useState(null); // índice que se arrastra
+  const [encima, setEncima] = useState(null); // índice sobre el que se suelta
+
+  function onDragStart(i) { setArrastrando(i); }
+  function onDragOver(e, i) {
+    e.preventDefault();
+    if (i !== encima) setEncima(i);
+  }
+  function limpiar() { setArrastrando(null); setEncima(null); }
+  function onDrop(i) {
+    if (arrastrando === null || arrastrando === i) return limpiar();
+    const nuevo = [...ids];
+    const [movido] = nuevo.splice(arrastrando, 1);
+    nuevo.splice(i, 0, movido);
+    limpiar();
+    guardar(nuevo);
+    return undefined;
+  }
+  // Props listos para poner en cada tarjeta arrastrable en la posición i.
+  function props(i) {
+    return {
+      draggable: true,
+      onDragStart: () => onDragStart(i),
+      onDragOver: (e) => onDragOver(e, i),
+      onDrop: () => onDrop(i),
+      onDragEnd: limpiar,
+    };
+  }
+  return { arrastrando, encima, props };
+}
+
 // Panel "Editar página": agrega/edita/elimina productos, categorías, colores
 // y los datos de la tienda (WhatsApp, cuentas bancarias, horarios de entrega)
 // directamente desde el navegador. Todo se guarda en la base de datos y se
@@ -596,6 +632,10 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
     return normaliza(`${p.name} ${catLabel}`).includes(q);
   });
   const todosSeleccionados = visibles.length > 0 && visibles.every((p) => seleccion.has(p.id));
+  const orden = useReordenar(
+    catalog.products.map((p) => p.id),
+    (ids) => api('POST', 'product', { ids }, '&action=reorder')
+  );
 
   async function guardar(producto) {
     const specsObj = {};
@@ -665,10 +705,6 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
       return s;
     });
     return undefined;
-  }
-  function clickFila(e, idx, id) {
-    if (e.shiftKey) { e.preventDefault(); seleccionarRango(idx); setUltimoIdx(idx); }
-    else if (e.ctrlKey || e.metaKey) { e.preventDefault(); toggleSel(id); setUltimoIdx(idx); }
   }
   function seleccionarTodo() {
     setSeleccion(todosSeleccionados ? new Set() : new Set(visibles.map((p) => p.id)));
@@ -740,7 +776,9 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
             Seleccionar todo
           </label>
           <span className="text-xs text-neutral-400">
-            {seleccion.size > 0 ? `${seleccion.size} seleccionado(s)` : 'Marca las casillas, o usa Ctrl/Shift + clic'}
+            {seleccion.size > 0
+              ? `${seleccion.size} seleccionado(s)`
+              : 'Marca las casillas (Shift = rango) para borrar. Arrastra una fila para reordenar.'}
           </span>
           {seleccion.size > 0 && (
             <button
@@ -760,15 +798,22 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
           const min = precios.length ? Math.min(...precios) : 0;
           const sel = seleccion.has(p.id);
           const incompleto = estaIncompleto(p);
+          // Posición real en la tienda (con búsqueda activa el índice del filtro
+          // no sirve). El arrastre solo se habilita sin búsqueda.
+          const pos = q ? catalog.products.findIndex((x) => x.id === p.id) : i;
           return (
             <div
               key={p.id}
-              onClick={(e) => clickFila(e, i, p.id)}
-              className={`flex select-none items-center justify-between gap-3 rounded-lg border p-4 transition ${
+              {...(!q ? orden.props(i) : {})}
+              className={`flex items-center justify-between gap-3 rounded-lg border p-4 transition ${!q ? 'cursor-move select-none' : ''} ${
+                orden.arrastrando === i ? 'opacity-40' : ''
+              } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
                 sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
               }`}
+              title={!q ? 'Arrastra para reordenar' : undefined}
             >
               <div className="flex min-w-0 items-center gap-3">
+                <span className="w-6 shrink-0 text-center text-xs font-medium text-neutral-400">{pos + 1}</span>
                 <input
                   type="checkbox"
                   checked={sel}
@@ -1604,6 +1649,10 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
   const [seleccion, setSeleccion] = useState(() => new Set());
   const [ultimoIdx, setUltimoIdx] = useState(null); // para el rango con Shift
   const todosSeleccionados = catalog.colors.length > 0 && seleccion.size === catalog.colors.length;
+  const orden = useReordenar(
+    catalog.colors.map((c) => c.id),
+    (ids) => api('POST', 'color', { ids }, '&action=reorder')
+  );
 
   function toggleSel(id) {
     setSeleccion((prev) => {
@@ -1623,18 +1672,6 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
       return n;
     });
     return undefined;
-  }
-  // Clic sobre la tarjeta con Ctrl/Cmd (marca uno) o Shift (marca un rango).
-  function clickTarjeta(e, idx, id) {
-    if (e.shiftKey) {
-      e.preventDefault();
-      seleccionarRango(idx);
-      setUltimoIdx(idx);
-    } else if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      toggleSel(id);
-      setUltimoIdx(idx);
-    }
   }
   function seleccionarTodo() {
     setSeleccion(todosSeleccionados ? new Set() : new Set(catalog.colors.map((c) => c.id)));
@@ -1752,7 +1789,9 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
             Seleccionar todo
           </label>
           <span className="text-xs text-neutral-400">
-            {seleccion.size > 0 ? `${seleccion.size} seleccionado(s)` : 'Marca las casillas, o usa Ctrl/Shift + clic'}
+            {seleccion.size > 0
+              ? `${seleccion.size} seleccionado(s)`
+              : 'Marca las casillas (Shift = rango) para borrar varios. Arrastra una tarjeta para reordenar.'}
           </span>
           {seleccion.size > 0 && (
             <button
@@ -1772,11 +1811,15 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
           return (
           <div
             key={c.id}
-            onClick={(e) => clickTarjeta(e, i, c.id)}
-            className={`flex select-none items-center gap-2 rounded-lg border p-2 transition ${
+            {...orden.props(i)}
+            className={`flex cursor-move select-none items-center gap-2 rounded-lg border p-2 transition ${
+              orden.arrastrando === i ? 'opacity-40' : ''
+            } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
               sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
             }`}
+            title="Arrastra para reordenar"
           >
+            <span className="w-5 shrink-0 text-center text-[11px] font-medium text-neutral-400">{i + 1}</span>
             <input
               type="checkbox"
               checked={sel}
