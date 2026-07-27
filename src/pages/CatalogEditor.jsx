@@ -622,6 +622,7 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   const [seleccion, setSeleccion] = useState(() => new Set());
   const [ultimoIdx, setUltimoIdx] = useState(null);
   const [ocupado, setOcupado] = useState(false);
+  const [vista, setVista] = useState('lista'); // 'lista' | 'mosaico'
 
   // Filtro por nombre o categoría (sin tildes/mayúsculas).
   const normaliza = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -778,21 +779,41 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
           <span className="text-xs text-neutral-400">
             {seleccion.size > 0
               ? `${seleccion.size} seleccionado(s)`
-              : 'Marca las casillas (Shift = rango) para borrar. Arrastra una fila para reordenar.'}
+              : `Marca las casillas (Shift = rango) para borrar. Arrastra ${vista === 'mosaico' ? 'una tarjeta' : 'una fila'} para reordenar.`}
           </span>
           {seleccion.size > 0 && (
             <button
               onClick={eliminarSeleccionados}
               disabled={ocupado}
-              className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
             >
               {ocupado ? 'Eliminando...' : `🗑 Eliminar ${seleccion.size} seleccionado(s)`}
             </button>
           )}
+          {/* Vista: lista o mosaico (como se ve en la tienda). */}
+          <div className="ml-auto flex overflow-hidden rounded-lg border border-neutral-300 text-xs">
+            <button
+              onClick={() => setVista('lista')}
+              className={`px-3 py-1.5 ${vista === 'lista' ? 'bg-ink text-white' : 'bg-white hover:bg-neutral-100'}`}
+            >
+              ☰ Lista
+            </button>
+            <button
+              onClick={() => setVista('mosaico')}
+              className={`px-3 py-1.5 ${vista === 'mosaico' ? 'bg-ink text-white' : 'bg-white hover:bg-neutral-100'}`}
+            >
+              ▦ Mosaico
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="space-y-3">
+      {visibles.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
+          {catalog.products.length === 0 ? 'Aún no hay productos.' : `Sin resultados para «${busqueda.trim()}».`}
+        </p>
+      ) : vista === 'lista' ? (
+        <div className="space-y-3">
         {visibles.map((p, i) => {
           const precios = Object.values(p.sizePricing || {});
           const min = precios.length ? Math.min(...precios) : 0;
@@ -887,12 +908,79 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
             </div>
           );
         })}
-        {visibles.length === 0 && (
-          <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
-            {catalog.products.length === 0 ? 'Aún no hay productos.' : `Sin resultados para «${busqueda.trim()}».`}
-          </p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {visibles.map((p, i) => {
+            const precios = Object.values(p.sizePricing || {});
+            const min = precios.length ? Math.min(...precios) : 0;
+            const sel = seleccion.has(p.id);
+            const incompleto = estaIncompleto(p);
+            const pos = q ? catalog.products.findIndex((x) => x.id === p.id) : i;
+            return (
+              <div
+                key={p.id}
+                {...(!q ? orden.props(i) : {})}
+                className={`overflow-hidden rounded-xl border bg-white transition ${!q ? 'cursor-move' : ''} ${
+                  orden.arrastrando === i ? 'opacity-40' : ''
+                } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
+                  sel ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'
+                }`}
+                title={!q ? 'Arrastra para reordenar' : undefined}
+              >
+                <div className="relative aspect-square w-full bg-neutral-100">
+                  {p.baseImage ? (
+                    <img src={p.baseImage} alt={p.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-2xl text-neutral-300">🖼️</div>
+                  )}
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">{pos + 1}</span>
+                  <input
+                    type="checkbox"
+                    checked={sel}
+                    onChange={() => {}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (e.shiftKey) { e.preventDefault(); seleccionarRango(i); }
+                      else { toggleSel(p.id); }
+                      setUltimoIdx(i);
+                    }}
+                    className="absolute right-1.5 top-1.5 h-4 w-4 cursor-pointer"
+                    title="Seleccionar (Shift = rango)"
+                  />
+                  {(p.oculto || incompleto) && (
+                    <div className="absolute bottom-1.5 left-1.5 flex flex-wrap gap-1">
+                      {p.oculto && <span className="rounded-full bg-neutral-800/80 px-2 py-0.5 text-[10px] font-medium text-white">Oculto</span>}
+                      {incompleto && <span className="rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-medium text-white">Incompleto</span>}
+                    </div>
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="truncate text-sm font-medium" title={p.name}>{p.name}</p>
+                  <p className="truncate text-xs text-neutral-500">Desde {catalog.currencyFormatter.format(min)}</p>
+                  <div className="mt-2 flex flex-wrap gap-1 text-[11px]">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditando({ ...p, specs: Object.entries(p.specs || {}).map(([label, value]) => ({ label, value })) }); }}
+                      className="rounded border border-neutral-300 px-2 py-1 hover:border-ink"
+                    >
+                      Editar
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleOculto(p); }} className="rounded border border-neutral-300 px-2 py-1 hover:border-ink">
+                      {p.oculto ? 'Mostrar' : 'Ocultar'}
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); duplicar(p); }} className="rounded border border-neutral-300 px-2 py-1 hover:border-ink">
+                      Duplicar
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); eliminar(p); }} className="rounded border border-red-200 px-2 py-1 text-red-600 hover:bg-red-50">
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1178,7 +1266,9 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
           «Colores por tamaño» y «Foto propia por tamaño».
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {catalog.sizes.map((s) => {
+          {catalog.sizes
+            .filter((s) => !s.categoria || s.categoria === p.category || p.sizePricing?.[s.id] != null)
+            .map((s) => {
             const regular = p.sizePricing[s.id] ?? '';
             const oferta = p.offerPricing?.[s.id] ?? '';
             const ofertaInvalida = oferta !== '' && regular !== '' && Number(oferta) >= Number(regular);
@@ -1945,12 +2035,18 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
 // ============================================================
 function TamanosTab({ catalog, api, flash }) {
   const [lista, setLista] = useState(catalog.sizes);
-  const [nuevo, setNuevo] = useState({ id: '', label: '', dims: '' });
+  const [nuevo, setNuevo] = useState({ id: '', label: '', dims: '', categoria: '' });
   const [saving, setSaving] = useState(false);
+  const [filtro, setFiltro] = useState('todas'); // ver los tamaños de una categoría
 
-  function set(i, field, value) {
-    setLista((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)));
+  // Edición por id (no por índice) para que el filtro por categoría no desajuste.
+  function setById(id, field, value) {
+    setLista((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   }
+
+  // Un tamaño sin categoría ('') aplica a TODAS (ej. "Tamaño único"). Con
+  // categoría, solo aparece al editar productos de esa categoría.
+  const mostrados = lista.filter((s) => filtro === 'todas' || (s.categoria || '') === filtro);
 
   async function guardarTodos() {
     setSaving(true);
@@ -1976,40 +2072,85 @@ function TamanosTab({ catalog, api, flash }) {
   async function agregar() {
     if (!nuevo.id.trim() || !nuevo.label.trim()) return;
     const id = nuevo.id.trim().toLowerCase().replace(/\s+/g, '-');
-    const item = { id, label: nuevo.label.trim(), dims: nuevo.dims.trim() };
+    const item = { id, label: nuevo.label.trim(), dims: nuevo.dims.trim(), categoria: nuevo.categoria || '' };
     await api('POST', 'size', item);
     setLista((prev) => [...prev, item]);
-    setNuevo({ id: '', label: '', dims: '' });
+    setNuevo({ id: '', label: '', dims: '', categoria: '' });
     flash('Tamaño agregado.');
+  }
+
+  // Duplica un tamaño con id único, para partir de uno parecido.
+  async function duplicar(s) {
+    let base = `${s.id}-copia`;
+    let id = base;
+    let n = 2;
+    while (lista.some((x) => x.id === id)) { id = `${base}-${n}`; n += 1; }
+    const copia = { ...s, id, label: `${s.label} (copia)` };
+    await api('POST', 'size', copia);
+    setLista((prev) => [...prev, copia]);
+    flash('Tamaño duplicado. Cámbiale el nombre y las medidas.');
   }
 
   return (
     <div>
       <p className="mb-3 text-xs text-neutral-500">
-        Estos son los tamaños que eliges en "Precios por tamaño" al editar un producto. Cambiar el
-        nombre o las medidas aquí no afecta los precios que ya guardaste. Eliminar un tamaño hace
-        que los productos con precio en ese tamaño dejen de poder comprarse en él (el precio queda
-        guardado y vuelve a aparecer si agregas de nuevo un tamaño con el mismo ID).
+        Estos son los tamaños que eliges en "Precios por tamaño" al editar un producto. Asigna una
+        <strong> categoría</strong> a cada tamaño (Tarimas, Cabeceras, Personalizado…): así al editar
+        una tarima solo verás los tamaños de tarima, y al editar una cabecera los de cabecera. Un
+        tamaño en «Todas» aparece siempre (ej. «Tamaño único»). Cambiar el nombre o las medidas aquí
+        no afecta los precios que ya guardaste.
       </p>
+
+      <div className="mb-3 flex items-center gap-2 text-sm">
+        <span className="text-neutral-500">Ver:</span>
+        <select
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 outline-none focus:border-ink"
+        >
+          <option value="todas">Todas las categorías</option>
+          {catalog.categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.label}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="space-y-2">
-        {lista.map((s, i) => (
+        {mostrados.map((s) => (
           <div key={s.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
             <span className="w-24 shrink-0 font-mono text-xs text-neutral-400">{s.id}</span>
             <input
               value={s.label}
-              onChange={(e) => set(i, 'label', e.target.value)}
+              onChange={(e) => setById(s.id, 'label', e.target.value)}
               placeholder="Nombre visible"
-              className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+              className="min-w-[8rem] flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
             />
             <input
               value={s.dims}
-              onChange={(e) => set(i, 'dims', e.target.value)}
+              onChange={(e) => setById(s.id, 'dims', e.target.value)}
               placeholder="Medidas (ej. 135 x 190 cm)"
-              className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
+              className="min-w-[8rem] flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
             />
+            <select
+              value={s.categoria || ''}
+              onChange={(e) => setById(s.id, 'categoria', e.target.value)}
+              title="Categoría en la que aparece este tamaño"
+              className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-ink"
+            >
+              <option value="">Todas</option>
+              {catalog.categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+            <button onClick={() => duplicar(s)} className="text-xs text-sky-700 hover:underline">Duplicar</button>
             <button onClick={() => eliminar(s)} className="text-xs text-red-600 hover:underline">Eliminar</button>
           </div>
         ))}
+        {mostrados.length === 0 && (
+          <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-400">
+            No hay tamaños en esta categoría. Agrégalos abajo o duplica uno existente.
+          </p>
+        )}
       </div>
 
       <button onClick={guardarTodos} disabled={saving} className="mt-4 rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60">
@@ -2020,6 +2161,19 @@ function TamanosTab({ catalog, api, flash }) {
         <Field small label="ID" value={nuevo.id} onChange={(v) => setNuevo({ ...nuevo, id: v })} placeholder="ej. cal-king" />
         <Field small label="Nombre visible" value={nuevo.label} onChange={(v) => setNuevo({ ...nuevo, label: v })} placeholder="ej. Cal King" />
         <Field small label="Medidas" value={nuevo.dims} onChange={(v) => setNuevo({ ...nuevo, dims: v })} placeholder="ej. 180 x 200 cm" />
+        <label className="text-xs">
+          <span className="mb-1 block text-neutral-500">Categoría</span>
+          <select
+            value={nuevo.categoria}
+            onChange={(e) => setNuevo({ ...nuevo, categoria: e.target.value })}
+            className="rounded-lg border border-neutral-300 bg-white px-2 py-2 text-sm outline-none focus:border-ink"
+          >
+            <option value="">Todas</option>
+            {catalog.categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+        </label>
         <button onClick={agregar} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
           + Agregar tamaño
         </button>
