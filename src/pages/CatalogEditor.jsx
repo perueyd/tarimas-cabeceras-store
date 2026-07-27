@@ -1389,6 +1389,63 @@ function CategoriasTab({ catalog, api, flash }) {
 function ColoresTab({ catalog, api, flash, adminKey }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '', hex: '#8b8d91' });
   const [cargando, setCargando] = useState('');
+  // Selección múltiple para borrar varios colores de golpe (limpiar pruebas).
+  const [seleccion, setSeleccion] = useState(() => new Set());
+  const [ultimoIdx, setUltimoIdx] = useState(null); // para el rango con Shift
+  const todosSeleccionados = catalog.colors.length > 0 && seleccion.size === catalog.colors.length;
+
+  function toggleSel(id) {
+    setSeleccion((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  }
+  function seleccionarRango(hastaIdx) {
+    if (ultimoIdx === null) return toggleSel(catalog.colors[hastaIdx].id);
+    const a = Math.min(ultimoIdx, hastaIdx);
+    const b = Math.max(ultimoIdx, hastaIdx);
+    setSeleccion((prev) => {
+      const n = new Set(prev);
+      for (let i = a; i <= b; i += 1) n.add(catalog.colors[i].id);
+      return n;
+    });
+    return undefined;
+  }
+  // Clic sobre la tarjeta con Ctrl/Cmd (marca uno) o Shift (marca un rango).
+  function clickTarjeta(e, idx, id) {
+    if (e.shiftKey) {
+      e.preventDefault();
+      seleccionarRango(idx);
+      setUltimoIdx(idx);
+    } else if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      toggleSel(id);
+      setUltimoIdx(idx);
+    }
+  }
+  function seleccionarTodo() {
+    setSeleccion(todosSeleccionados ? new Set() : new Set(catalog.colors.map((c) => c.id)));
+  }
+  async function eliminarSeleccionados() {
+    const ids = catalog.colors.filter((c) => seleccion.has(c.id)).map((c) => c.id);
+    if (!ids.length) return;
+    if (!window.confirm(`¿Eliminar ${ids.length} color(es) seleccionado(s)? No se puede deshacer.`)) return;
+    setCargando('bulk');
+    try {
+      for (const id of ids) {
+        await api('DELETE', 'color', null, `&id=${encodeURIComponent(id)}`);
+      }
+      flash(`${ids.length} color(es) eliminado(s).`);
+      setSeleccion(new Set());
+      setUltimoIdx(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setCargando('');
+    }
+  }
 
   async function eliminar(c) {
     if (!window.confirm(`¿Eliminar el color "${c.label}"?`)) return;
@@ -1463,9 +1520,53 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
         subir una foto real de la tela: así el círculo de color en la tienda muestra la textura y
         el tono verdadero en vez de un color plano (mucho más fiel para el cliente).
       </p>
+
+      {/* Barra de selección múltiple: marcar todos / rango con Shift / borrar juntos. */}
+      {catalog.colors.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+            <input type="checkbox" checked={todosSeleccionados} onChange={seleccionarTodo} />
+            Seleccionar todo
+          </label>
+          <span className="text-xs text-neutral-400">
+            {seleccion.size > 0 ? `${seleccion.size} seleccionado(s)` : 'Marca las casillas, o usa Ctrl/Shift + clic'}
+          </span>
+          {seleccion.size > 0 && (
+            <button
+              onClick={eliminarSeleccionados}
+              disabled={cargando === 'bulk'}
+              className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
+            >
+              {cargando === 'bulk' ? 'Eliminando...' : `🗑 Eliminar ${seleccion.size} seleccionado(s)`}
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {catalog.colors.map((c) => (
-          <div key={c.id} className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-2">
+        {catalog.colors.map((c, i) => {
+          const sel = seleccion.has(c.id);
+          return (
+          <div
+            key={c.id}
+            onClick={(e) => clickTarjeta(e, i, c.id)}
+            className={`flex items-center gap-2 rounded-lg border p-2 transition ${
+              sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={sel}
+              onChange={() => {}}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (e.shiftKey) { e.preventDefault(); seleccionarRango(i); }
+                else { toggleSel(c.id); }
+                setUltimoIdx(i);
+              }}
+              title="Seleccionar (Shift = rango)"
+              className="shrink-0 cursor-pointer"
+            />
             {c.img ? (
               <span
                 className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-cover bg-center"
@@ -1494,7 +1595,8 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
             </div>
             <button onClick={() => eliminar(c)} className="shrink-0 text-xs text-red-600 hover:underline">✕</button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-neutral-300 p-3">
