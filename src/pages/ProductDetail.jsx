@@ -229,14 +229,27 @@ export default function ProductDetail() {
                     <button
                       key={v.id}
                       onClick={() => setOpciones((prev) => ({ ...prev, [g.id]: v.id }))}
-                      className={`rounded-lg border px-3 py-2 text-sm transition ${
-                        activo ? 'border-ink bg-ink text-white' : 'border-neutral-300 hover:border-neutral-500'
+                      className={`overflow-hidden rounded-lg border text-sm transition ${
+                        v.img
+                          ? `w-28 ${activo ? 'border-ink ring-2 ring-ink' : 'border-neutral-300 hover:border-neutral-500'}`
+                          : `px-3 py-2 ${activo ? 'border-ink bg-ink text-white' : 'border-neutral-300 hover:border-neutral-500'}`
                       }`}
                     >
-                      <span className="block font-medium">{v.label}</span>
-                      {extra > 0 && (
-                        <span className="block text-xs opacity-70">+{currencyFormatter.format(extra)}</span>
+                      {/* Si la opción tiene foto (tipo de botón, modelo de pata),
+                          se muestra para que el cliente vea de qué se trata. */}
+                      {v.img && (
+                        <img
+                          src={v.img}
+                          alt={v.label}
+                          className="aspect-square w-full object-cover"
+                        />
                       )}
+                      <span className={v.img ? `block px-2 py-1.5 ${activo ? 'bg-ink text-white' : ''}` : 'block'}>
+                        <span className="block font-medium">{v.label}</span>
+                        {extra > 0 && (
+                          <span className="block text-xs opacity-70">+{currencyFormatter.format(extra)}</span>
+                        )}
+                      </span>
                     </button>
                   );
                 })}

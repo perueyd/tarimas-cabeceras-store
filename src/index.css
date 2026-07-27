@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* La tienda está diseñada en claro. Sin esta línea, algunos navegadores
+   móviles (Samsung Internet, MIUI, Chrome con "forzar oscuro") invierten la
+   página por su cuenta; como usamos mix-blend-mode y mask-image para teñir los
+   colores, esa inversión forzada rompía el render y dejaba la pantalla en
+   blanco. color-scheme: light le dice al navegador "yo manejo mis colores". */
+:root {
+  color-scheme: light;
+}
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: #faf9f7;

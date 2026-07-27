@@ -118,6 +118,14 @@ export default function Landing() {
 
   // Aparición de secciones al hacer scroll.
   useEffect(() => {
+    const mostrarTodo = () =>
+      revealRefs.current.forEach((el) => el && el.classList.add('is-visible'));
+
+    // Navegador muy viejo sin IntersectionObserver: mostramos todo de una.
+    if (typeof IntersectionObserver === 'undefined') {
+      mostrarTodo();
+      return undefined;
+    }
     const observer = new IntersectionObserver(
       (entries) =>
         entries.forEach((entry) => {
@@ -126,7 +134,14 @@ export default function Landing() {
       { threshold: 0.15 }
     );
     revealRefs.current.forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
+    // Red de seguridad: si por algún motivo el observador no dispara en cierto
+    // celular, el contenido igual aparece a los 2 s en vez de quedar invisible
+    // (secciones en opacity:0). Así nunca se ve la "página en blanco".
+    const fallback = setTimeout(mostrarTodo, 2000);
+    return () => {
+      clearTimeout(fallback);
+      observer.disconnect();
+    };
   }, []);
 
   const addReveal = (el) => {

@@ -1,53 +1,98 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { PALETAS } from '../data/paletas.js';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
-function UploadButton({ adminKey, onUploaded, label = '📷 Subir' }) {
+function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = false, onBatch }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
+  const [progreso, setProgreso] = useState(''); // "2 / 5" al subir varias
+  // Vista previa del último archivo elegido: miniatura + nombre original, para
+  // que el dueño confirme QUÉ está subiendo antes de que termine.
+  const [preview, setPreview] = useState(null); // { url, name }
+
+  // Libera la miniatura local (objeto en memoria) al cambiarla o desmontar.
+  useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url); }, [preview]);
+
+  async function subirUno(file) {
+    const res = await fetch(
+      `/api/upload?filename=${encodeURIComponent(file.name)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${adminKey}` },
+        body: file,
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || 'No se pudo subir la foto.');
+    return data.url;
+  }
 
   async function onFile(e) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    if (file.size > 4 * 1024 * 1024) {
-      alert('La foto pesa más de 4 MB. Redúcela un poco (1200 px de ancho es suficiente) e intenta de nuevo.');
+    if (!files.length) return;
+    const grande = files.find((f) => f.size > 4 * 1024 * 1024);
+    if (grande) {
+      alert(`"${grande.name}" pesa más de 4 MB. Redúcela (1200 px de ancho es suficiente) e intenta de nuevo.`);
       return;
     }
     setBusy(true);
     try {
-      const res = await fetch(
-        `/api/upload?filename=${encodeURIComponent(file.name)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${adminKey}` },
-          body: file,
+      if (multiple && onBatch) {
+        // Varias a la vez: se suben una por una y se entregan juntas.
+        const subidos = [];
+        for (let i = 0; i < files.length; i++) {
+          setProgreso(`${i + 1} / ${files.length}`);
+          const url = await subirUno(files[i]);
+          subidos.push({ url, name: files[i].name });
         }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'No se pudo subir la foto.');
-      onUploaded(data.url);
+        await onBatch(subidos);
+        setProgreso('');
+      } else {
+        const file = files[0];
+        setPreview({ url: URL.createObjectURL(file), name: file.name });
+        const url = await subirUno(file);
+        onUploaded(url);
+      }
     } catch (err) {
       alert(err.message);
     } finally {
       setBusy(false);
+      setProgreso('');
     }
   }
 
   return (
-    <>
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFile} />
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple={multiple}
+        className="hidden"
+        onChange={onFile}
+      />
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
         className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium transition hover:border-ink disabled:opacity-60"
       >
-        {busy ? 'Subiendo...' : label}
+        {busy ? (progreso ? `Subiendo ${progreso}...` : 'Subiendo...') : label}
       </button>
-    </>
+      {/* Miniatura + nombre del archivo que se está subiendo (solo modo simple). */}
+      {!multiple && preview && (
+        <span className="inline-flex items-center gap-1 text-[11px] text-neutral-500">
+          <span
+            className="h-8 w-8 shrink-0 rounded border border-neutral-200 bg-cover bg-center"
+            style={{ backgroundImage: `url(${preview.url})` }}
+          />
+          <span className="max-w-[9rem] truncate" title={preview.name}>{preview.name}</span>
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -1054,24 +1099,51 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey }) {
 
               <div className="mt-2 space-y-2 pl-3">
                 {(g.valores || []).map((v, vi) => (
-                  <div key={v.id} className="flex items-center gap-2">
-                    <input
-                      value={v.label}
-                      onChange={(e) => setValor(gi, vi, 'label', e.target.value)}
-                      placeholder="Opción (ej. Con brazos)"
-                      className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
-                    />
-                    <label className="flex items-center gap-1 text-xs text-neutral-500">
-                      +S/
+                  <div key={v.id} className="rounded-lg border border-neutral-100 bg-neutral-50 p-2">
+                    <div className="flex items-center gap-2">
                       <input
-                        type="number"
-                        min="0"
-                        value={v.precioExtra ?? 0}
-                        onChange={(e) => setValor(gi, vi, 'precioExtra', Math.max(Number(e.target.value) || 0, 0))}
-                        className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+                        value={v.label}
+                        onChange={(e) => setValor(gi, vi, 'label', e.target.value)}
+                        placeholder="Opción (ej. Con brazos)"
+                        className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                       />
-                    </label>
-                    <button onClick={() => removeValor(gi, vi)} className="text-xs text-red-600">✕</button>
+                      <label className="flex items-center gap-1 text-xs text-neutral-500">
+                        +S/
+                        <input
+                          type="number"
+                          min="0"
+                          value={v.precioExtra ?? 0}
+                          onChange={(e) => setValor(gi, vi, 'precioExtra', Math.max(Number(e.target.value) || 0, 0))}
+                          className="w-20 rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+                        />
+                      </label>
+                      <button onClick={() => removeValor(gi, vi)} className="text-xs text-red-600">✕</button>
+                    </div>
+                    {/* Foto OPCIONAL de la opción: para mostrar el tipo de botón
+                        (capitoneado) o el modelo de pata. En "con/sin brazo" se
+                        puede dejar sin foto y funciona igual. */}
+                    <div className="mt-2 flex items-center gap-2 pl-1">
+                      {v.img && (
+                        <span
+                          className="h-10 w-10 shrink-0 rounded border border-neutral-200 bg-cover bg-center"
+                          style={{ backgroundImage: `url(${v.img})` }}
+                          title="Foto de esta opción"
+                        />
+                      )}
+                      <UploadButton
+                        adminKey={adminKey}
+                        onUploaded={(url) => setValor(gi, vi, 'img', url)}
+                        label={v.img ? '📷 Cambiar foto' : '📷 Foto (opcional)'}
+                      />
+                      {v.img && (
+                        <button
+                          onClick={() => setValor(gi, vi, 'img', '')}
+                          className="text-xs text-neutral-400 hover:text-neutral-600"
+                        >
+                          quitar
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1222,6 +1294,26 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
     await api('POST', 'color', actualizado);
     flash(url ? `Muestra de "${c.label}" guardada.` : `Muestra de "${c.label}" quitada.`);
   }
+  // Sube VARIAS fotos de tela de golpe y crea un color por cada una. El nombre
+  // sale del archivo (ej. "velvet-azul.jpg" -> "Velvet azul") y se puede editar
+  // después. Ideal para cargar una carta entera de fotos propias sin ir una
+  // por una.
+  async function subirVariasTelas(subidos) {
+    const usados = new Set(catalog.colors.map((c) => c.id));
+    let creados = 0;
+    for (const { url, name } of subidos) {
+      const base = name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+      const label = base ? base.charAt(0).toUpperCase() + base.slice(1) : 'Tela';
+      let id = base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!id) id = `tela-${Date.now().toString(36)}`;
+      while (usados.has(id)) id = `${id}-2`;
+      usados.add(id);
+      await api('POST', 'color', { id, label, hex: '#8b8d91', img: url });
+      creados += 1;
+    }
+    flash(`${creados} tela(s) subida(s) como color. Revisa los nombres y ajusta lo que quieras.`);
+  }
+
   // Carga una carta de tela completa. Solo agrega los que falten: si ya tienes
   // un color con ese id, no se toca (para no pisar tonos que ya ajustaste).
   async function cargarPaleta(paleta) {
@@ -1301,6 +1393,22 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
         <button onClick={agregar} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
           + Agregar color
         </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-neutral-300 p-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-neutral-700">Subir varias telas de golpe</p>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            Elige varias fotos a la vez y se crea un color por cada una. El nombre sale del archivo
+            (ej. «velvet-azul.jpg» → «Velvet azul»); luego lo puedes editar.
+          </p>
+        </div>
+        <UploadButton
+          adminKey={adminKey}
+          multiple
+          onBatch={subirVariasTelas}
+          label="📷 Subir varias telas"
+        />
       </div>
 
       <div className="mt-5 rounded-lg bg-neutral-50 p-3">
