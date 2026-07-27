@@ -26,7 +26,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Faltan datos del pedido (metodo, nombre, telefono).' });
     }
     // SEGURIDAD: el monto se recalcula desde el catálogo ACTUAL; se ignora el del navegador.
-    const { products } = await getCatalog();
+    const catalog = await getCatalog();
+    const { products } = catalog;
     const priced = priceOrder(products, body.items);
     if (!priced) {
       return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
       items: priced.items,
     };
     try {
-      const saved = await saveOrder(order);
+      const saved = await saveOrder(order, { ownerEmail: s(catalog.storeConfig?.ownerEmail, 120) });
       if (promoCode) registerPromoUsage(promoCode).catch(() => {});
       // Ya compró: quita su carrito de la lista de "abandonados".
       if (hasDB && telefono) redisCmd(['HDEL', 'carritos:abandonados', telefono]).catch(() => {});

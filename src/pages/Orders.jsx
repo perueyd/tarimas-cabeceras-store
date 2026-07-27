@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { Stars } from './ProductDetail.jsx';
 import CatalogEditor from './CatalogEditor.jsx';
@@ -114,6 +114,8 @@ export default function Orders() {
   const [suscriptores, setSuscriptores] = useState([]);
   const [encuestas, setEncuestas] = useState([]);
   const [carritos, setCarritos] = useState([]);
+  const [avisoNuevos, setAvisoNuevos] = useState(0); // pedidos nuevos detectados en vivo
+  const conocidosRef = useRef(null); // Set de códigos ya vistos (null = sin inicializar)
   const [tab, setTab] = useState('resumen');
   const [filtro, setFiltro] = useState('todos');
   const [error, setError] = useState('');
@@ -163,6 +165,61 @@ export default function Orders() {
     if (key) cargar(key);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Guarda los códigos ya vistos la primera vez que cargan los pedidos.
+  useEffect(() => {
+    if (orders && conocidosRef.current === null) {
+      conocidosRef.current = new Set(orders.map((o) => o.code));
+    }
+  }, [orders]);
+
+  // Aviso de pedido nuevo EN VIVO mientras el panel está abierto: revisa cada
+  // 60 s y, si entró un pedido, suena un pitido, muestra un aviso y (si el
+  // navegador lo permite) una notificación del sistema. Ideal para tener el
+  // panel abierto en la tienda.
+  useEffect(() => {
+    if (!key) return undefined;
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+    function pitido() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.value = 0.08;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.18);
+      } catch { /* algunos navegadores bloquean el audio sin interacción */ }
+    }
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch('/api/orders', { headers: { Authorization: `Bearer ${key}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const lista = data.orders || [];
+        if (!conocidosRef.current) {
+          conocidosRef.current = new Set(lista.map((o) => o.code));
+          return;
+        }
+        const nuevos = lista.filter((o) => !conocidosRef.current.has(o.code));
+        if (nuevos.length) {
+          nuevos.forEach((o) => conocidosRef.current.add(o.code));
+          setOrders(lista);
+          setAvisoNuevos((n) => n + nuevos.length);
+          pitido();
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Nuevo pedido 🛒', { body: `${nuevos.length} pedido(s) nuevo(s) en tu tienda.` });
+          }
+        }
+      } catch { /* reintenta en el siguiente ciclo */ }
+    }, 60000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   async function actualizarPedido(o, cambios) {
     try {
@@ -319,10 +376,20 @@ export default function Orders() {
         <StatCard label="Calificación" value={`★ ${promedioEstrellas}`} sub={`${reviews.length} reseña${reviews.length !== 1 ? 's' : ''}`} />
       </div>
 
+      {avisoNuevos > 0 && (
+        <button
+          onClick={() => { setTab('pedidos'); setAvisoNuevos(0); }}
+          className="mb-4 flex w-full items-center justify-between gap-3 rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-left text-sm text-green-900 hover:bg-green-100"
+        >
+          <span>🛒 <strong>{avisoNuevos} pedido{avisoNuevos !== 1 ? 's' : ''} nuevo{avisoNuevos !== 1 ? 's' : ''}</strong> desde que abriste el panel. Toca para verlos.</span>
+          <span className="shrink-0 text-xs text-green-700">✕</span>
+        </button>
+      )}
+
       <div className="mb-6 flex flex-wrap gap-2">
         {[
           { id: 'resumen', label: 'Resumen' },
-          { id: 'pedidos', label: `Pedidos (${orders.length})` },
+          { id: 'pedidos', label: `Pedidos (${orders.length})${porVerificar.length ? ` · 🔴 ${porVerificar.length}` : ''}` },
           { id: 'resenas', label: `Reseñas (${reviews.length})` },
           { id: 'carritos', label: `🛒 Carritos${carritos.length ? ` (${carritos.length})` : ''}` },
           { id: 'reclamos', label: `📋 Reclamos${reclamosPendientes.length ? ` (${reclamosPendientes.length})` : ''}` },

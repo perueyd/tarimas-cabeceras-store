@@ -317,7 +317,21 @@ function enviarCorreo(o, items) {
       (items ? 'Productos:\n' + items + '\n\n' : '') +
       'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nE|D Espacios y Diseño';
   }
-  MailApp.sendEmail(o.email, asunto, cuerpo);
+  if (o.email) MailApp.sendEmail(o.email, asunto, cuerpo);
+
+  // AVISO AL DUEÑO: si es un pedido nuevo y configuraste tu correo en el panel
+  // (Editar página → Datos de la tienda → "Tu correo"), te llega un correo a ti.
+  if (o.evento === 'creado' && o.ownerEmail) {
+    MailApp.sendEmail(
+      o.ownerEmail,
+      '🛒 Nuevo pedido ' + o.code + ' — ' + monto,
+      'Entró un pedido nuevo:\n\n' +
+        'Código: ' + o.code + '\nCliente: ' + o.nombre + '\nTeléfono: ' + (o.telefono || '-') + '\n' +
+        'Monto: ' + monto + '\nMétodo: ' + (o.metodo || '-') + '\nEntrega: ' + (o.entrega || '-') + '\n\n' +
+        (items ? 'Productos:\n' + items + '\n\n' : '') +
+        'Míralo en tu panel: https://tarimas-cabeceras-store.vercel.app/pedidos'
+    );
+  }
 }
 ```
 
@@ -336,6 +350,13 @@ confirmación al cliente (si dejó su email); y cada vez que tú cambias el
 estado en tu panel `/pedidos`, se actualiza esa fila en la hoja Y se le
 envía un correo automático avisando el nuevo estado. Los correos salen desde
 tu propia cuenta de Gmail (gratis, hasta ~100 correos/día).
+
+**Aviso de pedido nuevo a TI:** además, en el panel → Editar página → Datos de
+la tienda, llena **"Tu correo (aviso de pedido nuevo)"**. Con eso, cada pedido
+nuevo te llega también a tu correo (lo envía el mismo Apps Script de arriba —
+por eso el script incluye el bloque `if (o.evento === 'creado' && o.ownerEmail)`).
+Aparte de esto, **mientras tengas el panel `/pedidos` abierto**, suena un pitido
+y salta un aviso apenas entra un pedido, sin necesidad de configurar nada.
 
 **Si "Autorizar acceso" no abre ninguna ventana** (síntoma: haces clic y no
 pasa nada) — casi siempre es el bloqueador de ventanas emergentes de Chrome:

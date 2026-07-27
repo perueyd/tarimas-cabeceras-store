@@ -22,6 +22,9 @@ export const storeConfig = {
   // Deja vacío para no mostrar nada.
   avisoColor: 'El color de la foto es referencial. El tono real puede variar según tu pantalla, la iluminación y el lote de la tela.',
   whatsapp: '51951278010',
+  // Correo del dueño para recibir aviso de cada pedido nuevo. Se envía a través
+  // del mismo Apps Script de Google (ver GUIA-EDICION.md). Vacío = sin aviso.
+  ownerEmail: '',
   // Número que recibe Yape/Plin directo (se muestra al cliente en el checkout).
   yape: '951 278 010',
   yapeTitular: 'E|D Espacios y Diseño',

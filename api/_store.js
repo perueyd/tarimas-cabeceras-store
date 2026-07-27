@@ -59,7 +59,9 @@ export async function notifySheet(payload) {
   }
 }
 
-export async function saveOrder(order) {
+// `extra` son datos que viajan solo en la notificación (no se guardan en el
+// pedido), p. ej. el correo del dueño para que el Apps Script le avise.
+export async function saveOrder(order, extra = {}) {
   let saved = false;
   if (hasDB) {
     try {
@@ -71,7 +73,7 @@ export async function saveOrder(order) {
   } else {
     console.log('PEDIDO (BD no configurada):', JSON.stringify(order));
   }
-  await notifySheet({ evento: 'creado', ...order });
+  await notifySheet({ evento: 'creado', ...order, ...extra });
   return saved;
 }
 
