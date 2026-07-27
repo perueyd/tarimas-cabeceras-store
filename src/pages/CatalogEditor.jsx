@@ -557,10 +557,25 @@ const PRODUCTO_VACIO = {
   sizeDims: {},
   colorsBySize: {},
   opciones: [],
+  oculto: false,
 };
 
 function ProductosTab({ catalog, api, flash, adminKey }) {
   const [editando, setEditando] = useState(null); // producto en edición, o null
+  const [busqueda, setBusqueda] = useState('');
+  const [seleccion, setSeleccion] = useState(() => new Set());
+  const [ultimoIdx, setUltimoIdx] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  // Filtro por nombre o categoría (sin tildes/mayúsculas).
+  const normaliza = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const q = normaliza(busqueda.trim());
+  const visibles = catalog.products.filter((p) => {
+    if (!q) return true;
+    const catLabel = catalog.categories.find((c) => c.id === p.category)?.label || p.category;
+    return normaliza(`${p.name} ${catLabel}`).includes(q);
+  });
+  const todosSeleccionados = visibles.length > 0 && visibles.every((p) => seleccion.has(p.id));
 
   async function guardar(producto) {
     const specsObj = {};
@@ -579,6 +594,78 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
     flash(`Producto "${p.name}" eliminado.`);
   }
 
+  // Muestra u oculta un producto de la tienda sin borrarlo (borrador).
+  async function toggleOculto(p) {
+    await api('POST', 'product', { ...p, oculto: !p.oculto });
+    flash(!p.oculto ? `"${p.name}" ocultado (borrador).` : `"${p.name}" visible en la tienda.`);
+  }
+
+  // Duplica un producto como punto de partida (id nuevo único, entra oculto
+  // para revisarlo antes de publicarlo).
+  function duplicar(p) {
+    let base = `${p.id}-copia`;
+    let id = base;
+    let n = 2;
+    while (catalog.products.some((x) => x.id === id)) { id = `${base}-${n}`; n += 1; }
+    setEditando({
+      ...p,
+      id,
+      name: `${p.name} (copia)`,
+      oculto: true,
+      specs: Object.entries(p.specs || {}).map(([label, value]) => ({ label, value })),
+    });
+  }
+
+  // --- Selección múltiple (igual que en Colores) ---
+  function toggleSel(id) {
+    setSeleccion((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return s;
+    });
+  }
+  function seleccionarRango(hastaIdx) {
+    if (ultimoIdx === null) return toggleSel(visibles[hastaIdx].id);
+    const a = Math.min(ultimoIdx, hastaIdx);
+    const b = Math.max(ultimoIdx, hastaIdx);
+    setSeleccion((prev) => {
+      const s = new Set(prev);
+      for (let i = a; i <= b; i += 1) s.add(visibles[i].id);
+      return s;
+    });
+    return undefined;
+  }
+  function clickFila(e, idx, id) {
+    if (e.shiftKey) { e.preventDefault(); seleccionarRango(idx); setUltimoIdx(idx); }
+    else if (e.ctrlKey || e.metaKey) { e.preventDefault(); toggleSel(id); setUltimoIdx(idx); }
+  }
+  function seleccionarTodo() {
+    setSeleccion(todosSeleccionados ? new Set() : new Set(visibles.map((p) => p.id)));
+  }
+  async function eliminarSeleccionados() {
+    const ids = visibles.filter((p) => seleccion.has(p.id)).map((p) => p.id);
+    if (!ids.length) return;
+    if (!window.confirm(`¿Eliminar ${ids.length} producto(s)? No se puede deshacer.`)) return;
+    setOcupado(true);
+    try {
+      for (const id of ids) await api('DELETE', 'product', null, `&id=${encodeURIComponent(id)}`);
+      flash(`${ids.length} producto(s) eliminado(s).`);
+      setSeleccion(new Set());
+      setUltimoIdx(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  // Un producto "incompleto" no debería publicarse: sin precio, sin color o sin foto.
+  function estaIncompleto(p) {
+    return Object.keys(p.sizePricing || {}).length === 0
+      || (p.availableColors || []).length === 0
+      || !p.baseImage;
+  }
+
   if (editando) {
     return (
       <ProductForm
@@ -594,46 +681,123 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
 
   return (
     <div>
-      <button
-        onClick={() => setEditando({ ...PRODUCTO_VACIO, specs: [], availableColors: [] })}
-        className="mb-4 rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
-      >
-        + Agregar producto
-      </button>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setEditando({ ...PRODUCTO_VACIO, specs: [], availableColors: [] })}
+          className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+        >
+          + Agregar producto
+        </button>
+        <div className="relative min-w-[12rem] flex-1">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔎</span>
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar producto..."
+            className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-ink"
+          />
+        </div>
+      </div>
+
+      {catalog.products.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+            <input type="checkbox" checked={todosSeleccionados} onChange={seleccionarTodo} />
+            Seleccionar todo
+          </label>
+          <span className="text-xs text-neutral-400">
+            {seleccion.size > 0 ? `${seleccion.size} seleccionado(s)` : 'Marca las casillas, o usa Ctrl/Shift + clic'}
+          </span>
+          {seleccion.size > 0 && (
+            <button
+              onClick={eliminarSeleccionados}
+              disabled={ocupado}
+              className="ml-auto rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
+            >
+              {ocupado ? 'Eliminando...' : `🗑 Eliminar ${seleccion.size} seleccionado(s)`}
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
-        {catalog.products.map((p) => {
+        {visibles.map((p, i) => {
           const precios = Object.values(p.sizePricing || {});
           const min = precios.length ? Math.min(...precios) : 0;
+          const sel = seleccion.has(p.id);
+          const incompleto = estaIncompleto(p);
           return (
-            <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-4">
-              <div>
-                <p className="text-sm font-medium">{p.name}</p>
-                <p className="text-xs text-neutral-500">
-                  {catalog.categories.find((c) => c.id === p.category)?.label || p.category} · Desde {catalog.currencyFormatter.format(min)}
-                </p>
+            <div
+              key={p.id}
+              onClick={(e) => clickFila(e, i, p.id)}
+              className={`flex select-none items-center justify-between gap-3 rounded-lg border p-4 transition ${
+                sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={sel}
+                  onChange={() => {}}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (e.shiftKey) { e.preventDefault(); seleccionarRango(i); }
+                    else { toggleSel(p.id); }
+                    setUltimoIdx(i);
+                  }}
+                  className="shrink-0 cursor-pointer"
+                  title="Seleccionar (Shift = rango)"
+                />
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    <span className="truncate">{p.name}</span>
+                    {p.oculto && <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-medium text-neutral-600">Oculto</span>}
+                    {incompleto && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Incompleto</span>}
+                  </p>
+                  <p className="truncate text-xs text-neutral-500">
+                    {catalog.categories.find((c) => c.id === p.category)?.label || p.category} · Desde {catalog.currencyFormatter.format(min)}
+                  </p>
+                </div>
               </div>
-              <div className="flex shrink-0 gap-2 text-xs">
+              <div className="flex shrink-0 flex-wrap justify-end gap-2 text-xs">
+                <a
+                  href={`/producto/${p.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink"
+                >
+                  Ver
+                </a>
                 <button
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setEditando({
                       ...p,
                       specs: Object.entries(p.specs || {}).map(([label, value]) => ({ label, value })),
-                    })
-                  }
+                    });
+                  }}
                   className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink"
                 >
                   Editar
                 </button>
-                <button onClick={() => eliminar(p)} className="rounded-lg border border-red-200 px-3 py-1.5 text-red-600 hover:bg-red-50">
+                <button onClick={(e) => { e.stopPropagation(); duplicar(p); }} className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink">
+                  Duplicar
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); toggleOculto(p); }} className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink">
+                  {p.oculto ? 'Mostrar' : 'Ocultar'}
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); eliminar(p); }} className="rounded-lg border border-red-200 px-3 py-1.5 text-red-600 hover:bg-red-50">
                   Eliminar
                 </button>
               </div>
             </div>
           );
         })}
-        {catalog.products.length === 0 && (
+        {visibles.length === 0 && (
           <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
-            Aún no hay productos.
+            {catalog.products.length === 0 ? 'Aún no hay productos.' : `Sin resultados para «${busqueda.trim()}».`}
           </p>
         )}
       </div>
@@ -1550,7 +1714,7 @@ function ColoresTab({ catalog, api, flash, adminKey }) {
           <div
             key={c.id}
             onClick={(e) => clickTarjeta(e, i, c.id)}
-            className={`flex items-center gap-2 rounded-lg border p-2 transition ${
+            className={`flex select-none items-center gap-2 rounded-lg border p-2 transition ${
               sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
             }`}
           >

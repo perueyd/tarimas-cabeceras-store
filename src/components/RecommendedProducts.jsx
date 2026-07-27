@@ -8,7 +8,7 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 export default function RecommendedProducts({ excludeIds = [], excludeCategories = [], title = 'También te puede interesar', limit = 3 }) {
   const { products } = useCatalog();
 
-  const disponibles = products.filter((p) => !excludeIds.includes(p.id));
+  const disponibles = products.filter((p) => !excludeIds.includes(p.id) && !p.oculto);
   const otrasCategorias = disponibles.filter((p) => !excludeCategories.includes(p.category));
   const pool = otrasCategorias.length > 0 ? otrasCategorias : disponibles;
 

@@ -128,6 +128,11 @@ export default function ProductDetail() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
+      {product.oculto && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          👁️ Vista previa — este producto está <strong>oculto</strong> y no aparece en la tienda. Para publicarlo, ponlo en «Mostrar» desde el panel.
+        </div>
+      )}
       <Link to="/" className="text-sm text-neutral-500 hover:text-ink">← Volver al catálogo</Link>
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">

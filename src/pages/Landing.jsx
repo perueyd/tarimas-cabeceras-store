@@ -48,7 +48,9 @@ const LANDING_DEFAULTS = {
 const GRID_COLS_SM = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
 
 export default function Landing() {
-  const { categories, colors, storeConfig, products, currencyFormatter } = useCatalog();
+  const { categories, colors, storeConfig, products: todosProductos, currencyFormatter } = useCatalog();
+  // La portada solo muestra productos visibles (los "ocultos" son borradores).
+  const products = todosProductos.filter((p) => !p.oculto);
   const landing = { ...LANDING_DEFAULTS, ...(storeConfig.landing || {}) };
   const [heroColor, setHeroColor] = useState(() => colors.find((c) => c.id === 'azul') || colors[0]);
   // El hero avisa si el mueble mostrado combina dos telas, para invitar a

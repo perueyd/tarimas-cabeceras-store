@@ -22,6 +22,7 @@ export default function Home() {
   const normaliza = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const q = normaliza(busqueda.trim());
   const visibleProducts = products.filter((p) => {
+    if (p.oculto) return false; // borradores no se muestran a los clientes
     const enCategoria = tab === 'todos' || p.category === tab;
     if (!q) return enCategoria;
     const texto = normaliza(`${p.name} ${p.shortDescription || ''}`);
