@@ -197,6 +197,18 @@ export default function Orders() {
     } catch { /* no-op */ }
   }
 
+  async function aprobarResena(r) {
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({ productId: r.productId, id: r.id, aprobar: true }),
+      });
+      const data = await res.json();
+      if (res.ok) setReviews(reviews.map((x) => (x.id === r.id ? data.review : x)));
+    } catch { /* no-op */ }
+  }
+
   async function borrarCarrito(c) {
     try {
       const res = await fetch(`/api/carritos?telefono=${encodeURIComponent(c.telefono)}`, {
@@ -392,8 +404,14 @@ export default function Orders() {
             <div key={r.id} className="rounded-xl border border-neutral-200 bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium">
-                    {r.nombre} {r.editado && <span className="text-xs font-normal text-neutral-400">(editada)</span>}
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    {r.nombre}
+                    {r.editado && <span className="text-xs font-normal text-neutral-400">(editada)</span>}
+                    {r.aprobada === false && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                        Pendiente de aprobar
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-neutral-500">
                     {getProductById(r.productId)?.name || r.productId} · {new Date(r.fecha).toLocaleDateString('es-PE')}
@@ -401,6 +419,11 @@ export default function Orders() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Stars n={r.estrellas} size="text-sm" />
+                  {r.aprobada === false && (
+                    <button onClick={() => aprobarResena(r)} className="text-xs font-medium text-green-700 hover:underline">
+                      Aprobar
+                    </button>
+                  )}
                   <button
                     onClick={() => setEditando(editando?.id === r.id ? null : { id: r.id, estrellas: r.estrellas, comentario: r.comentario })}
                     className="text-xs text-sky-700 hover:underline"
@@ -412,6 +435,11 @@ export default function Orders() {
                   </button>
                 </div>
               </div>
+              {r.foto && (
+                <a href={r.foto} target="_blank" rel="noreferrer" className="mt-2 inline-block">
+                  <img src={r.foto} alt="Foto del cliente" className="h-24 w-24 rounded-lg border border-neutral-200 object-cover" />
+                </a>
+              )}
 
               {editando?.id === r.id ? (
                 <div className="mt-3 rounded-lg bg-neutral-50 p-3">

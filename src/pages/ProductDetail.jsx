@@ -397,9 +397,36 @@ export function Stars({ n, size = 'text-base' }) {
 // Reseñas del producto: promedio, lista de comentarios y formulario con estrellas.
 function ReviewsSection({ productId }) {
   const [reviews, setReviews] = useState([]);
-  const [form, setForm] = useState({ nombre: '', estrellas: 5, comentario: '' });
+  const [form, setForm] = useState({ nombre: '', estrellas: 5, comentario: '', foto: '' });
   const [msg, setMsg] = useState('');
   const [sending, setSending] = useState(false);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+
+  async function subirFoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setMsg('La foto pesa más de 4 MB. Elige una más liviana.');
+      return;
+    }
+    setSubiendoFoto(true);
+    setMsg('');
+    try {
+      const res = await fetch(`/api/upload-resena?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: file,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'No se pudo subir la foto.');
+      setForm((f) => ({ ...f, foto: data.url }));
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/reviews?product=${encodeURIComponent(productId)}`)
@@ -428,9 +455,16 @@ function ReviewsSection({ productId }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'No se pudo enviar tu reseña.');
-      setReviews([data.review, ...reviews]);
-      setForm({ nombre: '', estrellas: 5, comentario: '' });
-      setMsg(data.saved ? '¡Gracias por tu opinión! ⭐' : 'Gracias — tu opinión se registró y aparecerá pronto.');
+      // Si mandó foto, la reseña queda pendiente de aprobación: no se agrega a
+      // la lista visible todavía.
+      if (!form.foto) setReviews([data.review, ...reviews]);
+      const teniaFoto = Boolean(form.foto);
+      setForm({ nombre: '', estrellas: 5, comentario: '', foto: '' });
+      setMsg(
+        teniaFoto
+          ? '¡Gracias! Tu opinión con foto se publicará cuando la revisemos. ⭐'
+          : data.saved ? '¡Gracias por tu opinión! ⭐' : 'Gracias — tu opinión se registró y aparecerá pronto.'
+      );
     } catch (err) {
       setMsg(err.message);
     } finally {
@@ -465,6 +499,11 @@ function ReviewsSection({ productId }) {
                 <Stars n={r.estrellas} size="text-sm" />
               </div>
               <p className="mt-2 text-sm text-neutral-600">{r.comentario}</p>
+              {r.foto && (
+                <a href={r.foto} target="_blank" rel="noreferrer" className="mt-2 inline-block">
+                  <img src={r.foto} alt="Foto del cliente" className="h-24 w-24 rounded-lg border border-neutral-200 object-cover" />
+                </a>
+              )}
               <p className="mt-2 text-xs text-neutral-400">{new Date(r.fecha).toLocaleDateString('es-PE')}</p>
             </div>
           ))}
@@ -504,6 +543,26 @@ function ReviewsSection({ productId }) {
             rows={4}
             className="mt-3 w-full resize-none rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
           />
+          {/* Foto opcional del mueble instalado. Se revisa antes de publicarse. */}
+          <div className="mt-3">
+            {form.foto ? (
+              <div className="flex items-center gap-2">
+                <img src={form.foto} alt="" className="h-14 w-14 rounded-lg border border-neutral-200 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, foto: '' })}
+                  className="text-xs text-neutral-500 hover:text-neutral-700"
+                >
+                  Quitar foto
+                </button>
+              </div>
+            ) : (
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs text-neutral-500 hover:text-neutral-700">
+                <span className="rounded-lg border border-neutral-300 px-3 py-1.5">📷 {subiendoFoto ? 'Subiendo...' : 'Agregar foto (opcional)'}</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={subirFoto} disabled={subiendoFoto} />
+              </label>
+            )}
+          </div>
           {msg && <p className="mt-2 text-xs text-neutral-500">{msg}</p>}
           <button
             disabled={sending}

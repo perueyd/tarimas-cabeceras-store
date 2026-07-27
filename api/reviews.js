@@ -25,7 +25,11 @@ export default async function handler(req, res) {
     }
     if (!hasDB) return res.status(200).json({ reviews: [] });
     const data = await redisCmd(['LRANGE', `reviews:${productId}`, '0', '99']);
-    return res.status(200).json({ reviews: parseAll(data) });
+    // En público solo se muestran las aprobadas. Las de solo texto no llevan el
+    // campo (aprobada === undefined) y siguen siendo visibles; las de foto solo
+    // salen cuando el dueño las aprueba (aprobada === true).
+    const visibles = parseAll(data).filter((r) => r.aprobada !== false);
+    return res.status(200).json({ reviews: visibles });
   }
 
   if (req.method === 'POST') {
@@ -41,12 +45,21 @@ export default async function handler(req, res) {
     if (!products.some((p) => p.id === productId) || !nombre || !comentario) {
       return res.status(400).json({ error: 'Completa tu nombre y comentario.' });
     }
+    // Foto opcional: solo se acepta una URL de NUESTRO almacén (Vercel Blob),
+    // subida antes por /api/upload-resena. Cualquier otra URL se descarta.
+    const fotoInput = s(body.foto, 300).trim();
+    const foto = /^https:\/\/[a-z0-9.-]*\.public\.blob\.vercel-storage\.com\//i.test(fotoInput) ? fotoInput : '';
+    // Las reseñas con foto quedan PENDIENTES de aprobación del dueño (para que
+    // una imagen indebida no aparezca sola). Las de solo texto siguen saliendo
+    // al instante, como hasta ahora.
     const review = {
       id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       productId,
       nombre,
       estrellas,
       comentario,
+      foto: foto || undefined,
+      aprobada: foto ? false : true,
       fecha: new Date().toISOString(),
     };
     if (!hasDB) {
@@ -59,18 +72,20 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, saved: true, review });
   }
 
-  // PUT: el dueño edita una reseña (estrellas y/o comentario).
+  // PUT: el dueño edita una reseña (estrellas y/o comentario) o la APRUEBA.
   if (req.method === 'PUT') {
     const auth = await checkAdminAuth(req);
     if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const productId = s(req.body?.productId, 60);
     const id = s(req.body?.id, 40);
+    const soloAprobar = req.body?.aprobar === true;
     const comentario = s(req.body?.comentario, 500).trim();
     const estrellas = Math.min(Math.max(parseInt(req.body?.estrellas, 10) || 0, 1), 5);
-    if (!productId || !id || !comentario) {
+    if (!productId || !id || (!soloAprobar && !comentario)) {
       return res.status(400).json({ error: 'Datos inválidos.' });
     }
+    // Aplica el cambio en la lista del producto y en la lista global.
     async function editarEnLista(listKey) {
       const data = await redisCmd(['LRANGE', listKey, '0', '499']);
       const list = data.result || [];
@@ -78,7 +93,9 @@ export default async function handler(req, res) {
         try {
           const r = JSON.parse(list[i]);
           if (r.id === id) {
-            const actualizada = { ...r, estrellas, comentario, editado: true };
+            const actualizada = soloAprobar
+              ? { ...r, aprobada: true }
+              : { ...r, estrellas, comentario, editado: true };
             await redisCmd(['LSET', listKey, String(i), JSON.stringify(actualizada)]);
             return actualizada;
           }
