@@ -90,7 +90,23 @@ function recorte(url) {
   };
 }
 
-export default function ProductImage({ baseImage, colorHex, colorHex2, onDosTelas, alt, className = '', tintable = true }) {
+export default function ProductImage({
+  baseImage,
+  colorHex,
+  colorHex2,
+  onDosTelas,
+  alt,
+  className = '',
+  tintable = true,
+  // Controla si se PINTA el color encima. Se mantiene separado de `tintable`
+  // (que dice si esta foto puede pintarse) para poder mostrar la foto tal
+  // cual el dueño la subió al entrar a la página, y recién aplicar el color
+  // cuando el cliente elige uno — así la primera impresión nunca sale "plomo"
+  // por culpa del filtro de desaturado. El análisis (detección de dos telas)
+  // sigue corriendo igual mientras tanto, para que el segundo selector de
+  // color aparezca a tiempo.
+  mostrarColor = true,
+}) {
   const analisis = useAnalisis(baseImage, tintable);
 
   // Avisa a la página del producto si esta foto tiene dos telas, para que
@@ -111,7 +127,7 @@ export default function ProductImage({ baseImage, colorHex, colorHex2, onDosTela
     );
   }
 
-  if (!tintable) {
+  if (!tintable || !mostrarColor) {
     return (
       <div className={`relative overflow-hidden bg-neutral-100 ${className}`}>
         <img src={baseImage} alt={alt} className="absolute inset-0 h-full w-full object-contain" />

@@ -20,6 +20,7 @@ export default function ProductZoomModal({
   setDosTelas,
   aviso,
   productName,
+  mostrarColor = true,
 }) {
   // Cerrar con la tecla Escape y bloquear el scroll del fondo mientras está abierto.
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function ProductZoomModal({
             alt={productName}
             className="aspect-square w-full rounded-xl"
             tintable={img.tintable}
+            mostrarColor={mostrarColor}
           />
 
           {/* Cuadro grande del color/tela + selector */}

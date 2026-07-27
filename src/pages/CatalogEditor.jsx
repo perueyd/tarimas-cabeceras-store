@@ -155,6 +155,58 @@ function useReordenar(ids, guardar) {
   return { arrastrando, encima, props };
 }
 
+// Como useReordenar, pero para VARIAS listas independientes a la vez, cada una
+// identificada por un "scope" (ej. una por cada grupo de opciones del
+// producto). Hace falta porque no se puede llamar useReordenar una vez POR
+// grupo dentro de un .map() — el número de grupos cambia, y eso rompe las
+// reglas de los Hooks. Con este, un solo par de useState sirve para todas las
+// listas arrastrables del formulario, sin importar cuántas haya.
+function useReordenarScopes() {
+  const [arrastre, setArrastre] = useState(null); // { scope, from }
+  const [encima, setEncima] = useState(null); // { scope, index }
+
+  function limpiar() {
+    setArrastre(null);
+    setEncima(null);
+  }
+  function zoneProps(scope, index, onReorder) {
+    return {
+      onDragOver: (e) => {
+        e.preventDefault();
+        if (!encima || encima.scope !== scope || encima.index !== index) setEncima({ scope, index });
+      },
+      onDrop: (e) => {
+        e.preventDefault();
+        if (arrastre && arrastre.scope === scope && arrastre.from !== index) onReorder(arrastre.from, index);
+        limpiar();
+      },
+    };
+  }
+  function handleProps(scope, index) {
+    return {
+      draggable: true,
+      onDragStart: (e) => {
+        e.stopPropagation();
+        setArrastre({ scope, from: index });
+      },
+      onDragEnd: limpiar,
+    };
+  }
+  // onReorder(desde, hasta) hace el splice y guarda — cada lista decide cómo.
+  // Combina zoneProps + handleProps: sirve para tarjetas SIN campos de texto
+  // adentro (ej. las fotos de la galería), donde arrastrar desde cualquier
+  // parte de la tarjeta es cómodo y no estorba nada.
+  function props(scope, index, onReorder) {
+    return { ...handleProps(scope, index), ...zoneProps(scope, index, onReorder) };
+  }
+  function estado(scope, index) {
+    const arrastrando = arrastre?.scope === scope && arrastre.from === index;
+    const destino = !arrastrando && encima?.scope === scope && encima.index === index;
+    return { arrastrando, destino };
+  }
+  return { props, handleProps, zoneProps, estado };
+}
+
 // Panel "Editar página": agrega/edita/elimina productos, categorías, colores
 // y los datos de la tienda (WhatsApp, cuentas bancarias, horarios de entrega)
 // directamente desde el navegador. Todo se guarda en la base de datos y se
@@ -487,18 +539,47 @@ function VitrinaTab({ catalog, api, flash, adminKey }) {
     flash('Panel agregado.');
   }
 
+  // Arrastrar para reordenar los paneles (afecta también la forma del blob y
+  // el balanceo, que se asignan automáticamente según la posición).
+  const orden = useReordenarScopes();
+  function moverPanel(desde, hasta) {
+    setLista((prev) => {
+      const nuevo = [...prev];
+      const [movido] = nuevo.splice(desde, 1);
+      nuevo.splice(hasta, 0, movido);
+      api('POST', 'showcase', { ids: nuevo.map((x) => x.id) }, '&action=reorder').catch(() => {});
+      return nuevo;
+    });
+  }
+
   return (
     <div>
       <p className="mb-3 text-xs text-neutral-500">
         Los paneles del carrusel animado de la portada (el que se arrastra, con el nombre grande
         de fondo). Puedes cambiar la imagen, el color de fondo, el nombre y a qué categoría lleva
-        cada uno, o quitar y agregar paneles. La forma del blob y el balanceo son automáticos —
-        no necesitas configurarlos.
+        cada uno, o quitar y agregar paneles — y arrastrarlos (por el ⠿) para reordenarlos. La forma
+        del blob y el balanceo son automáticos según la posición — no necesitas configurarlos.
       </p>
       <div className="space-y-3">
-        {lista.map((p, i) => (
-          <div key={p.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+        {lista.map((p, i) => {
+          const { arrastrando, destino } = orden.estado('vitrina', i);
+          return (
+          <div
+            key={p.id}
+            {...orden.zoneProps('vitrina', i, moverPanel)}
+            className={`rounded-lg border bg-white p-3 transition ${arrastrando ? 'opacity-40' : ''} ${
+              destino ? 'ring-2 ring-sky-400' : 'border-neutral-200'
+            }`}
+          >
             <div className="flex flex-wrap items-center gap-2">
+              <span
+                {...orden.handleProps('vitrina', i)}
+                className="cursor-move select-none text-neutral-300 hover:text-neutral-500"
+                title="Arrastra para reordenar"
+              >
+                ⠿
+              </span>
+              <span className="w-5 shrink-0 text-center text-[11px] font-medium text-neutral-400">{i + 1}</span>
               <span className="h-8 w-8 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: p.color }} />
               <input
                 value={p.label}
@@ -536,7 +617,8 @@ function VitrinaTab({ catalog, api, flash, adminKey }) {
               <UploadButton adminKey={adminKey} onUploaded={(url) => set(i, 'img', url)} />
             </div>
           </div>
-        ))}
+          );
+        })}
         {lista.length === 0 && (
           <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-400">
             Sin paneles — la vitrina animada no se mostrará en la portada hasta que agregues al menos uno.
@@ -1022,6 +1104,9 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
   // Opciones reutilizables guardadas (ej. "Laterales", "Tipo de botón"): se
   // guardan en la config de la tienda para no reescribirlas en cada producto.
   const presets = catalog.storeConfig.opcionPresets || [];
+  // Arrastrar para reordenar: fotos de la galería, grupos de opciones y los
+  // valores dentro de cada grupo — mismo mecanismo en todo el panel.
+  const orden = useReordenarScopes();
 
   function set(field, value) {
     setP((prev) => ({ ...prev, [field]: value }));
@@ -1076,11 +1161,36 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
     });
   }
   // Galería: fotos adicionales del producto (ángulos, detalle, ambientado).
+  // Cada foto puede además marcarse como "también cambia de color" — útil
+  // cuando son otros ángulos del mismo mueble tapizado, no solo detalles.
+  // Compatibilidad: productos guardados antes tenían la galería como lista de
+  // URLs simples (sin repintar); se normalizan al leer.
+  function normalizarGaleria(gallery) {
+    return (gallery || []).map((f) => (typeof f === 'string' ? { url: f, tintable: false } : f));
+  }
   function agregarFotos(subidos) {
-    setP((prev) => ({ ...prev, gallery: [...(prev.gallery || []), ...subidos.map((s) => s.url)] }));
+    setP((prev) => ({
+      ...prev,
+      gallery: [...normalizarGaleria(prev.gallery), ...subidos.map((s) => ({ url: s.url, tintable: false }))],
+    }));
   }
   function quitarFoto(url) {
-    setP((prev) => ({ ...prev, gallery: (prev.gallery || []).filter((u) => u !== url) }));
+    setP((prev) => ({ ...prev, gallery: normalizarGaleria(prev.gallery).filter((f) => f.url !== url) }));
+  }
+  function toggleFotoTintable(url) {
+    setP((prev) => ({
+      ...prev,
+      gallery: normalizarGaleria(prev.gallery).map((f) => (f.url === url ? { ...f, tintable: !f.tintable } : f)),
+    }));
+  }
+  // Mueve una foto de la galería al soltarla en otra posición.
+  function moverFoto(desde, hasta) {
+    setP((prev) => {
+      const lista = normalizarGaleria(prev.gallery);
+      const [movida] = lista.splice(desde, 1);
+      lista.splice(hasta, 0, movida);
+      return { ...prev, gallery: lista };
+    });
   }
   // Medida propia de ESTE mueble para un tamaño. Una cabecera "2 plazas" mide
   // distinto que una tarima "2 plazas", así que cada producto puede fijar su
@@ -1122,6 +1232,15 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
   function removeGrupo(gi) {
     setGrupos((gs) => gs.filter((_, i) => i !== gi));
   }
+  // Mueve un grupo completo (ej. "Laterales" antes que "Tipo de botón").
+  function moverGrupo(desde, hasta) {
+    setGrupos((gs) => {
+      const nuevo = [...gs];
+      const [movido] = nuevo.splice(desde, 1);
+      nuevo.splice(hasta, 0, movido);
+      return nuevo;
+    });
+  }
   function addValor(gi) {
     setGrupos((gs) =>
       gs.map((g, i) =>
@@ -1140,6 +1259,18 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
   }
   function removeValor(gi, vi) {
     setGrupos((gs) => gs.map((g, i) => (i === gi ? { ...g, valores: g.valores.filter((_, j) => j !== vi) } : g)));
+  }
+  // Mueve una opción dentro de SU grupo (ej. "Con brazos" antes que "Sin brazos").
+  function moverValor(gi, desde, hasta) {
+    setGrupos((gs) =>
+      gs.map((g, i) => {
+        if (i !== gi) return g;
+        const nuevo = [...g.valores];
+        const [movido] = nuevo.splice(desde, 1);
+        nuevo.splice(hasta, 0, movido);
+        return { ...g, valores: nuevo };
+      })
+    );
   }
   // Inserta una opción guardada como grupo nuevo (con ids nuevos, para que
   // editarla en este producto no toque la plantilla guardada).
@@ -1252,27 +1383,55 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
         </p>
       </div>
 
-      {/* Galería: fotos adicionales del producto (varias a la vez). */}
+      {/* Galería: fotos adicionales del producto (varias a la vez). El modelo
+          puede tener más de una foto — cada una puede además marcarse para que
+          también cambie de color, no solo la principal. */}
       <div className="mt-4">
         <p className="mb-1 text-sm font-medium text-neutral-700">Fotos adicionales (galería)</p>
         <p className="mb-2 text-xs text-neutral-500">
           Fotos extra del mueble (otros ángulos, detalle de la tela, ambientado). Se muestran en la
-          página del producto además de la principal. Puedes subir <strong>varias a la vez</strong>.
+          página del producto, y el cliente puede pasar entre ellas. Puedes subir{' '}
+          <strong>varias a la vez</strong>, arrastrarlas para ordenarlas, y marcar con{' '}
+          <strong>🎨</strong> las que también deban repintarse con el color elegido (ej. otro ángulo
+          del mismo tapizado).
         </p>
-        {(p.gallery || []).length > 0 && (
+        {normalizarGaleria(p.gallery).length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
-            {(p.gallery || []).map((url) => (
-              <div key={url} className="relative">
-                <img src={url} alt="" className="h-16 w-16 rounded-lg border border-neutral-200 object-cover" />
-                <button
-                  onClick={() => quitarFoto(url)}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white"
-                  title="Quitar foto"
+            {normalizarGaleria(p.gallery).map((f, i) => {
+              const { arrastrando, destino } = orden.estado('galeria', i);
+              return (
+                <div
+                  key={f.url}
+                  {...orden.props('galeria', i, moverFoto)}
+                  className={`relative cursor-move transition ${arrastrando ? 'opacity-40' : ''} ${
+                    destino ? 'ring-2 ring-sky-400' : ''
+                  }`}
+                  title="Arrastra para reordenar"
                 >
-                  ✕
-                </button>
-              </div>
-            ))}
+                  <span className="absolute left-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                    {i + 1}
+                  </span>
+                  <img src={f.url} alt="" className="h-16 w-16 rounded-lg border border-neutral-200 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => toggleFotoTintable(f.url)}
+                    className={`absolute bottom-1 left-1 rounded-full px-1 text-[10px] ${
+                      f.tintable ? 'bg-ink text-white' : 'bg-white/90 text-neutral-500'
+                    }`}
+                    title={f.tintable ? 'Esta foto cambia de color — toca para quitarlo' : 'Toca para que también cambie de color'}
+                  >
+                    🎨
+                  </button>
+                  <button
+                    onClick={() => quitarFoto(f.url)}
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white"
+                    title="Quitar foto"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
         <UploadButton adminKey={adminKey} multiple onBatch={agregarFotos} label="📷 Subir fotos" />
@@ -1602,10 +1761,27 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
           </div>
         )}
 
+        <p className="mb-2 text-xs text-neutral-400">Arrastra un grupo o una opción para reordenarlo.</p>
         <div className="space-y-3">
-          {(p.opciones || []).map((g, gi) => (
-            <div key={g.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+          {(p.opciones || []).map((g, gi) => {
+            const { arrastrando, destino } = orden.estado('grupos', gi);
+            return (
+            <div
+              key={g.id}
+              {...orden.zoneProps('grupos', gi, moverGrupo)}
+              className={`rounded-lg border bg-white p-3 transition ${
+                arrastrando ? 'opacity-40' : ''
+              } ${destino ? 'ring-2 ring-sky-400' : 'border-neutral-200'}`}
+            >
               <div className="flex items-center gap-2">
+                <span
+                  {...orden.handleProps('grupos', gi)}
+                  className="cursor-move select-none px-0.5 text-neutral-300 hover:text-neutral-500"
+                  title="Arrastra para reordenar"
+                >
+                  ⠿
+                </span>
+                <span className="w-5 shrink-0 text-center text-[11px] font-medium text-neutral-400">{gi + 1}</span>
                 <input
                   value={g.label}
                   onChange={(e) => setGrupo(gi, 'label', e.target.value)}
@@ -1625,9 +1801,25 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
               </div>
 
               <div className="mt-2 space-y-2 pl-3">
-                {(g.valores || []).map((v, vi) => (
-                  <div key={v.id} className="rounded-lg border border-neutral-100 bg-neutral-50 p-2">
+                {(g.valores || []).map((v, vi) => {
+                  const estVal = orden.estado(`valores:${gi}`, vi);
+                  return (
+                  <div
+                    key={v.id}
+                    {...orden.zoneProps(`valores:${gi}`, vi, (desde, hasta) => moverValor(gi, desde, hasta))}
+                    className={`rounded-lg border bg-neutral-50 p-2 transition ${
+                      estVal.arrastrando ? 'opacity-40' : ''
+                    } ${estVal.destino ? 'ring-2 ring-sky-400' : 'border-neutral-100'}`}
+                  >
                     <div className="flex items-center gap-2">
+                      <span
+                        {...orden.handleProps(`valores:${gi}`, vi)}
+                        className="cursor-move select-none px-0.5 text-neutral-300 hover:text-neutral-500"
+                        title="Arrastra para reordenar"
+                      >
+                        ⠿
+                      </span>
+                      <span className="w-4 shrink-0 text-center text-[10px] font-medium text-neutral-400">{vi + 1}</span>
                       <input
                         value={v.label}
                         onChange={(e) => setValor(gi, vi, 'label', e.target.value)}
@@ -1672,13 +1864,15 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <button onClick={() => addValor(gi)} className="mt-2 pl-3 text-xs text-sky-700 hover:underline">
                 + Agregar opción a «{g.label || 'este grupo'}»
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <button onClick={addGrupo} className="mt-2 text-xs text-sky-700 hover:underline">
@@ -1706,6 +1900,14 @@ function CategoriasTab({ catalog, api, flash }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '' });
   const [labels, setLabels] = useState(() => Object.fromEntries(catalog.categories.map((c) => [c.id, c.label])));
   const [descriptions, setDescriptions] = useState(() => Object.fromEntries(catalog.categories.map((c) => [c.id, c.description || ''])));
+  const orden = useReordenarScopes();
+
+  function moverCategoria(desde, hasta) {
+    const ids = catalog.categories.map((c) => c.id);
+    const [movida] = ids.splice(desde, 1);
+    ids.splice(hasta, 0, movida);
+    api('POST', 'category', { ids }, '&action=reorder');
+  }
 
   async function toggleActive(cat) {
     await api('POST', 'category', { ...cat, active: !cat.active });
@@ -1732,18 +1934,34 @@ function CategoriasTab({ catalog, api, flash }) {
 
   return (
     <div>
+      <p className="mb-2 text-xs text-neutral-400">Arrastra una categoría (por el ⠿) para reordenarla.</p>
       <div className="space-y-2">
-        {catalog.categories.map((c) => {
+        {catalog.categories.map((c, i) => {
           const labelActual = labels[c.id] ?? c.label;
           const descActual = descriptions[c.id] ?? (c.description || '');
           const cambiado = (labelActual.trim() && labelActual !== c.label) || descActual !== (c.description || '');
           const descPorDefecto = c.active
             ? 'Disponible ahora — elige tamaño y color.'
             : 'Estamos preparando esta línea. Vuelve pronto.';
+          const { arrastrando, destino } = orden.estado('categorias', i);
           return (
-            <div key={c.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+            <div
+              key={c.id}
+              {...orden.zoneProps('categorias', i, moverCategoria)}
+              className={`rounded-lg border bg-white p-3 transition ${arrastrando ? 'opacity-40' : ''} ${
+                destino ? 'ring-2 ring-sky-400' : 'border-neutral-200'
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-[220px] flex-1 items-center gap-2">
+                  <span
+                    {...orden.handleProps('categorias', i)}
+                    className="cursor-move select-none px-0.5 text-neutral-300 hover:text-neutral-500"
+                    title="Arrastra para reordenar"
+                  >
+                    ⠿
+                  </span>
+                  <span className="w-5 shrink-0 text-center text-[11px] font-medium text-neutral-400">{i + 1}</span>
                   <input
                     value={labelActual}
                     onChange={(e) => setLabels((prev) => ({ ...prev, [c.id]: e.target.value }))}
@@ -2154,6 +2372,20 @@ function TamanosTab({ catalog, api, flash }) {
     flash('Tamaño duplicado. Cámbiale el nombre y las medidas.');
   }
 
+  // Reordenar solo tiene sentido viendo TODAS las categorías (si no, los
+  // índices del filtro no coinciden con el orden real de la lista completa).
+  const orden = useReordenarScopes();
+  const arrastrable = filtro === 'todas';
+  function moverTamano(desde, hasta) {
+    setLista((prev) => {
+      const nuevo = [...prev];
+      const [movido] = nuevo.splice(desde, 1);
+      nuevo.splice(hasta, 0, movido);
+      api('POST', 'size', { ids: nuevo.map((x) => x.id) }, '&action=reorder').catch(() => {});
+      return nuevo;
+    });
+  }
+
   return (
     <div>
       <p className="mb-3 text-xs text-neutral-500">
@@ -2178,9 +2410,29 @@ function TamanosTab({ catalog, api, flash }) {
         </select>
       </div>
 
+      {arrastrable && mostrados.length > 1 && (
+        <p className="mb-2 text-xs text-neutral-400">Arrastra un tamaño (por el ⠿) para reordenarlo.</p>
+      )}
       <div className="space-y-2">
-        {mostrados.map((s) => (
-          <div key={s.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white p-3">
+        {mostrados.map((s, i) => {
+          const { arrastrando, destino } = arrastrable ? orden.estado('tamanos', i) : {};
+          return (
+          <div
+            key={s.id}
+            {...(arrastrable ? orden.zoneProps('tamanos', i, moverTamano) : {})}
+            className={`flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3 transition ${
+              arrastrando ? 'opacity-40' : ''
+            } ${destino ? 'ring-2 ring-sky-400' : 'border-neutral-200'}`}
+          >
+            {arrastrable && (
+              <span
+                {...orden.handleProps('tamanos', i)}
+                className="cursor-move select-none text-neutral-300 hover:text-neutral-500"
+                title="Arrastra para reordenar"
+              >
+                ⠿
+              </span>
+            )}
             <span className="w-24 shrink-0 font-mono text-xs text-neutral-400">{s.id}</span>
             <input
               value={s.label}
@@ -2208,7 +2460,8 @@ function TamanosTab({ catalog, api, flash }) {
             <button onClick={() => duplicar(s)} className="text-xs text-sky-700 hover:underline">Duplicar</button>
             <button onClick={() => eliminar(s)} className="text-xs text-red-600 hover:underline">Eliminar</button>
           </div>
-        ))}
+          );
+        })}
         {mostrados.length === 0 && (
           <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-400">
             No hay tamaños en esta categoría. Agrégalos abajo o duplica uno existente.
@@ -2264,15 +2517,24 @@ function FaqTab({ catalog, api, flash }) {
   function quitar(i) {
     setFaq((prev) => prev.filter((_, idx) => idx !== i));
   }
-  function mover(i, dir) {
+  // Reordenar (arrastrando o con las flechas) guarda al instante, igual que
+  // en el resto del panel — no hace falta tocar "Guardar preguntas" solo para
+  // cambiar el orden.
+  function moverFaq(desde, hasta) {
     setFaq((prev) => {
-      const j = i + dir;
-      if (j < 0 || j >= prev.length) return prev;
-      const copia = [...prev];
-      [copia[i], copia[j]] = [copia[j], copia[i]];
-      return copia;
+      const nuevo = [...prev];
+      const [movida] = nuevo.splice(desde, 1);
+      nuevo.splice(hasta, 0, movida);
+      api('POST', 'config', { faq: nuevo }).catch(() => {});
+      return nuevo;
     });
   }
+  function mover(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= faq.length) return;
+    moverFaq(i, j);
+  }
+  const orden = useReordenarScopes();
   async function guardar() {
     setSaving(true);
     try {
@@ -2295,9 +2557,25 @@ function FaqTab({ catalog, api, flash }) {
         respuesta. Deja la lista vacía si no quieres mostrarlas.
       </p>
       <div className="space-y-3">
-        {faq.map((it, i) => (
-          <div key={i} className="rounded-lg border border-neutral-200 bg-white p-3">
+        {faq.map((it, i) => {
+          const { arrastrando, destino } = orden.estado('faq', i);
+          return (
+          <div
+            key={i}
+            {...orden.zoneProps('faq', i, moverFaq)}
+            className={`rounded-lg border bg-white p-3 transition ${arrastrando ? 'opacity-40' : ''} ${
+              destino ? 'ring-2 ring-sky-400' : 'border-neutral-200'
+            }`}
+          >
             <div className="flex items-center gap-2">
+              <span
+                {...orden.handleProps('faq', i)}
+                className="cursor-move select-none px-0.5 text-neutral-300 hover:text-neutral-500"
+                title="Arrastra para reordenar"
+              >
+                ⠿
+              </span>
+              <span className="w-4 shrink-0 text-center text-[11px] font-medium text-neutral-400">{i + 1}</span>
               <input
                 value={it.q}
                 onChange={(e) => setItem(i, 'q', e.target.value)}
@@ -2316,7 +2594,8 @@ function FaqTab({ catalog, api, flash }) {
               className="mt-2 w-full resize-none rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
             />
           </div>
-        ))}
+          );
+        })}
       </div>
       <button onClick={agregar} className="mt-3 text-xs text-sky-700 hover:underline">+ Agregar pregunta</button>
       <div className="mt-4">

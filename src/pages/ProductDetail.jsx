@@ -9,6 +9,14 @@ import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
 
+// Normaliza un elemento de la galería: puede ser una URL simple (fotos viejas,
+// no cambian de color) o un objeto { url, tintable } (fotos nuevas que también
+// pueden pintarse con el color elegido, igual que la foto principal).
+function normalizarFotoGaleria(item) {
+  if (typeof item === 'string') return { url: item, tintable: false };
+  return { url: item.url, tintable: Boolean(item.tintable) };
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -33,7 +41,30 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [zoom, setZoom] = useState(false); // ventana ampliada de la imagen
-  const [fotoGaleria, setFotoGaleria] = useState(null); // foto de galería que se ve en grande (null = la principal que cambia de color)
+  const [activeIdx, setActiveIdx] = useState(0); // qué foto se ve en grande: 0 = la principal, 1+ = galería
+  // El cliente aún no eligió color: se muestra la foto TAL CUAL la subiste (a
+  // color, sin desaturar). Recién al tocar un color se aplica el teñido — así
+  // la primera impresión nunca sale "plomo" por el filtro de desaturado.
+  const [colorElegido, setColorElegido] = useState(false);
+
+  // Al entrar a OTRO producto (ej. desde "También te puede interesar") sin que
+  // el componente se remonte, se reinicia la vista para no arrastrar el estado
+  // del producto anterior (una foto de galería que no existe aquí, etc.).
+  useEffect(() => {
+    setActiveIdx(0);
+    setColorElegido(false);
+  }, [id]);
+
+  // Elegir un color, dentro o fuera de la ventana ampliada, cuenta como "el
+  // cliente ya eligió" — a partir de ahí la imagen se pinta.
+  function elegirColor(idSel) {
+    setColorId(idSel);
+    setColorElegido(true);
+  }
+  function elegirColor2(idSel) {
+    setColorId2(idSel);
+    setColorElegido(true);
+  }
 
   // Opciones del producto (ej. brazos, tipo de patas, tipo de botón).
   // Arranca con el primer valor de cada grupo ya elegido.
@@ -85,6 +116,21 @@ export default function ProductDetail() {
   // Imagen según color y tamaño: foto propia del color, si no la del tamaño,
   // si no la imagen base teñida (ver resolveProductImage).
   const img = product ? resolveProductImage(product, selectedColor?.id, sizeId) : null;
+
+  // Todas las "vistas" del modelo: la principal (cambia de color) + las fotos
+  // de galería que el dueño haya subido — algunas pueden también cambiar de
+  // color (otro ángulo del mismo mueble), otras se muestran tal cual.
+  const vistas = product
+    ? [
+        { url: img.src, tintable: img.tintable },
+        ...(Array.isArray(product.gallery) ? product.gallery.map(normalizarFotoGaleria) : []),
+      ]
+    : [];
+  const vistaActiva = vistas[activeIdx] || vistas[0];
+  // Medida visible sobre la imagen: la propia de este producto para el tamaño
+  // elegido, o la general del tamaño si no la personalizó.
+  const tamanoElegido = availableSizes.find((s) => s.id === sizeId);
+  const medidaActual = tamanoElegido ? (product?.sizeDims?.[tamanoElegido.id] || tamanoElegido.dims) : null;
 
   if (!product) {
     return (
@@ -138,54 +184,61 @@ export default function ProductDetail() {
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div>
-          {fotoGaleria ? (
-            // Una foto de la galería (no cambia de color).
-            <img
-              src={fotoGaleria}
-              alt={product.name}
-              className="aspect-[4/3] w-full rounded-xl object-cover"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setZoom(true)}
-              className="group relative block w-full cursor-zoom-in"
-              aria-label="Ver la imagen en grande"
-            >
+          {/* El botón "Ver en grande" existe siempre, tiña la foto o no —
+              solo cambia lo que hay ADENTRO (repintable o tal cual). */}
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            className="group relative block w-full cursor-zoom-in"
+            aria-label="Ver la imagen en grande"
+          >
+            {vistaActiva.tintable ? (
               <ProductImage
-                baseImage={img.src}
+                baseImage={vistaActiva.url}
                 colorHex={selectedColor?.hex}
                 colorHex2={selectedColor2?.hex}
-                onDosTelas={setDosTelas}
+                // Solo la foto PRINCIPAL decide si el mueble tiene dos telas;
+                // las demás vistas usan ese mismo resultado, para que el
+                // segundo selector no aparezca/desaparezca al cambiar de foto.
+                onDosTelas={activeIdx === 0 ? setDosTelas : undefined}
                 alt={product.name}
                 className="aspect-[4/3] w-full rounded-xl"
-                tintable={img.tintable}
+                tintable
+                mostrarColor={colorElegido}
               />
-              <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
-                🔍 Ver en grande
+            ) : (
+              <img
+                src={vistaActiva.url}
+                alt={product.name}
+                className="aspect-[4/3] w-full rounded-xl object-cover"
+              />
+            )}
+            {medidaActual && (
+              <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+                📐 {medidaActual}
               </span>
-            </button>
-          )}
+            )}
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+              🔍 Ver en grande
+            </span>
+          </button>
 
-          {/* Miniaturas: la principal (que cambia de color) + las fotos extra. */}
-          {Array.isArray(product.gallery) && product.gallery.length > 0 && (
+          {/* Miniaturas: la principal (cambia de color) + las fotos de galería
+              (algunas también cambian de color, otras se ven tal cual). */}
+          {vistas.length > 1 && (
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-              <button
-                type="button"
-                onClick={() => setFotoGaleria(null)}
-                className={`shrink-0 overflow-hidden rounded-lg border ${fotoGaleria === null ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'}`}
-                title="Foto principal (cambia de color)"
-              >
-                <img src={img.src} alt="" className="h-16 w-16 object-cover" />
-              </button>
-              {product.gallery.map((url) => (
+              {vistas.map((v, i) => (
                 <button
-                  key={url}
+                  key={i}
                   type="button"
-                  onClick={() => setFotoGaleria(url)}
-                  className={`shrink-0 overflow-hidden rounded-lg border ${fotoGaleria === url ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'}`}
+                  onClick={() => setActiveIdx(i)}
+                  className={`relative shrink-0 overflow-hidden rounded-lg border ${activeIdx === i ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'}`}
+                  title={i === 0 ? 'Foto principal' : v.tintable ? 'Esta foto también cambia de color' : 'Foto adicional'}
                 >
-                  <img src={url} alt="" className="h-16 w-16 object-cover" />
+                  <img src={v.url} alt="" className="h-16 w-16 object-cover" />
+                  {v.tintable && (
+                    <span className="absolute bottom-0.5 right-0.5 rounded-full bg-white/90 px-1 text-[9px]">🎨</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -245,8 +298,8 @@ export default function ProductDetail() {
             <div className="mt-6">
               <ColorPicker
                 colors={availableColors}
-                selectedId={colorId}
-                onSelect={setColorId}
+                selectedId={colorElegido ? colorId : null}
+                onSelect={elegirColor}
                 titulo={dosTelas ? 'Color principal' : 'Color'}
                 aviso={dosTelas ? undefined : storeConfig.avisoColor}
               />
@@ -258,8 +311,8 @@ export default function ProductDetail() {
             <div className="mt-6">
               <ColorPicker
                 colors={availableColors}
-                selectedId={colorId2}
-                onSelect={setColorId2}
+                selectedId={colorElegido ? colorId2 : null}
+                onSelect={elegirColor2}
                 titulo="Color del detalle"
                 aviso={storeConfig.avisoColor}
               />
@@ -367,18 +420,19 @@ export default function ProductDetail() {
       <ProductZoomModal
         open={zoom}
         onClose={() => setZoom(false)}
-        img={img}
+        img={{ src: vistaActiva.url, tintable: vistaActiva.tintable }}
         selectedColor={selectedColor}
         selectedColor2={selectedColor2}
         availableColors={availableColors}
         colorId={colorId}
         colorId2={colorId2}
-        onSelectColor={setColorId}
-        onSelectColor2={setColorId2}
+        onSelectColor={elegirColor}
+        onSelectColor2={elegirColor2}
         dosTelas={dosTelas}
-        setDosTelas={setDosTelas}
+        setDosTelas={activeIdx === 0 ? setDosTelas : undefined}
         aviso={storeConfig.avisoColor}
         productName={product.name}
+        mostrarColor={colorElegido}
       />
     </main>
   );

@@ -4,12 +4,16 @@
 // La foto real es la forma más fiel de mostrarle al cliente el tono y la
 // textura verdaderos; el hex es solo una aproximación.
 export default function ColorPicker({ colors, selectedId, onSelect, titulo = 'Color', aviso }) {
+  const label = colors.find((c) => c.id === selectedId)?.label;
   return (
     <div>
       <p className="mb-2 text-sm font-medium text-neutral-700">
-        {titulo}: <span className="font-normal text-neutral-500">
-          {colors.find((c) => c.id === selectedId)?.label}
-        </span>
+        {titulo}
+        {label && (
+          <>
+            : <span className="font-normal text-neutral-500">{label}</span>
+          </>
+        )}
       </p>
       <div className="flex flex-wrap gap-3">
         {colors.map((c) => (
