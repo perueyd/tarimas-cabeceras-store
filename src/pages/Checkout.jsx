@@ -168,6 +168,27 @@ export default function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Recuperación de carritos: en cuanto el cliente tenga nombre y teléfono,
+  // guardamos su carrito por si no llega a pagar (el dueño puede escribirle).
+  // Es de fondo y silencioso: si falla, no afecta la compra. Se borra solo
+  // cuando el pedido se concreta (lo hace el servidor).
+  useEffect(() => {
+    if (!form.nombre.trim() || form.telefono.trim().length < 6 || items.length === 0) return undefined;
+    const t = setTimeout(() => {
+      fetch('/api/carritos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: form.nombre,
+          telefono: form.telefono,
+          items: items.map((i) => ({ productName: i.productName, qty: i.qty })),
+          total: totalAmount,
+        }),
+      }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [form.nombre, form.telefono, items, totalAmount]);
+
   useEffect(() => {
     // Callback global que Culqi invoca tras cerrar su modal con un token.
     window.culqi = function culqiCallback() {

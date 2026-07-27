@@ -69,6 +69,8 @@ export default async function handler(req, res) {
     try {
       const saved = await saveOrder(order);
       if (promoCode) registerPromoUsage(promoCode).catch(() => {});
+      // Ya compró: quita su carrito de la lista de "abandonados".
+      if (hasDB && telefono) redisCmd(['HDEL', 'carritos:abandonados', telefono]).catch(() => {});
       return res.status(200).json({ ok: true, code: order.code, saved, monto: montoFinal, promoDescuento });
     } catch (err) {
       console.log('PEDIDO (error BD, respaldo):', JSON.stringify(order));

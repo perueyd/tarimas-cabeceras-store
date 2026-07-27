@@ -113,6 +113,7 @@ export default function Orders() {
   const [reclamos, setReclamos] = useState([]);
   const [suscriptores, setSuscriptores] = useState([]);
   const [encuestas, setEncuestas] = useState([]);
+  const [carritos, setCarritos] = useState([]);
   const [tab, setTab] = useState('resumen');
   const [filtro, setFiltro] = useState('todos');
   const [error, setError] = useState('');
@@ -145,6 +146,10 @@ export default function Orders() {
       fetch('/api/encuesta', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setEncuestas(d.encuestas || []))
+        .catch(() => {});
+      fetch('/api/carritos', { headers: authHeader })
+        .then((r) => r.json())
+        .then((d) => setCarritos(d.carritos || []))
         .catch(() => {});
     } catch (err) {
       setError(err.message);
@@ -189,6 +194,16 @@ export default function Orders() {
         { method: 'DELETE', headers: { Authorization: `Bearer ${key}` } }
       );
       if (res.ok) setReviews(reviews.filter((x) => x.id !== r.id));
+    } catch { /* no-op */ }
+  }
+
+  async function borrarCarrito(c) {
+    try {
+      const res = await fetch(`/api/carritos?telefono=${encodeURIComponent(c.telefono)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${key}` },
+      });
+      if (res.ok) setCarritos(carritos.filter((x) => x.telefono !== c.telefono));
     } catch { /* no-op */ }
   }
 
@@ -297,6 +312,7 @@ export default function Orders() {
           { id: 'resumen', label: 'Resumen' },
           { id: 'pedidos', label: `Pedidos (${orders.length})` },
           { id: 'resenas', label: `Reseñas (${reviews.length})` },
+          { id: 'carritos', label: `🛒 Carritos${carritos.length ? ` (${carritos.length})` : ''}` },
           { id: 'reclamos', label: `📋 Reclamos${reclamosPendientes.length ? ` (${reclamosPendientes.length})` : ''}` },
           { id: 'suscriptores', label: `📧 Suscriptores (${suscriptores.length})` },
           { id: 'encuestas', label: `📊 Encuestas (${encuestas.length})` },
@@ -432,6 +448,63 @@ export default function Orders() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'carritos' && (
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-500">
+            Clientes que dejaron productos en el carrito con sus datos, pero no llegaron a pagar.
+            Escríbeles por WhatsApp para ayudarles a completar la compra. Al concretarse un pedido,
+            el carrito desaparece solo de esta lista.
+          </p>
+          {carritos.length === 0 ? (
+            <p className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-neutral-500">
+              No hay carritos abandonados por ahora.
+            </p>
+          ) : (
+            carritos.map((c) => {
+              const soloDigitos = (c.telefono || '').replace(/\D/g, '');
+              const numero = soloDigitos.length === 9 ? `51${soloDigitos}` : soloDigitos;
+              const mensaje = encodeURIComponent(
+                `Hola ${c.nombre}, te saludamos de E|D Espacios y Diseño. Vimos que dejaste unos productos en tu carrito y queremos ayudarte a completar tu pedido. ¿Te quedó alguna duda?`
+              );
+              return (
+                <div key={c.telefono} className="rounded-xl border border-neutral-200 bg-white p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{c.nombre}</p>
+                      <p className="text-xs text-neutral-500">
+                        {c.telefono} · {new Date(c.fecha).toLocaleString('es-PE')}
+                      </p>
+                      <ul className="mt-2 space-y-0.5 text-sm text-neutral-600">
+                        {(c.items || []).map((it, idx) => (
+                          <li key={idx}>{it.qty}× {it.productName}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-1 text-sm font-medium">Total: {currencyFormatter.format(c.total || 0)}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-2">
+                      <a
+                        href={`https://wa.me/${numero}?text=${mensaje}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-lg bg-[#25D366] px-4 py-2 text-center text-xs font-medium text-white hover:opacity-90"
+                      >
+                        💬 Escribir por WhatsApp
+                      </a>
+                      <button
+                        onClick={() => borrarCarrito(c)}
+                        className="rounded-lg border border-neutral-300 px-4 py-2 text-xs text-neutral-600 hover:border-ink"
+                      >
+                        Quitar de la lista
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 
