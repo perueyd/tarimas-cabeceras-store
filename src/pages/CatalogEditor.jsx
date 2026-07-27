@@ -717,14 +717,22 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
     const catLabel = catalog.categories.find((c) => c.id === p.category)?.label || p.category;
     return normaliza(`${p.name} ${catLabel}`).includes(q);
   });
-  // Reordenar por arrastre solo tiene sentido sobre la lista COMPLETA (los
-  // índices del filtro no mapean al orden real), así que se desactiva al filtrar.
-  const filtrando = q !== '' || catFiltro !== 'todos';
   const todosSeleccionados = visibles.length > 0 && visibles.every((p) => seleccion.has(p.id));
-  const orden = useReordenar(
-    catalog.products.map((p) => p.id),
-    (ids) => api('POST', 'product', { ids }, '&action=reorder')
-  );
+  // Arrastra (o usa ▲▼) dentro de lo que ves (filtrado o buscado): reordena
+  // SOLO esos productos entre sí, sin mover a los demás. Toma el nuevo orden
+  // de los visibles y lo reinserta en los mismos "huecos" que esos productos
+  // ya ocupaban en la lista completa — así "Cabeceras" se ordena entre
+  // cabeceras y "Tarimas" entre tarimas, cada una por su lado.
+  function aplicarNuevoOrdenVisible(nuevoOrdenVisibles) {
+    const idsCompletos = catalog.products.map((p) => p.id);
+    const visibleSet = new Set(nuevoOrdenVisibles);
+    const huecos = [];
+    idsCompletos.forEach((id, i) => { if (visibleSet.has(id)) huecos.push(i); });
+    const nuevoCompleto = [...idsCompletos];
+    huecos.forEach((posicion, i) => { nuevoCompleto[posicion] = nuevoOrdenVisibles[i]; });
+    api('POST', 'product', { ids: nuevoCompleto }, '&action=reorder');
+  }
+  const orden = useReordenar(visibles.map((p) => p.id), aplicarNuevoOrdenVisible);
 
   async function guardar(producto) {
     const specsObj = {};
@@ -743,15 +751,16 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
     flash(`Producto "${p.name}" eliminado.`, () => api('POST', 'product', p));
   }
 
-  // Mueve un producto en el orden de la tienda (▲ sube, ▼ baja). Opera sobre la
-  // lista completa; por eso se desactiva mientras haya una búsqueda activa.
-  async function mover(id, dir) {
-    const ids = catalog.products.map((x) => x.id);
+  // Mueve un producto (▲ sube, ▼ baja) contra su vecino DENTRO de lo que ves
+  // — si filtraste "Cabeceras", sube/baja entre cabeceras, no contra una
+  // tarima que esté al lado en la lista completa.
+  function mover(id, dir) {
+    const ids = visibles.map((x) => x.id);
     const i = ids.indexOf(id);
     const j = i + dir;
     if (i < 0 || j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
-    await api('POST', 'product', { ids }, '&action=reorder');
+    aplicarNuevoOrdenVisible(ids);
   }
 
   // Muestra u oculta un producto de la tienda sin borrarlo (borrador).
@@ -889,9 +898,7 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
           <span className="text-xs text-neutral-400">
             {seleccion.size > 0
               ? `${seleccion.size} seleccionado(s)`
-              : filtrando
-                ? 'Marca las casillas para borrar. (Quita el filtro/búsqueda para poder reordenar.)'
-                : `Marca las casillas (Shift = rango) para borrar. Arrastra ${vista === 'mosaico' ? 'una tarjeta' : 'una fila'} para reordenar.`}
+              : `Marca las casillas (Shift = rango) para borrar. Arrastra ${vista === 'mosaico' ? 'una tarjeta' : 'una fila'} para reordenar dentro de lo que ves.`}
           </span>
           {seleccion.size > 0 && (
             <button
@@ -931,22 +938,19 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
           const min = precios.length ? Math.min(...precios) : 0;
           const sel = seleccion.has(p.id);
           const incompleto = estaIncompleto(p);
-          // Posición real en la tienda (con búsqueda activa el índice del filtro
-          // no sirve). El arrastre solo se habilita sin búsqueda.
-          const pos = filtrando ? catalog.products.findIndex((x) => x.id === p.id) : i;
           return (
             <div
               key={p.id}
-              {...(!filtrando ? orden.props(i) : {})}
-              className={`flex items-center justify-between gap-3 rounded-lg border p-4 transition ${!filtrando ? 'cursor-move select-none' : ''} ${
+              {...orden.props(i)}
+              className={`flex cursor-move select-none items-center justify-between gap-3 rounded-lg border p-4 transition ${
                 orden.arrastrando === i ? 'opacity-40' : ''
               } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
                 sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
               }`}
-              title={!filtrando ? 'Arrastra para reordenar' : undefined}
+              title="Arrastra para reordenar dentro de lo que ves"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <span className="w-6 shrink-0 text-center text-xs font-medium text-neutral-400">{pos + 1}</span>
+                <span className="w-6 shrink-0 text-center text-xs font-medium text-neutral-400">{i + 1}</span>
                 <input
                   type="checkbox"
                   checked={sel}
@@ -972,20 +976,18 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-xs">
-                {!filtrando && (
-                  <span className="flex flex-col">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); mover(p.id, -1); }}
-                      className="leading-none text-neutral-400 hover:text-ink"
-                      title="Subir"
-                    >▲</button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); mover(p.id, 1); }}
-                      className="leading-none text-neutral-400 hover:text-ink"
-                      title="Bajar"
-                    >▼</button>
-                  </span>
-                )}
+                <span className="flex flex-col">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); mover(p.id, -1); }}
+                    className="leading-none text-neutral-400 hover:text-ink"
+                    title="Subir"
+                  >▲</button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); mover(p.id, 1); }}
+                    className="leading-none text-neutral-400 hover:text-ink"
+                    title="Bajar"
+                  >▼</button>
+                </span>
                 <a
                   href={`/producto/${p.id}`}
                   target="_blank"
@@ -1028,17 +1030,16 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
             const min = precios.length ? Math.min(...precios) : 0;
             const sel = seleccion.has(p.id);
             const incompleto = estaIncompleto(p);
-            const pos = filtrando ? catalog.products.findIndex((x) => x.id === p.id) : i;
             return (
               <div
                 key={p.id}
-                {...(!filtrando ? orden.props(i) : {})}
-                className={`overflow-hidden rounded-xl border bg-white transition ${!filtrando ? 'cursor-move' : ''} ${
+                {...orden.props(i)}
+                className={`cursor-move overflow-hidden rounded-xl border bg-white transition ${
                   orden.arrastrando === i ? 'opacity-40' : ''
                 } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
                   sel ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'
                 }`}
-                title={!filtrando ? 'Arrastra para reordenar' : undefined}
+                title="Arrastra para reordenar dentro de lo que ves"
               >
                 <div className="relative aspect-square w-full bg-neutral-100">
                   {p.baseImage ? (
@@ -1046,7 +1047,7 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-2xl text-neutral-300">🖼️</div>
                   )}
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">{pos + 1}</span>
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">{i + 1}</span>
                   <input
                     type="checkbox"
                     checked={sel}

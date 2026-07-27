@@ -20,12 +20,17 @@ export default function ProductCard({ product }) {
       to={`/producto/${product.id}`}
       className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-neutral-400"
     >
+      {/* La tarjeta del catálogo muestra la foto tal cual la subiste — no un
+          color "por defecto" teñido (antes se veía apagada/plomo con el
+          primer color de la lista). El cambio de color es cosa de la página
+          del producto, donde el cliente sí elige. */}
       <ProductImage
         baseImage={img.src}
         colorHex={defaultColor.hex}
         alt={product.name}
         className="aspect-[4/3] w-full"
         tintable={img.tintable}
+        mostrarColor={false}
       />
       <div className="p-4">
         <h3 className="text-base font-medium">{product.name}</h3>
