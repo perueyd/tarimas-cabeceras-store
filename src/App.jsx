@@ -29,10 +29,25 @@ function AnalyticsTracker() {
   return null;
 }
 
+// El cambio de página en React Router no reinicia el scroll solo (a
+// diferencia de una recarga normal) — sin esto, si el cliente entra a un
+// producto desde el medio de un catálogo con scroll, la nueva página abre a
+// la mitad en vez de arriba. Se activa con cada cambio de ruta (no con
+// cambios de "?categoria=" dentro de la misma página, para no interrumpir al
+// cliente mientras filtra la tienda).
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <div className="flex min-h-screen flex-col">
       <AnalyticsTracker />
+      <ScrollToTop />
       <Header />
       <div className="flex-1">
         <Routes>

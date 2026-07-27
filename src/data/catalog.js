@@ -34,8 +34,10 @@ export const storeConfig = {
   leadTime: '3 a 4 días hábiles',
   // Cuotas referenciales: muestra "o N cuotas de S/ X" en cada producto. Es solo
   // informativo (para animar la compra de un ticket alto); no cobra en cuotas.
-  // Pon cuotasNumero: 0 para no mostrarlo.
-  cuotasNumero: 3,
+  // Pon cuotasNumero: 0 para no mostrarlo. Se apagó por defecto a pedido del
+  // dueño; edítalo desde el panel (Datos de la tienda) cuando quieras
+  // activarlo de nuevo.
+  cuotasNumero: 0,
   cuotasTexto: 'sin intereses con tu tarjeta',
   deliveryMinDays: 4,
   deliverySlots: [
