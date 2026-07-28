@@ -18,34 +18,32 @@ export default function ProductCard({ product }) {
   return (
     <Link
       to={`/producto/${product.id}`}
-      className="group block overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:border-neutral-400"
+      className="group block overflow-hidden rounded-xl border border-neutral-100 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:border-neutral-300 hover:-translate-y-1"
     >
-      {/* La tarjeta del catálogo muestra la foto tal cual la subiste — no un
-          color "por defecto" teñido (antes se veía apagada/plomo con el
-          primer color de la lista). El cambio de color es cosa de la página
-          del producto, donde el cliente sí elige. */}
-      <ProductImage
-        baseImage={img.src}
-        colorHex={defaultColor.hex}
-        alt={product.name}
-        className="aspect-[4/3] w-full"
-        tintable={img.tintable}
-        mostrarColor={false}
-      />
-      <div className="p-4">
-        <h3 className="text-base font-medium">{product.name}</h3>
-        <p className="mt-1 text-sm text-neutral-500 line-clamp-2">{product.shortDescription}</p>
-        <div className="mt-3 flex items-baseline gap-2">
-          <p className="text-sm font-medium">
+      <div className="relative overflow-hidden bg-neutral-50">
+        <ProductImage
+          baseImage={img.src}
+          colorHex={defaultColor.hex}
+          alt={product.name}
+          className="aspect-[4/3] w-full transition-transform duration-300 group-hover:scale-105"
+          tintable={img.tintable}
+          mostrarColor={false}
+        />
+        {discountPercent > 0 && (
+          <span className="absolute top-3 right-3 rounded-full bg-red-500 text-white px-2.5 py-1 text-[11px] font-bold shadow-md">
+            -{discountPercent}%
+          </span>
+        )}
+      </div>
+      <div className="p-5">
+        <h3 className="text-base font-semibold text-neutral-900 line-clamp-2">{product.name}</h3>
+        <p className="mt-2 text-xs text-neutral-500 line-clamp-2 leading-relaxed">{product.shortDescription}</p>
+        <div className="mt-4 flex items-baseline gap-2">
+          <p className="text-sm font-bold text-neutral-900">
             {priceInfo ? `Desde ${currencyFormatter.format(final)}` : 'Precio por confirmar'}
           </p>
-          {discountPercent > 0 && (
-            <>
-              <p className="text-xs text-neutral-400 line-through">{currencyFormatter.format(original)}</p>
-              <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
-                -{discountPercent}%
-              </span>
-            </>
+          {discountPercent > 0 && original && (
+            <p className="text-xs text-neutral-400 line-through">{currencyFormatter.format(original)}</p>
           )}
         </div>
       </div>
