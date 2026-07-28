@@ -34,10 +34,11 @@ const esVenta = (o) => o.estado === 'Pagado' || o.estado === 'Entregado';
 // Descarga todos los pedidos como hoja de cálculo (CSV compatible con Excel y
 // Google Sheets, con BOM UTF-8 y separador ";" para Excel en español).
 function descargarHoja(orders) {
-  const headers = ['Fecha', 'Código', 'Estado', 'Método', 'Monto', 'Nombre', 'Teléfono', 'Email', 'Zona', 'Dirección', 'Ubicación', 'Entrega', 'Productos'];
+  const headers = ['Fecha', 'Código', 'Referencia', 'Estado', 'Método', 'Monto', 'Nombre', 'Teléfono', 'Email', 'Zona', 'Dirección', 'Ubicación', 'Entrega', 'Productos'];
   const rows = orders.map((o) => [
     new Date(o.fecha).toLocaleString('es-PE'),
     o.code,
+    o.referencia || '',
     o.estado,
     o.metodo,
     o.monto,
@@ -738,6 +739,11 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
         <p><span className="text-neutral-500">Fecha:</span> {new Date(o.fecha).toLocaleString('es-PE')}</p>
         <p className="sm:col-span-2"><span className="text-neutral-500">Dirección:</span> {o.direccion || '—'} ({o.zona})</p>
       </div>
+      {o.referencia && (
+        <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+          <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
+        </div>
+      )}
       {o.items?.length > 0 && (
         <ul className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-xs text-neutral-600">
           {o.items.map((i, idx) => (
@@ -777,6 +783,17 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
             <option>Transferencia bancaria</option>
             <option>Tarjeta/Yape (Culqi)</option>
           </select>
+        </label>
+        <label className="flex items-center gap-1.5">
+          <span className="text-neutral-500">Referencia (WSP):</span>
+          <input
+            type="text"
+            value={o.referencia || ''}
+            onChange={(e) => onUpdate(o, { referencia: e.target.value })}
+            placeholder="Ej: #1, cliente123, ref001"
+            maxLength="60"
+            className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-ink"
+          />
         </label>
         {wa && (
           <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">

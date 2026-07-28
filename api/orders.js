@@ -131,8 +131,9 @@ export default async function handler(req, res) {
     const code = s(req.body?.code, 30);
     const estado = req.body?.estado != null ? s(req.body.estado, 30) : null;
     const metodo = req.body?.metodo != null ? s(req.body.metodo, 40) : null;
-    if (!code || (!estado && !metodo)) {
-      return res.status(400).json({ error: 'Datos inválidos (code y estado o metodo).' });
+    const referencia = req.body?.referencia != null ? s(req.body.referencia, 60) : null;
+    if (!code || (!estado && !metodo && referencia === null)) {
+      return res.status(400).json({ error: 'Datos inválidos (code y estado, metodo o referencia).' });
     }
     if (estado && !ESTADOS_VALIDOS.includes(estado)) {
       return res.status(400).json({ error: 'Estado inválido.' });
@@ -148,6 +149,7 @@ export default async function handler(req, res) {
         if (order.code === code) {
           if (estado) order.estado = estado;
           if (metodo) order.metodo = metodo;
+          if (referencia !== null) order.referencia = referencia;
           await redisCmd(['LSET', 'pedidos', String(i), JSON.stringify(order)]);
           // Agrega una fila nueva a la hoja de Google (historial con fecha de cada
           // cambio de estado) y avisa al cliente por correo, si hay email.
