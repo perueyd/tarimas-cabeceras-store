@@ -4,7 +4,7 @@ import { checkAdminAuth } from './_auth.js';
 
 const KEY = 'ofertas:todas';
 
-async function listarOfertas() {
+export async function listarOfertas() {
   if (!hasDB) return [];
   const data = await redisCmd(['GET', KEY]);
   if (!data.result) return [];

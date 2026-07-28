@@ -4,6 +4,8 @@ import { Stars } from './ProductDetail.jsx';
 import CatalogEditor from './CatalogEditor.jsx';
 import MegaOfertasEditor from './MegaOfertasEditor.jsx';
 import HistorialCodigosTab from './HistorialCodigosTab.jsx';
+import AnalyticsOfertasTab from './AnalyticsOfertasTab.jsx';
+import AutomacionesTab from './AutomacionesTab.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -397,6 +399,8 @@ export default function Orders() {
           { id: 'suscriptores', label: `📧 Suscriptores (${suscriptores.length})` },
           { id: 'encuestas', label: `📊 Encuestas (${encuestas.length})` },
           { id: 'ofertas', label: '💰 Ofertas y descuentos' },
+          { id: 'analytics', label: '📈 Analytics' },
+          { id: 'automaciones', label: '⚙️ Automaciones' },
           { id: 'historial', label: '📋 Historial de códigos' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
@@ -680,6 +684,10 @@ export default function Orders() {
       )}
 
       {tab === 'ofertas' && <MegaOfertasEditor adminKey={key} />}
+
+      {tab === 'analytics' && <AnalyticsOfertasTab adminKey={key} />}
+
+      {tab === 'automaciones' && <AutomacionesTab adminKey={key} />}
 
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
