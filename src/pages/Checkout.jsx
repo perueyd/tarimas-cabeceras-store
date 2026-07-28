@@ -81,7 +81,73 @@ export default function Checkout() {
   const [promo, setPromo] = useState(null); // { code, descuento, tipo, valor }
   const [promoMsg, setPromoMsg] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
-  const totalConDescuento = Math.max(totalAmount - (promo?.descuento || 0), 0);
+  const [descuentosAuto, setDescuentosAuto] = useState([]); // descuentos automáticos aplicados
+
+  // Calcula descuentos automáticos (por cantidad, categoría, etc)
+  useEffect(() => {
+    if (items.length === 0) {
+      setDescuentosAuto([]);
+      return;
+    }
+
+    // Información del carrito para validar descuentos automáticos
+    const cartInfo = {
+      cantidadItems: items.reduce((sum, i) => sum + i.qty, 0),
+      categorias: items.map((i) => i.category).filter(Boolean),
+    };
+
+    // Fetch descuentos automáticos desde el servidor
+    fetch(`/api/ofertas`)
+      .then((r) => r.json())
+      .then((data) => {
+        const ofertas = data.ofertas || [];
+        const aplicables = [];
+
+        for (const oferta of ofertas) {
+          if (!oferta.activo) continue;
+          if (oferta.vence && new Date(oferta.vence + 'T23:59:59') < new Date()) continue;
+
+          let aplica = false;
+          let razon = '';
+
+          if (oferta.tipo === 'flash-sale') {
+            aplica = true;
+            razon = '🎉 Flash Sale';
+          } else if (oferta.tipo === 'cantidad') {
+            if (cartInfo.cantidadItems >= (oferta.cantidadMinima || 2)) {
+              aplica = true;
+              razon = `${cartInfo.cantidadItems}+ items`;
+            }
+          } else if (oferta.tipo === 'categoria') {
+            if (cartInfo.categorias.includes(oferta.categoria)) {
+              aplica = true;
+              razon = `Categoría: ${oferta.categoria}`;
+            }
+          }
+
+          if (aplica) {
+            let descuento;
+            if (oferta.tipoDesc === 'monto') {
+              descuento = Math.max(Number(oferta.valor) || 0, 0);
+            } else {
+              const pct = Math.min(Math.max(Number(oferta.valor) || 0, 0), 100);
+              descuento = totalAmount * (pct / 100);
+            }
+            descuento = Math.round(Math.min(descuento, totalAmount) * 100) / 100;
+            aplicables.push({ id: oferta.id, tipo: oferta.tipo, valor: oferta.valor, descuento, razon });
+          }
+        }
+
+        setDescuentosAuto(aplicables);
+      })
+      .catch(() => {});
+  }, [items, totalAmount]);
+
+  const descuentoTotal = Math.max(
+    ...[promo?.descuento || 0, ...descuentosAuto.map((d) => d.descuento)],
+    0
+  );
+  const totalConDescuento = Math.max(totalAmount - descuentoTotal, 0);
 
   // Listas buscables de lugares (Lima Metropolitana + Callao para el flujo
   // Lima; los 1892 distritos del Perú para Provincia).
