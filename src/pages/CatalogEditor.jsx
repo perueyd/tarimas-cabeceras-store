@@ -7,6 +7,12 @@ import EntregaTab from './EntregaTab.jsx';
 import BannersTab from './BannersTab.jsx';
 import DesignTab from './DesignTab.jsx';
 import BlogTab from './BlogTab.jsx';
+import AITab from './AITab.jsx';
+import AnalyticsAdvancedTab from './AnalyticsAdvancedTab.jsx';
+import IntegrationsTab from './IntegrationsTab.jsx';
+import EmailMarketingTab from './EmailMarketingTab.jsx';
+import SecurityTab from './SecurityTab.jsx';
+import SEOTab from './SEOTab.jsx';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -284,6 +290,12 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'banners', label: '📢 Banners' },
           { id: 'design', label: '🎨 Diseño' },
           { id: 'blog', label: '📝 Blog' },
+          { id: 'ai', label: '🤖 IA & Automación' },
+          { id: 'analytics', label: '📊 Analytics Avanzado' },
+          { id: 'integraciones', label: '🔗 Integraciones' },
+          { id: 'emailMarketing', label: '📧 Email Marketing' },
+          { id: 'security', label: '🔒 Seguridad' },
+          { id: 'seo', label: '📈 SEO' },
           { id: 'portada', label: 'Página principal' },
           { id: 'vitrina', label: 'Vitrina animada' },
           { id: 'faq', label: 'Preguntas' },
@@ -313,6 +325,12 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'banners' && <BannersTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'design' && <DesignTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'blog' && <BlogTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'ai' && <AITab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'analytics' && <AnalyticsAdvancedTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'integraciones' && <IntegrationsTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'emailMarketing' && <EmailMarketingTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'security' && <SecurityTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'seo' && <SEOTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'faq' && <FaqTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
