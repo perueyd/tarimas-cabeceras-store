@@ -4,6 +4,9 @@ import { PALETAS } from '../data/paletas.js';
 import BrandingTab from './BrandingTab.jsx';
 import PagosTab from './PagosTab.jsx';
 import EntregaTab from './EntregaTab.jsx';
+import BannersTab from './BannersTab.jsx';
+import DesignTab from './DesignTab.jsx';
+import BlogTab from './BlogTab.jsx';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -278,6 +281,9 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'config', label: 'Datos de la tienda' },
           { id: 'pagos', label: '💳 Pagos' },
           { id: 'entrega', label: '🚚 Entrega' },
+          { id: 'banners', label: '📢 Banners' },
+          { id: 'design', label: '🎨 Diseño' },
+          { id: 'blog', label: '📝 Blog' },
           { id: 'portada', label: 'Página principal' },
           { id: 'vitrina', label: 'Vitrina animada' },
           { id: 'faq', label: 'Preguntas' },
@@ -304,6 +310,9 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'pagos' && <PagosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'entrega' && <EntregaTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'banners' && <BannersTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'design' && <DesignTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'blog' && <BlogTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'faq' && <FaqTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
