@@ -153,23 +153,23 @@ export default function Landing() {
   return (
     <main>
       {/* ================= HERO ================= */}
-      <section className="relative overflow-hidden border-b border-neutral-200">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-14 sm:py-20 lg:grid-cols-2">
-          <div>
-            <p className="mb-4 inline-block rounded-full border border-neutral-300 px-3 py-1 text-xs uppercase tracking-widest text-neutral-500">
+      <section className="relative overflow-hidden border-b border-neutral-100 bg-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 px-4 py-10 sm:gap-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:py-20">
+          <div className="flex flex-col">
+            <p className="mb-4 inline-block rounded-full border border-neutral-200 bg-neutral-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-neutral-600">
               {landing.eyebrow}
             </p>
-            <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl [text-wrap:balance]">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl [text-wrap:balance]">
               {landing.titulo1}
               <br />
-              <span className="text-neutral-400">{landing.titulo2}</span>
+              <span className="text-neutral-500">{landing.titulo2}</span>
             </h1>
-            <p className="mt-5 max-w-md text-neutral-500">
+            <p className="mt-4 max-w-lg text-base text-neutral-600 sm:mt-5 sm:text-lg">
               {landing.descripcion}
             </p>
 
             {/* Chips de color interactivos */}
-            <div className="mt-8 flex items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-3">
               {HERO_COLORS.map((id) => {
                 const c = colors.find((k) => k.id === id);
                 return (
@@ -178,26 +178,26 @@ export default function Landing() {
                     aria-label={`Ver en color ${c.label}`}
                     title={c.label}
                     onClick={() => setHeroColor(c)}
-                    className={`h-10 w-10 rounded-full border border-black/10 transition-transform hover:scale-110 ${
-                      heroColor.id === id ? 'scale-110 ring-2 ring-ink ring-offset-2' : ''
+                    className={`h-11 w-11 rounded-full border-2 transition-all hover:scale-110 ${
+                      heroColor.id === id ? 'scale-110 ring-3 ring-neutral-900 ring-offset-2 border-neutral-900' : 'border-neutral-300'
                     }`}
                     style={{ backgroundColor: c.hex }}
                   />
                 );
               })}
-              <span className="ml-2 text-sm text-neutral-500">{heroColor.label}</span>
+              <span className="ml-2 text-sm text-neutral-600 font-medium">{heroColor.label}</span>
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
               <CtaLink
                 to={landing.cta1Url}
-                className="rounded-lg bg-ink px-7 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+                className="rounded-lg bg-neutral-900 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-black active:scale-95 sm:px-8"
               >
                 {landing.cta1Label}
               </CtaLink>
               <CtaLink
                 to={cta2.url}
-                className="rounded-lg border border-neutral-300 px-7 py-3 text-sm font-medium capitalize transition hover:border-ink"
+                className="rounded-lg border-2 border-neutral-300 px-6 py-3 text-center text-sm font-semibold text-neutral-900 capitalize transition hover:border-neutral-900 hover:bg-neutral-50 active:scale-95 sm:px-8"
               >
                 {cta2.label}
               </CtaLink>
@@ -284,31 +284,31 @@ export default function Landing() {
       <ShowcaseMarquee />
 
       {/* ================= CATEGORÍAS ================= */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20">
         <div ref={addReveal} className="reveal">
-          <h2 className="text-2xl font-semibold tracking-tight">{landing.categoriasTitulo}</h2>
-          <p className="mt-2 max-w-xl text-neutral-500">{landing.categoriasDescripcion}</p>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{landing.categoriasTitulo}</h2>
+          <p className="mt-3 max-w-2xl text-base text-neutral-600 sm:text-lg">{landing.categoriasDescripcion}</p>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
           {categories.map((cat, i) => {
             const inner = (
               <div
                 ref={addReveal}
-                className="reveal group relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-6 transition hover:border-ink"
+                className="reveal group relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-6 transition-all hover:shadow-lg hover:border-neutral-300 sm:p-8"
                 style={{ transitionDelay: `${i * 60}ms` }}
               >
                 <div className="flex items-start justify-between">
-                  <h3 className="text-lg font-medium">{cat.label}</h3>
+                  <h3 className="text-lg font-semibold text-neutral-900 sm:text-xl">{cat.label}</h3>
                   {cat.active ? (
-                    <span className="translate-x-1 text-xl transition-transform group-hover:translate-x-2">→</span>
+                    <span className="translate-x-0 text-2xl text-neutral-400 transition-transform group-hover:translate-x-1">→</span>
                   ) : (
-                    <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-500">
+                    <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
                       Próximamente
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-sm text-neutral-500">
+                <p className="mt-3 text-sm text-neutral-600 leading-relaxed">
                   {cat.description ||
                     (cat.active
                       ? 'Disponible ahora — elige tamaño y color.'
@@ -317,32 +317,34 @@ export default function Landing() {
               </div>
             );
             return cat.active ? (
-              <Link key={cat.id} to={`/tienda?categoria=${cat.id}`}>{inner}</Link>
+              <Link key={cat.id} to={`/tienda?categoria=${cat.id}`} className="block transition-transform hover:scale-105">{inner}</Link>
             ) : (
-              <div key={cat.id} className="cursor-default opacity-80">{inner}</div>
+              <div key={cat.id} className="cursor-default opacity-75 transition-opacity hover:opacity-100">{inner}</div>
             );
           })}
         </div>
       </section>
 
       {/* ================= CÓMO FUNCIONA ================= */}
-      <section className="border-t border-neutral-200 bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-16">
-          <h2 ref={addReveal} className="reveal text-2xl font-semibold tracking-tight">
+      <section className="border-t border-neutral-100 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20">
+          <h2 ref={addReveal} className="reveal text-2xl font-bold tracking-tight sm:text-3xl">
             {landing.comoFunciona.titulo}
           </h2>
           {landing.comoFunciona.pasos.length > 0 && (
-            <div className={`mt-8 grid grid-cols-1 gap-6 ${GRID_COLS_SM[Math.min(landing.comoFunciona.pasos.length, 4)] || 'sm:grid-cols-3'}`}>
+            <div className={`mt-10 grid grid-cols-1 gap-6 sm:gap-8 ${GRID_COLS_SM[Math.min(landing.comoFunciona.pasos.length, 4)] || 'sm:grid-cols-3'}`}>
               {landing.comoFunciona.pasos.map((paso, i) => (
                 <div
                   key={i}
                   ref={addReveal}
-                  className="reveal rounded-xl border border-neutral-200 p-6"
+                  className="reveal rounded-xl border border-neutral-200 bg-neutral-50 p-6 sm:p-8 hover:shadow-md transition-shadow"
                   style={{ transitionDelay: `${i * 80}ms` }}
                 >
-                  <span className="text-sm font-semibold text-neutral-400">{i + 1}</span>
-                  <h3 className="mt-2 font-medium">{paso.titulo}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">{paso.texto}</p>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 text-white font-bold text-lg">
+                    {i + 1}
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-neutral-900 sm:text-xl">{paso.titulo}</h3>
+                  <p className="mt-2 text-sm text-neutral-600 leading-relaxed">{paso.texto}</p>
                 </div>
               ))}
             </div>
@@ -351,7 +353,7 @@ export default function Landing() {
           <div ref={addReveal} className="reveal mt-12 text-center">
             <Link
               to="/tienda"
-              className="inline-block rounded-lg bg-ink px-8 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+              className="inline-block rounded-lg bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-black active:scale-95"
             >
               Ir a la tienda
             </Link>
