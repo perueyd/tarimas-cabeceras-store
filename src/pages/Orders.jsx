@@ -6,6 +6,9 @@ import MegaOfertasEditor from './MegaOfertasEditor.jsx';
 import HistorialCodigosTab from './HistorialCodigosTab.jsx';
 import AnalyticsOfertasTab from './AnalyticsOfertasTab.jsx';
 import AutomacionesTab from './AutomacionesTab.jsx';
+import AIRecommendationsTab from './AIRecommendationsTab.jsx';
+import GamificacionTab from './GamificacionTab.jsx';
+import OmniChannelTab from './OmniChannelTab.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -401,6 +404,9 @@ export default function Orders() {
           { id: 'ofertas', label: '💰 Ofertas y descuentos' },
           { id: 'analytics', label: '📈 Analytics' },
           { id: 'automaciones', label: '⚙️ Automaciones' },
+          { id: 'ia', label: '🤖 IA Recomendador' },
+          { id: 'gamificacion', label: '🎮 Gamificación' },
+          { id: 'omnichannel', label: '📱 Omnichannel' },
           { id: 'historial', label: '📋 Historial de códigos' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
@@ -688,6 +694,12 @@ export default function Orders() {
       {tab === 'analytics' && <AnalyticsOfertasTab adminKey={key} />}
 
       {tab === 'automaciones' && <AutomacionesTab adminKey={key} />}
+
+      {tab === 'ia' && <AIRecommendationsTab adminKey={key} />}
+
+      {tab === 'gamificacion' && <GamificacionTab adminKey={key} />}
+
+      {tab === 'omnichannel' && <OmniChannelTab adminKey={key} />}
 
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
