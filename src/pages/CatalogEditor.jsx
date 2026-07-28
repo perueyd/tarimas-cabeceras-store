@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { PALETAS } from '../data/paletas.js';
+import BrandingTab from './BrandingTab.jsx';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -267,6 +268,7 @@ export default function CatalogEditor({ adminKey }) {
 
       <div className="mb-6 flex flex-wrap gap-2 text-sm">
         {[
+          { id: 'branding', label: '🎨 Branding' },
           { id: 'productos', label: `Productos (${catalog.products.length})` },
           { id: 'categorias', label: 'Categorías' },
           { id: 'colores', label: 'Colores' },
@@ -290,6 +292,7 @@ export default function CatalogEditor({ adminKey }) {
         ))}
       </div>
 
+      {sub === 'branding' && <BrandingTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}

@@ -10,40 +10,63 @@
 // leadTime: texto del tiempo de fabricación/entrega que ve el cliente.
 // deliveryMinDays: días mínimos desde hoy para elegir fecha de entrega en el checkout.
 export const storeConfig = {
-  // Datos del negocio para el Libro de Reclamaciones (identifican al
-  // proveedor ante el consumidor). Edítalos en el panel → Datos de la tienda.
+  // ---------- BRANDING (Logo, nombre, identidad) ----------
+  branding: {
+    logo: 'E|D',
+    nombre: 'ESPACIOS Y DISEÑO',
+    subtitulo: 'PROYECTOS INMOBILIARIOS',
+  },
+
+  // ---------- CONTACTO (Centralizado) ----------
+  contacto: {
+    whatsapp: '51951278010',
+    telefonoFormato: '951 278 010',
+    email: '',
+  },
+
+  // ---------- Datos del negocio (Libro de Reclamaciones) ----------
   razonSocial: '',
   ruc: '',
   direccionFiscal: '',
-  // Métodos de pago visibles en el checkout — apaga el que no uses (ej. si
-  // no tienes cuenta bancaria para transferencia, o no quieres exponer Yape).
-  paymentMethods: { culqi: true, yapePlin: true, transferencia: true },
-  // Aviso que aparece bajo el selector de color en la página del producto.
-  // Deja vacío para no mostrar nada.
-  avisoColor: 'El color de la foto es referencial. El tono real puede variar según tu pantalla, la iluminación y el lote de la tela.',
-  whatsapp: '51951278010',
-  // Correo del dueño para recibir aviso de cada pedido nuevo. Se envía a través
-  // del mismo Apps Script de Google (ver GUIA-EDICION.md). Vacío = sin aviso.
+  // Correo del dueño para recibir aviso de cada pedido nuevo
   ownerEmail: '',
-  // Número que recibe Yape/Plin directo (se muestra al cliente en el checkout).
+
+  // ---------- MÉTODOS DE PAGO ----------
+  paymentMethods: { culqi: true, yapePlin: true, transferencia: true },
   yape: '951 278 010',
   yapeTitular: 'E|D Espacios y Diseño',
-  // Cuentas bancarias para transferencia. Agrega las tuyas:
-  // { banco: 'BCP', titular: 'Nombre Apellido', cuenta: '191-xxxxxxx-x-xx', cci: '00219100xxxxxxxxxx' },
   banks: [],
+
+  // ---------- AVISO DE COLOR ----------
+  avisoColor: 'El color de la foto es referencial. El tono real puede variar según tu pantalla, la iluminación y el lote de la tela.',
+
+  // ---------- ENTREGA ----------
   leadTime: '3 a 4 días hábiles',
-  // Cuotas referenciales: muestra "o N cuotas de S/ X" en cada producto. Es solo
-  // informativo (para animar la compra de un ticket alto); no cobra en cuotas.
-  // Pon cuotasNumero: 0 para no mostrarlo. Se apagó por defecto a pedido del
-  // dueño; edítalo desde el panel (Datos de la tienda) cuando quieras
-  // activarlo de nuevo.
-  cuotasNumero: 0,
-  cuotasTexto: 'sin intereses con tu tarjeta',
   deliveryMinDays: 4,
   deliverySlots: [
     { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
     { id: 'tarde', label: 'Tarde (2:00 p.m. – 6:00 p.m.)' },
   ],
+
+  // ---------- CUOTAS ----------
+  cuotasNumero: 0,
+  cuotasTexto: 'sin intereses con tu tarjeta',
+
+  // ---------- SEO ----------
+  seo: {
+    siteName: 'E|D Espacios y Diseño',
+    siteDesc: 'Tarimas, cabeceras y muebles a medida. Diseña tu espacio con los colores que imaginas.',
+    keywords: 'tarimas, cabeceras, muebles, diseño, Perú',
+  },
+
+  // ---------- FOOTER ----------
+  footer: {
+    copyright: '© 2026 E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.',
+    paymentText: 'Pagos procesados de forma segura con Culqi. Precios en Soles (S/).',
+    links: [
+      { label: 'Libro de Reclamaciones', url: '/libro-de-reclamaciones' },
+    ],
+  },
   // Preguntas frecuentes (editable desde el panel). Se muestran en la portada.
   // Deja la lista vacía para no mostrar la sección.
   faq: [

@@ -109,13 +109,15 @@ export default function Footer() {
           </div>
         )}
 
-        <p>© {new Date().getFullYear()} E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.</p>
-        <p className="mt-1">Pagos procesados de forma segura con Culqi. Precios en Soles (S/).</p>
+        <p>{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.`}</p>
+        <p className="mt-1">{storeConfig.footer?.paymentText || 'Pagos procesados de forma segura con Culqi. Precios en Soles (S/).'}</p>
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-          <Link to="/libro-de-reclamaciones" className="underline hover:text-neutral-700">
-            Libro de Reclamaciones
-          </Link>
+          {(storeConfig.footer?.links || []).map((link) => (
+            <Link key={link.url} to={link.url} className="underline hover:text-neutral-700">
+              {link.label}
+            </Link>
+          ))}
           {legal.privacidadActiva && (
             <Link to="/politica-privacidad" className="underline hover:text-neutral-700">
               {legal.privacidadTitulo || 'Política de Privacidad'}

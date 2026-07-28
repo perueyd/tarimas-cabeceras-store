@@ -1,20 +1,23 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
+import { useCatalog } from '../context/CatalogContext.jsx';
 
 export default function Header() {
   const { totalItems } = useCart();
+  const { storeConfig } = useCatalog();
+  const branding = storeConfig.branding || {};
 
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-200 bg-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        {/* Logo E|D — Espacios y Diseño */}
+        {/* Logo — Editable desde panel */}
         <Link to="/" className="flex items-center gap-3">
           <span className="text-3xl font-bold leading-none tracking-tight">
-            E<span className="mx-0.5 font-thin text-neutral-400">|</span>D
+            {branding.logo || 'E|D'}
           </span>
           <span className="hidden flex-col justify-center leading-tight sm:flex">
-            <span className="text-[13px] font-semibold tracking-[0.22em]">ESPACIOS Y DISEÑO</span>
-            <span className="text-[9px] tracking-[0.34em] text-neutral-400">PROYECTOS INMOBILIARIOS</span>
+            <span className="text-[13px] font-semibold tracking-[0.22em]">{branding.nombre || 'ESPACIOS Y DISEÑO'}</span>
+            <span className="text-[9px] tracking-[0.34em] text-neutral-400">{branding.subtitulo || 'PROYECTOS INMOBILIARIOS'}</span>
           </span>
         </Link>
         <nav className="flex items-center gap-4 text-sm sm:gap-6">

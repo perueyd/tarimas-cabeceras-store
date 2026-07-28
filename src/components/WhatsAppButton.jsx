@@ -1,15 +1,16 @@
 import { useCatalog } from '../context/CatalogContext.jsx';
 
-// Botón flotante de WhatsApp. Solo aparece si storeConfig.whatsapp tiene un número.
+// Botón flotante de WhatsApp. Solo aparece si storeConfig.contacto.whatsapp tiene un número.
 export default function WhatsAppButton() {
   const { storeConfig } = useCatalog();
-  if (!storeConfig.whatsapp) return null;
+  const whatsapp = storeConfig.contacto?.whatsapp || storeConfig.whatsapp;
+  if (!whatsapp) return null;
 
   const mensaje = encodeURIComponent('Hola, vengo de la página web y quiero hacer una consulta.');
 
   return (
     <a
-      href={`https://wa.me/${storeConfig.whatsapp}?text=${mensaje}`}
+      href={`https://wa.me/${whatsapp}?text=${mensaje}`}
       target="_blank"
       rel="noreferrer"
       aria-label="Escríbenos por WhatsApp"
