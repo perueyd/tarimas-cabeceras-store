@@ -4,7 +4,9 @@
 import { hasDB, redisCmd } from './_store.js';
 
 const KEY = 'promo:codes';
+const KEY_DESCUENTOS = 'descuentos:automaticos';
 const TIPOS = ['porcentaje', 'monto'];
+const TIPOS_DESC = ['flashsale', 'cantidad', 'categoria'];
 
 export async function listPromoCodes() {
   if (!hasDB) return [];
@@ -16,6 +18,24 @@ export async function listPromoCodes() {
   } catch {
     return [];
   }
+}
+
+export async function listDescuentosAutomaticos() {
+  if (!hasDB) return [];
+  const data = await redisCmd(['GET', KEY_DESCUENTOS]);
+  if (!data.result) return [];
+  try {
+    const list = JSON.parse(data.result);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveDescuentosAutomaticos(list) {
+  if (!hasDB) return false;
+  await redisCmd(['SET', KEY_DESCUENTOS, JSON.stringify(list)]);
+  return true;
 }
 
 export async function savePromoCodes(list) {
@@ -35,7 +55,7 @@ function normalizeCode(raw) {
 // SEGURIDAD: se llama tanto al mostrar el descuento en el checkout como al
 // confirmar el pedido — nunca se confía en un "descuento" que mande el
 // navegador, siempre se recalcula aquí desde el código guardado en Redis.
-export async function validatePromo(rawCode, total) {
+export async function validatePromo(rawCode, total, cartInfo = {}) {
   const code = normalizeCode(rawCode);
   if (!code) return { valid: false, motivo: 'Ingresa un código.' };
   if (!(total > 0)) return { valid: false, motivo: 'El carrito está vacío.' };
@@ -63,6 +83,54 @@ export async function validatePromo(rawCode, total) {
   return { valid: true, promo, descuento };
 }
 
+// Calcula descuentos automáticos (flash sale, cantidad, categoría)
+// sin necesidad de código promocional.
+export async function calcularDescuentosAutomaticos(total, cartInfo = {}) {
+  if (!(total > 0)) return { descuentos: [] };
+
+  const descuentos = await listDescuentosAutomaticos();
+  const aplicables = [];
+
+  for (const d of descuentos) {
+    if (!d.activo) continue;
+    if (d.vence && new Date(d.vence + 'T23:59:59') < new Date()) continue;
+
+    let aplica = false;
+    let razon = '';
+
+    if (d.tipo === 'flashsale') {
+      aplica = true;
+      razon = '🎉 Flash Sale';
+    } else if (d.tipo === 'cantidad') {
+      const cantidadItems = cartInfo.cantidadItems || 0;
+      if (cantidadItems >= (d.cantidadMinima || 2)) {
+        aplica = true;
+        razon = `Llevas ${cantidadItems}+ productos`;
+      }
+    } else if (d.tipo === 'categoria') {
+      const categorias = cartInfo.categorias || [];
+      if (categorias.includes(d.categoria)) {
+        aplica = true;
+        razon = `Descuento en ${d.categoria}`;
+      }
+    }
+
+    if (aplica) {
+      let descuento;
+      if (d.tipoDesc === 'monto') {
+        descuento = Math.max(Number(d.valor) || 0, 0);
+      } else {
+        const pct = Math.min(Math.max(Number(d.valor) || 0, 0), 100);
+        descuento = total * (pct / 100);
+      }
+      descuento = Math.round(Math.min(descuento, total) * 100) / 100;
+      aplicables.push({ id: d.id, tipo: d.tipo, valor: d.valor, tipoDesc: d.tipoDesc, descuento, razon });
+    }
+  }
+
+  return { descuentos: aplicables };
+}
+
 // Suma un uso al código (se llama SOLO tras confirmar el pedido, nunca antes).
 export async function registerPromoUsage(code) {
   const list = await listPromoCodes();
@@ -74,6 +142,10 @@ export async function registerPromoUsage(code) {
 
 export function isValidTipo(tipo) {
   return TIPOS.includes(tipo);
+}
+
+export function isValidTipoDesc(tipo) {
+  return TIPOS_DESC.includes(tipo);
 }
 
 export { normalizeCode };

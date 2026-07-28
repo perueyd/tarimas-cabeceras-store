@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { Stars } from './ProductDetail.jsx';
 import CatalogEditor from './CatalogEditor.jsx';
-import PromoEditor from './PromoEditor.jsx';
+import MegaOfertasEditor from './MegaOfertasEditor.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -395,7 +395,7 @@ export default function Orders() {
           { id: 'reclamos', label: `📋 Reclamos${reclamosPendientes.length ? ` (${reclamosPendientes.length})` : ''}` },
           { id: 'suscriptores', label: `📧 Suscriptores (${suscriptores.length})` },
           { id: 'encuestas', label: `📊 Encuestas (${encuestas.length})` },
-          { id: 'promos', label: '🏷️ Promociones' },
+          { id: 'ofertas', label: '💰 Ofertas y descuentos' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
           <button
@@ -677,7 +677,7 @@ export default function Orders() {
         </div>
       )}
 
-      {tab === 'promos' && <PromoEditor adminKey={key} />}
+      {tab === 'ofertas' && <MegaOfertasEditor adminKey={key} />}
 
       {tab === 'editar' && <CatalogEditor adminKey={key} />}
     </main>

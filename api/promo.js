@@ -1,4 +1,4 @@
-import { isValidTipo, listPromoCodes, savePromoCodes, validatePromo } from './_promo.js';
+import { isValidTipo, isValidTipoDesc, listPromoCodes, savePromoCodes, validatePromo, listDescuentosAutomaticos, saveDescuentosAutomaticos, calcularDescuentosAutomaticos } from './_promo.js';
 import { hasDB } from './_store.js';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
@@ -31,7 +31,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const codes = await listPromoCodes();
-    return res.status(200).json({ codes });
+    const descuentosAuto = await listDescuentosAutomaticos();
+    return res.status(200).json({ codes, descuentosAuto });
   }
 
   if (!hasDB) {
