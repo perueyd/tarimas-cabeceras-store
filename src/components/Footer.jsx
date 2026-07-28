@@ -51,30 +51,30 @@ function NewsletterForm({ newsletter }) {
   }
 
   return (
-    <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4">
-      <p className="text-sm font-medium text-neutral-800">{newsletter.titulo}</p>
-      {newsletter.descripcion && <p className="mt-1 text-xs text-neutral-500">{newsletter.descripcion}</p>}
+    <div className="mb-8 rounded-xl bg-gradient-to-r from-neutral-900 to-neutral-800 p-6 text-white shadow-lg">
+      <p className="text-base font-semibold">{newsletter.titulo}</p>
+      {newsletter.descripcion && <p className="mt-1 text-sm text-neutral-300">{newsletter.descripcion}</p>}
       {estado === 'ok' ? (
-        <p className="mt-3 text-sm text-green-700">{msg}</p>
+        <p className="mt-4 text-sm text-green-300 font-medium">✓ {msg}</p>
       ) : (
-        <form onSubmit={enviar} className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <form onSubmit={enviar} className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Tu correo electrónico"
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
+            className="flex-1 rounded-lg bg-white/10 border border-white/20 px-4 py-2.5 text-sm text-white placeholder:text-white/50 outline-none focus:border-white/40 focus:bg-white/15 transition"
           />
           <button
             type="submit"
             disabled={estado === 'enviando'}
-            className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+            className="rounded-lg bg-white text-neutral-900 px-6 py-2.5 text-sm font-semibold transition hover:bg-neutral-100 disabled:opacity-60 whitespace-nowrap"
           >
-            {estado === 'enviando' ? 'Enviando...' : 'Suscribirme'}
+            {estado === 'enviando' ? 'Enviando...' : 'Suscribirse'}
           </button>
         </form>
       )}
-      {estado === 'error' && <p className="mt-2 text-xs text-red-600">{msg}</p>}
+      {estado === 'error' && <p className="mt-3 text-xs text-red-300">{msg}</p>}
     </div>
   );
 }
@@ -87,12 +87,12 @@ export default function Footer() {
   const redes = Object.keys(SOCIAL_ICONS).filter((k) => social[k]);
 
   return (
-    <footer className="mt-16 border-t border-neutral-200 py-8">
-      <div className="mx-auto max-w-6xl px-4 text-sm text-neutral-500">
+    <footer className="mt-20 border-t border-neutral-100 bg-neutral-50 py-12">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         {newsletter.activo && <NewsletterForm newsletter={newsletter} />}
 
         {redes.length > 0 && (
-          <div className="mb-4 flex gap-3">
+          <div className="mb-6 flex gap-3">
             {redes.map((k) => (
               <a
                 key={k}
@@ -101,31 +101,33 @@ export default function Footer() {
                 rel="noreferrer"
                 aria-label={SOCIAL_LABEL[k]}
                 title={SOCIAL_LABEL[k]}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-300 text-neutral-600 transition hover:border-ink hover:text-ink"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-neutral-200 text-neutral-600 transition hover:bg-neutral-900 hover:text-white hover:border-neutral-900 shadow-sm"
               >
-                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">{SOCIAL_ICONS[k]}</svg>
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">{SOCIAL_ICONS[k]}</svg>
               </a>
             ))}
           </div>
         )}
 
-        <p>{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.`}</p>
-        <p className="mt-1">{storeConfig.footer?.paymentText || 'Pagos procesados de forma segura con Culqi. Precios en Soles (S/).'}</p>
+        <div className="space-y-2 text-xs sm:text-sm text-neutral-600">
+          <p className="font-medium">{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.`}</p>
+          <p>{storeConfig.footer?.paymentText || '🔒 Pagos seguros con Culqi | Precios en Soles (S/)'}</p>
+        </div>
 
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs">
           {(storeConfig.footer?.links || []).map((link) => (
-            <Link key={link.url} to={link.url} className="underline hover:text-neutral-700">
+            <Link key={link.url} to={link.url} className="text-neutral-600 hover:text-neutral-900 font-medium transition">
               {link.label}
             </Link>
           ))}
           {legal.privacidadActiva && (
-            <Link to="/politica-privacidad" className="underline hover:text-neutral-700">
-              {legal.privacidadTitulo || 'Política de Privacidad'}
+            <Link to="/politica-privacidad" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
+              {legal.privacidadTitulo || 'Privacidad'}
             </Link>
           )}
           {legal.terminosActivo && (
-            <Link to="/terminos-condiciones" className="underline hover:text-neutral-700">
-              {legal.terminosTitulo || 'Términos y Condiciones'}
+            <Link to="/terminos-condiciones" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
+              {legal.terminosTitulo || 'Términos'}
             </Link>
           )}
         </div>

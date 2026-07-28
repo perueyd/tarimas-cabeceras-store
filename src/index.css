@@ -12,9 +12,17 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #faf9f7;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #ffffff;
   color: #1c1c1c;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
 }
 
 /* Aparición al hacer scroll (portada) */
