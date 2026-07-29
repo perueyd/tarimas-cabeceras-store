@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import ShowcaseMarquee from '../components/ShowcaseMarquee.jsx';
+import RecentOrdersSection from '../components/RecentOrdersSection.jsx';
 import ProductImage from '../components/ProductImage.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { getEffectivePrice } from '../lib/pricing.js';
@@ -280,8 +280,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ================= SHOWCASE ANIMADO DE CATEGORÍAS ================= */}
-      <ShowcaseMarquee />
+      {/* ================= ÚLTIMAS COMPRAS + TRUST BADGES ================= */}
+      <RecentOrdersSection />
 
       {/* ================= CATEGORÍAS ================= */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20">
