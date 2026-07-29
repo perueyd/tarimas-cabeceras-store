@@ -13,6 +13,7 @@ import IntegrationsTab from './IntegrationsTab.jsx';
 import EmailMarketingTab from './EmailMarketingTab.jsx';
 import SecurityTab from './SecurityTab.jsx';
 import SEOTab from './SEOTab.jsx';
+import JarvisAssistant from '../components/JarvisAssistant.jsx';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -336,6 +337,7 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'legal' && <LegalTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'encuesta' && <EncuestaTab catalog={catalog} api={api} flash={flash} />}
+      <JarvisAssistant />
     </div>
   );
 }
