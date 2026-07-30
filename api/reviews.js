@@ -6,11 +6,38 @@ import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 // Reseñas de productos (comentarios + estrellas).
 // GET  ?product=<id>                     -> reseñas públicas de un producto
+// GET  ?recientes=1                      -> últimas reseñas aprobadas (portada)
 // GET  ?all=1  Authorization: Bearer <admin>  -> todas las reseñas (panel admin)
 // POST {productId, nombre, estrellas, comentario} -> crea una reseña
 // DELETE Authorization: Bearer <admin>, ?product=<id>&id=<reviewId>  -> elimina una reseña (admin)
 export default async function handler(req, res) {
   if (req.method === 'GET') {
+    // Últimas reseñas para la portada. Público, pero solo devuelve lo que ya
+    // es visible en la ficha del producto: nombre, estrellas y comentario.
+    // Nada de correo ni teléfono.
+    if (req.query.recientes) {
+      if (await rateLimitRequest(`reviews-recientes:${clientIp(req)}`, 120, 3600)) {
+        return res.status(429).json({ error: 'Demasiadas consultas seguidas.' });
+      }
+      if (!hasDB) return res.status(200).json({ reviews: [] });
+      const data = await redisCmd(['LRANGE', 'reviews:all', '0', '99']);
+      const { products } = await getCatalog();
+      const nombreDe = new Map(products.map((p) => [p.id, p.name]));
+      const reviews = parseAll(data)
+        .filter((r) => r.aprobada !== false && r.comentario && nombreDe.has(r.productId))
+        .slice(0, 8)
+        .map((r) => ({
+          id: r.id,
+          productId: r.productId,
+          productName: nombreDe.get(r.productId),
+          nombre: r.nombre,
+          estrellas: r.estrellas,
+          comentario: r.comentario,
+          fecha: r.fecha,
+        }));
+      return res.status(200).json({ reviews });
+    }
+
     if (req.query.all) {
       const auth = await checkAdminAuth(req);
       if (!auth.ok) return res.status(auth.status).json({ error: auth.error });

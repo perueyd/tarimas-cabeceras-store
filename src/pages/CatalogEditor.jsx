@@ -13,6 +13,7 @@ import IntegrationsTab from './IntegrationsTab.jsx';
 import EmailMarketingTab from './EmailMarketingTab.jsx';
 import SecurityTab from './SecurityTab.jsx';
 import SEOTab from './SEOTab.jsx';
+import GarantiasTab from './GarantiasTab.jsx';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -285,6 +286,7 @@ export default function CatalogEditor({ adminKey }) {
           { id: 'colores', label: 'Colores' },
           { id: 'tamanos', label: 'Tamaños' },
           { id: 'config', label: 'Datos de la tienda' },
+          { id: 'garantias', label: '✅ Garantías de portada' },
           { id: 'pagos', label: '💳 Pagos' },
           { id: 'entrega', label: '🚚 Entrega' },
           { id: 'banners', label: '📢 Banners' },
@@ -320,6 +322,7 @@ export default function CatalogEditor({ adminKey }) {
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'tamanos' && <TamanosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'garantias' && <GarantiasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'pagos' && <PagosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'entrega' && <EntregaTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'banners' && <BannersTab catalog={catalog} api={api} flash={flash} />}
