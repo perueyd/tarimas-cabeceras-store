@@ -338,11 +338,15 @@ export default function Checkout() {
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
           promoCode: promo?.code,
+          // El servidor recalcula el total por su cuenta; esto solo le sirve
+          // para comprobar que coincide con lo que se mostró en pantalla y
+          // negarse a cobrar de más si no cuadra.
+          montoMostrado: totalConDescuento,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
+        throw new Error(data?.error || data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
       }
       clearCart();
       trackPurchase(data.orderCode || data.id, totalConDescuento);
@@ -387,6 +391,7 @@ export default function Checkout() {
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
           promoCode: promo?.code,
+          montoMostrado: totalConDescuento,
         }),
       });
       const data = await res.json();

@@ -4,6 +4,7 @@ import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, validatePromo } from './_promo.js';
 import { checkAdminAuth } from './_auth.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
@@ -37,7 +38,6 @@ export default async function handler(req, res) {
     // descuento que mande el navegador. Si el código dejó de ser válido justo
     // en este instante (venció, se acabó), simplemente no se aplica — la
     // compra sigue, no se bloquea al cliente por eso.
-    let montoFinal = priced.total;
     let promoCode = null;
     let promoDescuento = 0;
     const promoInput = s(body.promoCode, 30);
@@ -45,10 +45,18 @@ export default async function handler(req, res) {
       const promoResult = await validatePromo(promoInput, priced.total);
       if (promoResult.valid) {
         promoDescuento = promoResult.descuento;
-        montoFinal = Math.round((priced.total - promoDescuento) * 100) / 100;
         promoCode = promoResult.promo.code;
       }
     }
+
+    // Los descuentos automáticos también valen para Yape/transferencia: antes
+    // el pedido se guardaba al precio completo aunque el cliente viera otro.
+    const { descuento: descuentoAuto } = await calcularDescuentoAuto(priced.items, priced.total, products);
+    const { descuento, total: montoFinal } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
+    promoDescuento = descuento;
+
+    const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
+    if (!control.ok) return res.status(409).json({ error: control.error });
 
     const order = {
       code: newOrderCode(),

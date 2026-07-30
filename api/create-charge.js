@@ -3,6 +3,7 @@ import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, validatePromo } from './_promo.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -43,7 +44,6 @@ export default async function handler(req, res) {
   }
 
   // Código promocional (opcional) — se revalida aquí igual que en /api/orders.
-  let montoFinal = priced.total;
   let promoCode = null;
   let promoDescuento = 0;
   const promoInput = s(body.promoCode, 30);
@@ -51,10 +51,20 @@ export default async function handler(req, res) {
     const promoResult = await validatePromo(promoInput, priced.total);
     if (promoResult.valid) {
       promoDescuento = promoResult.descuento;
-      montoFinal = Math.round((priced.total - promoDescuento) * 100) / 100;
       promoCode = promoResult.promo.code;
     }
   }
+
+  // Descuentos automáticos (flash sale, por cantidad, por categoría). Antes
+  // solo se calculaban en el navegador, así que el checkout mostraba el precio
+  // rebajado y aquí se cobraba el precio completo.
+  const { descuento: descuentoAuto } = await calcularDescuentoAuto(priced.items, priced.total, products);
+  const { descuento, total: montoFinal } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
+  if (!promoCode || descuento !== promoDescuento) promoDescuento = descuento;
+
+  // Nunca cobrar por encima de lo que el cliente vio en pantalla.
+  const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
+  if (!control.ok) return res.status(409).json({ error: control.error });
 
   const amount = Math.round(montoFinal * 100);
   const items = priced.items;
