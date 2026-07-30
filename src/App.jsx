@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { initAnalytics, trackPageView } from './lib/analytics.js';
 import Header from './components/Header.jsx';
@@ -11,7 +11,12 @@ import ProductDetail from './pages/ProductDetail.jsx';
 import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
 import ThankYou from './pages/ThankYou.jsx';
-import Orders from './pages/Orders.jsx';
+// El panel de administración se carga SOLO cuando el dueño entra a /pedidos.
+// Antes viajaba en el mismo paquete que la tienda, así que cada cliente
+// descargaba las ~20 pestañas del panel, el asistente de voz y la vista previa
+// antes de poder ver la portada. Con datos móviles en Perú eso son segundos de
+// espera por código que un comprador nunca ejecuta.
+const Orders = lazy(() => import('./pages/Orders.jsx'));
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
 import LegalPage from './pages/LegalPage.jsx';
@@ -52,6 +57,13 @@ export default function App() {
       <ScrollToTop />
       <Header />
       <div className="flex-1">
+        <Suspense
+          fallback={
+            <main className="mx-auto max-w-3xl px-4 py-20 text-center text-sm text-neutral-500">
+              Cargando…
+            </main>
+          }
+        >
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/tienda" element={<Home />} />
@@ -67,6 +79,7 @@ export default function App() {
           {/* Cualquier otra dirección: antes quedaba una página en blanco. */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </div>
       <Footer />
       <WhatsAppButton />

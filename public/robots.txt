@@ -1,0 +1,19 @@
+# Qué puede rastrear Google (y demás buscadores) de esta tienda.
+#
+# Antes este archivo no existía: la reescritura de Vercel mandaba /robots.txt a
+# index.html, así que Google pedía las reglas y recibía el HTML de la tienda.
+# Además, el texto por defecto del panel bloqueaba /admin — una ruta que no
+# existe — dejando el panel real (/pedidos) libre para ser indexado.
+
+User-agent: *
+
+# El panel del negocio y las páginas de compra no pintan nada en Google.
+Disallow: /pedidos
+Disallow: /checkout
+Disallow: /carrito
+Disallow: /gracias
+
+# Todo lo demás sí: portada, tienda, fichas de producto, seguimiento y legales.
+Allow: /
+
+Sitemap: https://eydperu.vercel.app/sitemap.xml
