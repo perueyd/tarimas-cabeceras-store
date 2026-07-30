@@ -12,6 +12,7 @@ import OmniChannelTab from './OmniChannelTab.jsx';
 import PromoEditor from './PromoEditor.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
+import { urlSeguimiento } from '../data/sitio.js';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -729,7 +730,7 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
   const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const waMsg = encodeURIComponent(
-    `Hola ${o.nombre}, te escribimos de E|D Espacios y Diseño sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: https://tarimas-cabeceras-store.vercel.app/seguimiento?codigo=${o.code}`
+    `Hola ${o.nombre}, te escribimos de E|D Espacios y Diseño sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: ${urlSeguimiento(o.code)}`
   );
   const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${waMsg}` : null;
   const badge =

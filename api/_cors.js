@@ -5,7 +5,6 @@ import { clientIp } from './_ratelimit.js';
 export function validateOrigin(req) {
   const origin = req.headers.origin || req.headers.referer;
   const allowedOrigins = [
-    'https://tarimas-cabeceras-store.vercel.app',
     'https://eydperu.vercel.app',
     'http://localhost:3000',
     'http://localhost:5173',

@@ -16,7 +16,7 @@ const SYSTEM_PROMPT = `Eres CHAT-ED, el asistente de IA de E|D Espacios y Diseñ
 🏢 INFO TIENDA:
 - Productos: Tarimas, cabeceras, sofás cama (TODO personalizado)
 - WhatsApp: +51951278010 (para cotizaciones y medidas)
-- Sitio web: tarimas-cabeceras-store.vercel.app
+- Sitio web: eydperu.vercel.app
 - Colores: Gris, Beige, Azul Petróleo, Vino, Negro
 - Envío: 3-4 días en Lima, variable en provincias
 - Pago: Yape/Plin, transferencia, tarjeta (Culqi)
@@ -47,7 +47,7 @@ Q: "¿Hacen entregas a provincias?"
 A: "Sí, a todo Perú. En Lima 3-4 días, provincias varía. Confirma en WhatsApp."
 
 Q: "Quiero comprar"
-A: "Genial! Entra a tarimas-cabeceras-store.vercel.app o escríbeme por WhatsApp para más ayuda."`;
+A: "Genial! Entra a eydperu.vercel.app o escríbeme por WhatsApp para más ayuda."`;
 
 
 export default async function handler(req, res) {
