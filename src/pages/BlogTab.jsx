@@ -32,12 +32,8 @@ export default function BlogTab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, blog: data }),
-      });
-      if (res.ok) flash('Blog actualizado.');
+      await api('POST', 'config', { blog: data });
+      flash('Blog actualizado.');
     } catch (err) {
       alert(err.message);
     } finally {

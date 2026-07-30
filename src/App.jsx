@@ -15,6 +15,7 @@ import Orders from './pages/Orders.jsx';
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
 import LegalPage from './pages/LegalPage.jsx';
+import NotFound from './pages/NotFound.jsx';
 
 function AnalyticsTracker() {
   const location = useLocation();
@@ -63,6 +64,8 @@ export default function App() {
           <Route path="/libro-de-reclamaciones" element={<ComplaintsBook />} />
           <Route path="/politica-privacidad" element={<LegalPage which="privacidad" />} />
           <Route path="/terminos-condiciones" element={<LegalPage which="terminos" />} />
+          {/* Cualquier otra dirección: antes quedaba una página en blanco. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
       <Footer />

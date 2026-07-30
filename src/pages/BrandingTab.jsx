@@ -16,19 +16,10 @@ export default function BrandingTab({ catalog, api, flash }) {
 
   async function guardar() {
     try {
-      const newConfig = { ...cfg, ...data };
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify(newConfig),
-      });
-      if (res.ok) {
-        flash('Cambios guardados correctamente.');
-        await new Promise(r => setTimeout(r, 500));
-        window.location.reload();
-      } else {
-        alert('Error al guardar');
-      }
+      await api('POST', 'config', { ...data });
+      // El helper `api` ya recarga el catálogo en toda la tienda, así que no
+      // hace falta recargar el navegador entero.
+      flash('Cambios guardados correctamente.');
     } catch (err) {
       alert(err.message);
     }

@@ -11,9 +11,21 @@ const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 const SHEETS_URL = process.env.SHEETS_WEBHOOK_URL;
 
-export const hasDB = Boolean(REDIS_URL && REDIS_TOKEN);
+const HAY_REDIS = Boolean(REDIS_URL && REDIS_TOKEN);
+
+// Solo en desarrollo local (`npm run dev`), y solo si no hay Redis de verdad:
+// se usa una base en archivo para poder probar el panel sin credenciales.
+// dev-server.js pone LOCAL_DEV_DB=1; en Vercel nunca está, así que allí esto
+// siempre es false y la tienda funciona exactamente igual que antes.
+const USAR_DB_LOCAL = !HAY_REDIS && process.env.LOCAL_DEV_DB === '1';
+
+export const hasDB = HAY_REDIS || USAR_DB_LOCAL;
 
 export async function redisCmd(command) {
+  if (USAR_DB_LOCAL) {
+    const { localRedisCmd } = await import('./_localdb.js');
+    return localRedisCmd(command);
+  }
   const res = await fetch(REDIS_URL, {
     method: 'POST',
     headers: {

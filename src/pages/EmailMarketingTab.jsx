@@ -25,12 +25,8 @@ export default function EmailMarketingTab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, emailMarketing: data }),
-      });
-      if (res.ok) flash('Email Marketing actualizado.');
+      await api('POST', 'config', { emailMarketing: data });
+      flash('Email Marketing actualizado.');
     } catch (err) {
       alert(err.message);
     } finally {

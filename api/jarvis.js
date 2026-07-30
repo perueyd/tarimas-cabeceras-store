@@ -1,8 +1,13 @@
 import Groq from 'groq-sdk';
+import { checkAdminAuth } from './_auth.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
 });
+
+// Ver nota en api/chatbot.js: Groq retira modelos cada cierto tiempo.
+const MODELO = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 const SYSTEM_PROMPT = `Eres JARVIS, el asistente PRO del panel admin de E|D Espacios y Diseño.
 
@@ -63,46 +68,96 @@ A: "Top 3: (1) Chat en vivo (ya lo tienes!), (2) Meta Pixel + retargeting, (3) N
 
 TONO: Profesional + amigable. Eres su socio estratégico, no un chatbot.`;
 
+// Cuando la respuesta se va a ESCUCHAR y no a leer, las reglas cambian: los
+// asteriscos, guiones y emojis se leen en voz alta y suenan ridículos, y un
+// párrafo largo es insoportable de oír. Estas instrucciones se añaden a las
+// de arriba solo en modo voz.
+const PROMPT_VOZ = `
+
+🔊 MODO VOZ ACTIVO — tu respuesta se va a REPRODUCIR EN VOZ ALTA:
+- Escribe como HABLARÍAS, no como escribirías. Nada de listas ni viñetas.
+- NUNCA uses asteriscos, almohadillas, guiones de lista, emojis ni tablas: se leen en voz alta.
+- Máximo 3 frases por respuesta. Si el tema da para más, di lo esencial y pregunta si quiere que amplíes.
+- Nada de direcciones web largas. Di "te lo dejo escrito en pantalla" si hace falta un enlace.
+- Números redondos y en palabras cuando sea natural ("unos ciento veinte soles").
+- Termina con una pregunta corta cuando tenga sentido seguir la conversación.`;
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  // NO se ponen cabeceras CORS: JARVIS es del panel, que vive en este mismo
+  // dominio. Antes tenía Access-Control-Allow-Origin '*', que autorizaba a
+  // cualquier web del mundo a llamarlo y gastar la cuota gratis de Groq.
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const { messages } = req.body;
+  // JARVIS es SOLO para el dueño. Esconder el botón no basta: la dirección
+  // /api/jarvis seguía respondiendo a cualquiera que la llamara directamente.
+  const auth = await checkAdminAuth(req);
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+
+  if (await rateLimitRequest(`jarvis:${clientIp(req)}`, 60, 3600)) {
+    return res.status(429).json({ error: 'Demasiadas consultas seguidas. Espera un momento.' });
+  }
+
+  // `voz: true` cambia dos cosas: el estilo de la respuesta (frases cortas, sin
+  // símbolos que se lean raro) y la forma de entregarla (por partes, para que
+  // JARVIS empiece a hablar sin esperar a tener el texto completo).
+  const { messages, voz } = req.body || {};
+  const modoVoz = voz === true;
 
   if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: 'Messages array required' });
+    return res.status(400).json({ error: 'Falta la lista de mensajes.' });
   }
 
-  if (!process.env.GROQ_API_KEY) {
-    return res.status(500).json({
-      error: 'GROQ_API_KEY not configured. Set it in Vercel environment variables.',
+  // Se aceptan solo turnos de conversación normales y de largo acotado: así
+  // nadie puede colar un mensaje "system" que reemplace las instrucciones.
+  const limpios = messages
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
+    .slice(-10)
+    .map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 2000) }));
+
+  if (!limpios.length) {
+    return res.status(400).json({ error: 'Falta la lista de mensajes.' });
+  }
+
+  // El texto de ejemplo del .env es "verdadero" pero no sirve como clave.
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || !apiKey.startsWith('gsk_') || apiKey.includes('YOUR_KEY')) {
+    return res.status(503).json({
+      error: 'Falta configurar GROQ_API_KEY. Sácala gratis en https://console.groq.com/keys y ponla en las variables de entorno de Vercel (o en .env.local para probar en tu computadora).',
     });
   }
+
+  const peticion = {
+    messages: [
+      { role: 'system', content: modoVoz ? SYSTEM_PROMPT + PROMPT_VOZ : SYSTEM_PROMPT },
+      ...limpios,
+    ],
+    model: MODELO,
+    max_tokens: modoVoz ? 300 : 1024, // hablando, las respuestas largas cansan
+    temperature: 0.7,
+    top_p: 0.95,
+  };
 
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT,
-        },
-        ...messages,
-      ],
-      model: 'mixtral-8x7b-32768',
-      max_tokens: 1024,
-      temperature: 0.7,
-      top_p: 0.95,
-    });
+    // En modo voz la respuesta se manda por partes según Groq la va generando.
+    // Así el navegador puede empezar a leer la primera frase mientras el resto
+    // todavía se está escribiendo, que es lo que hace que suene a conversación
+    // y no a "esperar a que cargue".
+    if (modoVoz) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('X-Accel-Buffering', 'no'); // evita que un proxy lo acumule
 
+      const stream = await groq.chat.completions.create({ ...peticion, stream: true });
+      for await (const parte of stream) {
+        const texto = parte.choices?.[0]?.delta?.content;
+        if (texto) res.write(texto);
+      }
+      return res.end();
+    }
+
+    const chatCompletion = await groq.chat.completions.create(peticion);
     const reply = chatCompletion.choices[0]?.message?.content || '';
 
     return res.status(200).json({ reply });
@@ -111,12 +166,22 @@ export default async function handler(req, res) {
 
     if (error.status === 429) {
       return res.status(429).json({
-        error: 'Rate limit reached. Try again in a moment.',
+        error: 'Llegaste al límite de consultas por minuto del plan gratuito. Espera unos segundos.',
+      });
+    }
+    if (error.status === 401) {
+      return res.status(503).json({
+        error: 'La GROQ_API_KEY no es válida. Genera una nueva en https://console.groq.com/keys',
+      });
+    }
+    if (error.status === 404 || error.status === 400) {
+      return res.status(503).json({
+        error: `Groq ya no ofrece el modelo "${MODELO}". Actualiza la constante MODELO en api/jarvis.js con uno de https://console.groq.com/docs/models`,
       });
     }
 
     return res.status(500).json({
-      error: 'Error processing request. Try again later.',
+      error: 'No se pudo procesar la consulta. Intenta de nuevo en un momento.',
     });
   }
 }

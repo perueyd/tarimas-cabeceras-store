@@ -27,12 +27,8 @@ export default function SEOTab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, seo: data }),
-      });
-      if (res.ok) flash('SEO actualizado.');
+      await api('POST', 'config', { seo: data });
+      flash('SEO actualizado.');
     } catch (err) {
       alert(err.message);
     } finally {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 // Datos de ejemplo de compras recientes (en producción, vendrían de la API)
 const MOCK_RECENT_ORDERS = [
@@ -147,12 +148,14 @@ export default function RecentOrdersSection() {
             <p className="text-neutral-600 mb-4">
               ¿Listo para tu mueble personalizado?
             </p>
-            <a
-              href="/tienda"
+            {/* Link, no <a href>: con <a> el navegador recargaba toda la web
+                (bundle incluido) en vez de cambiar de vista al instante. */}
+            <Link
+              to="/tienda"
               className="inline-block rounded-lg bg-neutral-900 px-8 py-3 text-sm font-semibold text-white transition hover:bg-black active:scale-95"
             >
               Explorar la tienda →
-            </a>
+            </Link>
           </div>
         </div>
       </div>

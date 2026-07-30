@@ -48,7 +48,14 @@ export async function checkAdminAuth(req) {
   }
 
   const provided = getProvidedKey(req);
-  if (!provided || !safeEqual(provided, adminKey)) {
+  if (!provided) {
+    // Petición SIN clave: eso es "no autenticado", no "clave equivocada".
+    // Antes también sumaba intento fallido, así que una página pública que
+    // llamara por error a un endpoint de admin iba llenando el contador de la
+    // IP del cliente hasta bloquear el panel real del dueño.
+    return { ok: false, status: 401, error: 'Clave incorrecta.' };
+  }
+  if (!safeEqual(provided, adminKey)) {
     await bump(rlKey, VENTANA_SEGUNDOS);
     return { ok: false, status: 401, error: 'Clave incorrecta.' };
   }

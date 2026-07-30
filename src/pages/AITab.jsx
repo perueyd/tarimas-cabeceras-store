@@ -17,12 +17,8 @@ export default function AITab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, ai: data }),
-      });
-      if (res.ok) flash('Configuración de IA actualizada.');
+      await api('POST', 'config', { ai: data });
+      flash('Configuración de IA actualizada.');
     } catch (err) {
       alert(err.message);
     } finally {

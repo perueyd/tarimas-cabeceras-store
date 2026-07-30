@@ -23,12 +23,8 @@ export default function SecurityTab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, security: data }),
-      });
-      if (res.ok) flash('Seguridad actualizada.');
+      await api('POST', 'config', { security: data });
+      flash('Seguridad actualizada.');
     } catch (err) {
       alert(err.message);
     } finally {

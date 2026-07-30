@@ -69,7 +69,7 @@ export default function ThankYou() {
         </>
       )}
       <Link
-        to="/"
+        to="/tienda"
         className="mt-8 inline-block rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
       >
         Volver al catálogo

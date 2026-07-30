@@ -6,8 +6,11 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 export default function Home() {
   const { categories, products, storeConfig } = useCatalog();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('categoria') || 'todos';
-  const [tab, setTab] = useState(initialTab);
+  // La categoría se deriva SIEMPRE de la dirección, no de un estado aparte.
+  // Con un useState que solo leía la URL al montar, el botón "Atrás" del
+  // navegador y el enlace "Tienda" del menú cambiaban la dirección pero
+  // dejaban la lista filtrada como estaba: parecía que faltaban productos.
+  const tab = searchParams.get('categoria') || 'todos';
   const [busqueda, setBusqueda] = useState('');
 
   // Las pestañas se generan solas desde `categories` (editable desde el panel):
@@ -30,7 +33,6 @@ export default function Home() {
   });
 
   function selectTab(id) {
-    setTab(id);
     setSearchParams(id === 'todos' ? {} : { categoria: id });
   }
 

@@ -20,7 +20,7 @@ function normalizarFotoGaleria(item) {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { colors, currencyFormatter, sizes, storeConfig, getProductById } = useCatalog();
+  const { colors, currencyFormatter, sizes, storeConfig, getProductById, loaded } = useCatalog();
   const product = getProductById(id);
   const { addItem } = useCart();
 
@@ -132,11 +132,23 @@ export default function ProductDetail() {
   const tamanoElegido = availableSizes.find((s) => s.id === sizeId);
   const medidaActual = tamanoElegido ? (product?.sizeDims?.[tamanoElegido.id] || tamanoElegido.dims) : null;
 
+  // Los productos creados desde el panel solo existen en la base de datos, así
+  // que en el primer render (antes de que responda /api/catalog) todavía no
+  // están. Sin esta espera, un enlace recién compartido mostraba "Producto no
+  // encontrado" durante un instante.
+  if (!product && !loaded) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <p className="text-neutral-500">Cargando producto…</p>
+      </main>
+    );
+  }
+
   if (!product) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-16 text-center">
         <p>Producto no encontrado.</p>
-        <Link to="/" className="mt-4 inline-block underline">Volver al catálogo</Link>
+        <Link to="/tienda" className="mt-4 inline-block underline">Volver al catálogo</Link>
       </main>
     );
   }
@@ -180,7 +192,14 @@ export default function ProductDetail() {
           👁️ Vista previa — este producto está <strong>oculto</strong> y no aparece en la tienda. Para publicarlo, ponlo en «Mostrar» desde el panel.
         </div>
       )}
-      <Link to="/" className="text-sm text-neutral-500 hover:text-ink">← Volver al catálogo</Link>
+      {/* Vuelve a la categoría de la que vino, no a la portada: así el cliente
+          no pierde el filtro que traía. */}
+      <Link
+        to={product.category ? `/tienda?categoria=${product.category}` : '/tienda'}
+        className="text-sm text-neutral-500 hover:text-ink"
+      >
+        ← Volver al catálogo
+      </Link>
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div>

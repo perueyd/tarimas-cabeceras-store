@@ -14,7 +14,7 @@ export default function Cart() {
     return (
       <main className="mx-auto max-w-3xl px-4 py-16 text-center">
         <h1 className="text-xl font-semibold">Tu carrito está vacío</h1>
-        <Link to="/" className="mt-4 inline-block underline">Ver catálogo</Link>
+        <Link to="/tienda" className="mt-4 inline-block underline">Ver catálogo</Link>
       </main>
     );
   }

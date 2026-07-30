@@ -9,6 +9,9 @@ import AutomacionesTab from './AutomacionesTab.jsx';
 import AIRecommendationsTab from './AIRecommendationsTab.jsx';
 import GamificacionTab from './GamificacionTab.jsx';
 import OmniChannelTab from './OmniChannelTab.jsx';
+import PromoEditor from './PromoEditor.jsx';
+import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
+import JarvisVoice from '../components/JarvisVoice.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -403,6 +406,8 @@ export default function Orders() {
           { id: 'suscriptores', label: `📧 Suscriptores (${suscriptores.length})` },
           { id: 'encuestas', label: `📊 Encuestas (${encuestas.length})` },
           { id: 'ofertas', label: '💰 Ofertas y descuentos' },
+          { id: 'promos', label: '🏷️ Códigos de descuento' },
+          { id: 'descAuto', label: '⚡ Descuentos automáticos' },
           { id: 'analytics', label: '📈 Analytics' },
           { id: 'automaciones', label: '⚙️ Automaciones' },
           { id: 'ia', label: '🤖 IA Recomendador' },
@@ -692,6 +697,13 @@ export default function Orders() {
 
       {tab === 'ofertas' && <MegaOfertasEditor adminKey={key} />}
 
+      {/* Estas dos pantallas ya existían pero no estaban enlazadas en ningún
+          lado, así que no había forma de crear un código que el checkout
+          reconociera: es la única UI que escribe en 'promo:codes'. */}
+      {tab === 'promos' && <PromoEditor adminKey={key} />}
+
+      {tab === 'descAuto' && <DescuentosAutoEditor adminKey={key} />}
+
       {tab === 'analytics' && <AnalyticsOfertasTab adminKey={key} />}
 
       {tab === 'automaciones' && <AutomacionesTab adminKey={key} />}
@@ -705,6 +717,10 @@ export default function Orders() {
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
       {tab === 'editar' && <CatalogEditor adminKey={key} />}
+
+      {/* JARVIS acompaña TODO el panel, no solo la pestaña de edición. Va aquí
+          (dentro del bloque autenticado) para que el cliente nunca lo vea. */}
+      <JarvisVoice adminKey={key} />
     </main>
   );
 }

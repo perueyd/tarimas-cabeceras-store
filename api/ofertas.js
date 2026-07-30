@@ -1,6 +1,7 @@
 import { hasDB, redisCmd } from './_store.js';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
+import { clientIp, rateLimitRequest } from './_ratelimit.js';
 
 const KEY = 'ofertas:todas';
 
@@ -23,13 +24,23 @@ async function guardarOfertas(list) {
 }
 
 export default async function handler(req, res) {
+  // Leer las ofertas es público: el checkout las necesita para mostrar los
+  // descuentos, y solo son ofertas activas (nada sensible). Antes esta lectura
+  // exigía clave de administrador, así que cada visita al checkout sumaba un
+  // "intento fallido de clave" a la IP del cliente y terminaba bloqueando el
+  // panel del dueño. Solo se devuelven las ofertas activas.
+  if (req.method === 'GET') {
+    if (await rateLimitRequest(`ofertas-get:${clientIp(req)}`, 120, 3600)) {
+      return res.status(429).json({ error: 'Demasiadas consultas seguidas.' });
+    }
+    const todas = await listarOfertas();
+    const esAdmin = (await checkAdminAuth(req)).ok;
+    return res.status(200).json({ ofertas: esAdmin ? todas : todas.filter((o) => o.activo !== false) });
+  }
+
+  // Crear, modificar y borrar sigue siendo solo del dueño.
   const auth = await checkAdminAuth(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
-
-  if (req.method === 'GET') {
-    const ofertas = await listarOfertas();
-    return res.status(200).json({ ofertas });
-  }
 
   if (!hasDB) {
     return res.status(501).json({

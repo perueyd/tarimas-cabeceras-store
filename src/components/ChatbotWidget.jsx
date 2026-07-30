@@ -29,20 +29,24 @@ function ChatWidgetContent({ onClose }) {
     setLoading(true);
 
     try {
+      // Se envía el historial MÁS la pregunta recién escrita. Antes solo se
+      // mandaba el historial del estado, que todavía no la incluía, así que el
+      // bot nunca llegaba a leer lo que preguntaba el cliente.
+      const historial = messages
+        .slice(-8)
+        .map((m) => ({ role: m.role, content: m.content }));
+
       const response = await fetch('/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: [...historial, { role: 'user', content: userMessage }],
         }),
       });
 
-      if (!response.ok) throw new Error('Error en respuesta');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data?.error || 'No pudimos responder ahora mismo.');
 
-      const data = await response.json();
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: data.reply },
@@ -51,10 +55,7 @@ function ChatWidgetContent({ onClose }) {
       console.error('Error:', error);
       setMessages((prev) => [
         ...prev,
-        {
-          role: 'assistant',
-          content: '❌ Error procesando mensaje. Contacta vía WhatsApp: +51951278010',
-        },
+        { role: 'assistant', content: `⚠️ ${error.message}` },
       ]);
     }
 

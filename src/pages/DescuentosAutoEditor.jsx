@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 
 export default function DescuentosAutoEditor({ adminKey }) {
-  const { currencyFormatter, getCategories } = useCatalog();
+  const { currencyFormatter, categories } = useCatalog();
   const [descuentos, setDescuentos] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -66,7 +66,7 @@ export default function DescuentosAutoEditor({ adminKey }) {
     return <DescuentoForm inicial={editando} onCancel={() => setEditando(null)} onSave={guardar} error={error} />;
   }
 
-  const categorias = getCategories?.() || [];
+  const categorias = categories || [];
 
   return (
     <div>
@@ -136,11 +136,11 @@ export default function DescuentosAutoEditor({ adminKey }) {
 }
 
 function DescuentoForm({ inicial, onCancel, onSave, error }) {
-  const { getCategories } = useCatalog();
+  const { categories } = useCatalog();
   const [d, setD] = useState(inicial);
   const [guardando, setGuardando] = useState(false);
   const set = (k, v) => setD((prev) => ({ ...prev, [k]: v }));
-  const categorias = getCategories?.() || [];
+  const categorias = categories || [];
 
   async function handleSave() {
     if (d.tipo === 'categoria' && !d.categoria) {

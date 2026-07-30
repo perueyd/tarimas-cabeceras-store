@@ -28,14 +28,8 @@ export default function DesignTab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, design: data }),
-      });
-      if (res.ok) {
-        flash('Diseño actualizado. Recarga la página para ver los cambios.');
-      }
+      await api('POST', 'config', { design: data });
+      flash('Diseño actualizado. Recarga la página para ver los cambios.');
     } catch (err) {
       alert(err.message);
     } finally {

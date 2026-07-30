@@ -5,9 +5,23 @@
 // resto del sitio).
 import { hasDB, redisCmd } from './_store.js';
 
+// La IP identifica a quien hace la petición, y de ella dependen TODOS los
+// límites del sitio (fuerza bruta de la clave, prueba de tarjetas robadas,
+// spam de pedidos y reseñas). Por eso no puede salir de una cabecera que el
+// visitante pueda escribir a su antojo.
+//
+// En "x-forwarded-for" el PRIMER valor lo pone el cliente; el proxy añade el
+// suyo AL FINAL. Leer el primero permitía inventarse una IP distinta en cada
+// intento y saltarse todos los límites. Se prefiere la cabecera que pone
+// Vercel, y si solo hay x-forwarded-for se toma el último valor.
 export function clientIp(req) {
+  const plataforma = req.headers['x-vercel-forwarded-for'] || req.headers['x-real-ip'];
+  if (plataforma) return String(plataforma).split(',')[0].trim();
   const fwd = req.headers['x-forwarded-for'];
-  if (fwd) return String(fwd).split(',')[0].trim();
+  if (fwd) {
+    const partes = String(fwd).split(',');
+    return partes[partes.length - 1].trim();
+  }
   return req.socket?.remoteAddress || 'unknown';
 }
 

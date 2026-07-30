@@ -15,12 +15,8 @@ export default function IntegrationsTab({ catalog, api, flash }) {
   async function guardar() {
     setSaving(true);
     try {
-      const res = await fetch('/api/catalog', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('key') || ''}` },
-        body: JSON.stringify({ ...cfg, integrations: data }),
-      });
-      if (res.ok) flash('Integraciones actualizadas.');
+      await api('POST', 'config', { integrations: data });
+      flash('Integraciones actualizadas.');
     } catch (err) {
       alert(err.message);
     } finally {
