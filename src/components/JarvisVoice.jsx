@@ -127,9 +127,16 @@ export default function JarvisVoice({ adminKey }) {
   const [ajustes, setAjustes] = useState(false);
   const [voces, setVoces] = useState([]);
   const [vozNombre, setVozNombre] = useState('');
+  // Se lee dentro de try/catch: en modo incógnito o con el almacenamiento
+  // bloqueado por política del navegador, localStorage LANZA al leerlo, y al
+  // hacerlo durante el render se llevaba por delante el panel entero.
   const [velocidad, setVelocidad] = useState(() => {
-    const v = Number(localStorage.getItem('jarvis-velocidad'));
-    return Number.isFinite(v) && v >= 0.7 && v <= 1.8 ? v : 1.15;
+    try {
+      const v = Number(localStorage.getItem('jarvis-velocidad'));
+      return Number.isFinite(v) && v >= 0.7 && v <= 1.8 ? v : 1.15;
+    } catch {
+      return 1.15;
+    }
   });
   const messagesEndRef = useRef(null);
   // Los callbacks del reconocimiento se crean una sola vez, así que leen el
@@ -490,6 +497,12 @@ export default function JarvisVoice({ adminKey }) {
     window.speechSynthesis?.addEventListener?.('voiceschanged', cargarVoz);
 
     return () => {
+      // El orden importa: abort() dispara onend, y onend reabre el micrófono
+      // si la barrera sigue abierta. Sin cerrarla antes, el reconocimiento se
+      // volvía a arrancar DESPUÉS de desmontar el componente y el micrófono
+      // seguía grabando aunque el dueño ya hubiera salido del panel.
+      modoRef.current = false;
+      micPermitidoRef.current = false;
       window.speechSynthesis?.removeEventListener?.('voiceschanged', cargarVoz);
       clearTimeout(silencioRef.current);
       try { rec.abort(); } catch { /* ya cerrado */ }

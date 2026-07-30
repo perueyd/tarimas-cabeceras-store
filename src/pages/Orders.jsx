@@ -726,6 +726,51 @@ export default function Orders() {
   );
 }
 
+// Campo "Referencia (WSP)" de cada pedido.
+//
+// Antes escribía directo con onChange, o sea que mandaba un PATCH al servidor
+// POR CADA TECLA. Cada respuesta reescribía la lista de pedidos, y al escribir
+// rápido las letras se perdían o el cursor saltaba. Ahora se escribe en local y
+// se guarda al salir del campo o al pulsar Enter.
+function CampoReferencia({ o, onUpdate }) {
+  const [valor, setValor] = useState(o.referencia || '');
+  const [guardado, setGuardado] = useState(false);
+
+  // Si el pedido cambia desde fuera (recarga automática), se refresca el campo
+  // salvo que se esté escribiendo en él.
+  useEffect(() => {
+    setValor(o.referencia || '');
+  }, [o.referencia]);
+
+  function guardar() {
+    const limpio = valor.trim();
+    if (limpio === (o.referencia || '')) return;
+    onUpdate(o, { referencia: limpio });
+    setGuardado(true);
+    setTimeout(() => setGuardado(false), 1500);
+  }
+
+  return (
+    <span className="relative inline-flex items-center">
+      <input
+        type="text"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onBlur={guardar}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+          if (e.key === 'Escape') setValor(o.referencia || '');
+        }}
+        placeholder="Ej: #1, cliente123, ref001"
+        maxLength="60"
+        title="Se guarda al salir del campo o al pulsar Enter"
+        className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-ink"
+      />
+      {guardado && <span className="ml-1 text-xs text-green-600">✓</span>}
+    </span>
+  );
+}
+
 function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, getSizeById }) {
   const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
@@ -803,14 +848,7 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
         </label>
         <label className="flex items-center gap-1.5">
           <span className="text-neutral-500">Referencia (WSP):</span>
-          <input
-            type="text"
-            value={o.referencia || ''}
-            onChange={(e) => onUpdate(o, { referencia: e.target.value })}
-            placeholder="Ej: #1, cliente123, ref001"
-            maxLength="60"
-            className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-ink"
-          />
+          <CampoReferencia o={o} onUpdate={onUpdate} />
         </label>
         {wa && (
           <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">

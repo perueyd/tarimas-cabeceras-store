@@ -100,7 +100,10 @@ export default function Landing() {
     : null;
   const heroPrice = heroProduct && heroCheapestSizeId ? getEffectivePrice(heroProduct, heroCheapestSizeId) : null;
   const heroMin = heroPrice?.final ?? 0;
-  const heroImg = heroProduct ? resolveProductImage(heroProduct, heroColor.id) : null;
+  // Si el catálogo se queda sin colores (o el elegido se borró desde el panel),
+  // heroColor puede ser undefined: sin esta red, la portada revienta entera.
+  const colorSeguro = heroColor || colors[0] || { id: '', label: '', hex: '#cccccc' };
+  const heroImg = heroProduct ? resolveProductImage(heroProduct, colorSeguro.id) : null;
 
   // Parallax sutil con el mouse (desactivado si el usuario prefiere menos movimiento).
   useEffect(() => {
@@ -170,8 +173,11 @@ export default function Landing() {
 
             {/* Chips de color interactivos */}
             <div className="mt-6 flex flex-wrap items-center gap-2 sm:gap-3">
-              {HERO_COLORS.map((id) => {
-                const c = colors.find((k) => k.id === id);
+              {/* Se descartan los colores que ya no existen: si el dueño borra
+                  o renombra uno desde el panel, `find` devolvía undefined y
+                  leer `c.label` dejaba la PORTADA ENTERA en blanco. */}
+              {HERO_COLORS.map((id) => colors.find((k) => k.id === id)).filter(Boolean).map((c) => {
+                const id = c.id;
                 return (
                   <button
                     key={id}
@@ -179,13 +185,13 @@ export default function Landing() {
                     title={c.label}
                     onClick={() => setHeroColor(c)}
                     className={`h-11 w-11 rounded-full border-2 transition-all hover:scale-110 ${
-                      heroColor.id === id ? 'scale-110 ring-3 ring-neutral-900 ring-offset-2 border-neutral-900' : 'border-neutral-300'
+                      colorSeguro.id === id ? 'scale-110 ring-3 ring-neutral-900 ring-offset-2 border-neutral-900' : 'border-neutral-300'
                     }`}
                     style={{ backgroundColor: c.hex }}
                   />
                 );
               })}
-              <span className="ml-2 text-sm text-neutral-600 font-medium">{heroColor.label}</span>
+              <span className="ml-2 text-sm text-neutral-600 font-medium">{colorSeguro.label}</span>
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -223,7 +229,7 @@ export default function Landing() {
                         se quedó atrás cuando se corrigió el teñido. */}
                     <ProductImage
                       baseImage={heroImg.src}
-                      colorHex={heroColor.hex}
+                      colorHex={colorSeguro.hex}
                       onDosTelas={setHeroDosTelas}
                       alt={heroProduct.name}
                       className="h-full w-full bg-transparent"
