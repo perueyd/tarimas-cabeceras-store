@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 // `messages` vive en el componente padre a propósito: este panel se desmonta
 // al cerrarlo, así que si el estado estuviera aquí la conversación se perdería
 // entera cada vez que el cliente lo cierra sin querer.
-function ChatWidgetContent({ onClose, messages, setMessages, reiniciar }) {
+function ChatWidgetContent({ onClose, onMinimizar, messages, setMessages, reiniciar }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -79,13 +79,22 @@ function ChatWidgetContent({ onClose, messages, setMessages, reiniciar }) {
               className="rounded px-2 py-1 text-xs transition hover:bg-white/20"
               title="Empezar una conversación nueva"
             >
-              ↺ Reiniciar
+              ↺
             </button>
           )}
           <button
+            onClick={onMinimizar}
+            className="rounded px-2 pb-1.5 text-2xl leading-none transition hover:bg-white/20"
+            title="Minimizar"
+            aria-label="Minimizar chat"
+          >
+            –
+          </button>
+          <button
             onClick={onClose}
-            className="rounded px-2 py-1 text-2xl leading-none transition hover:bg-white/20"
+            className="rounded px-2 py-1 text-xl leading-none transition hover:bg-white/20"
             title="Cerrar (la conversación se guarda)"
+            aria-label="Cerrar chat"
           >
             ✕
           </button>
@@ -199,10 +208,12 @@ function leerGuardado() {
 
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [minimizado, setMinimizado] = useState(false);
   const [mounted, setMounted] = useState(false);
   // La conversación se guarda aquí, fuera del panel, para que cerrar no la
   // borre: el cliente puede cerrar sin querer y volver donde lo dejó.
   const [messages, setMessages] = useState([SALUDO]);
+  const ultimaRespuesta = messages.length > 1 && messages[messages.length - 1]?.role === 'assistant';
 
   // Se recupera después de montar, no en el useState inicial: leer
   // sessionStorage durante el primer render rompe si algún día se renderiza
@@ -233,7 +244,21 @@ export default function ChatbotWidget() {
 
   return (
     <>
-      {!isOpen && (
+      {/* Minimizado: barra estrecha que recuerda que la charla sigue abierta. */}
+      {minimizado && (
+        <button
+          onClick={() => { setMinimizado(false); setIsOpen(true); }}
+          className="fixed bottom-24 right-5 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 py-2.5 pl-3 pr-4 text-white shadow-lg transition hover:shadow-xl"
+          title="Volver al chat"
+        >
+          <span className="text-xl">💬</span>
+          <span className="text-sm font-medium">
+            {ultimaRespuesta ? 'CHAT-ED respondió' : 'Seguir conversando'}
+          </span>
+        </button>
+      )}
+
+      {!isOpen && !minimizado && (
         <button
           onClick={() => setIsOpen(true)}
           // Justo ENCIMA del botón de WhatsApp. Antes los dos estaban en la
@@ -254,6 +279,7 @@ export default function ChatbotWidget() {
       {isOpen && (
         <ChatWidgetContent
           onClose={() => setIsOpen(false)}
+          onMinimizar={() => { setIsOpen(false); setMinimizado(true); }}
           messages={messages}
           setMessages={setMessages}
           reiniciar={reiniciar}
