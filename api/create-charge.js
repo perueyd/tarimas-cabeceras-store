@@ -59,8 +59,9 @@ export default async function handler(req, res) {
   // solo se calculaban en el navegador, así que el checkout mostraba el precio
   // rebajado y aquí se cobraba el precio completo.
   const { descuento: descuentoAuto } = await calcularDescuentoAuto(priced.items, priced.total, products);
-  const { descuento, total: montoFinal } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
-  if (!promoCode || descuento !== promoDescuento) promoDescuento = descuento;
+  const { descuento, total: montoFinal, vieneDePromo } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
+  const descuentoDePromo = vieneDePromo; // ¿ganó el cupón o la oferta automática?
+  promoDescuento = descuento;
 
   // Nunca cobrar por encima de lo que el cliente vio en pantalla.
   const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
@@ -114,7 +115,14 @@ export default async function handler(req, res) {
         entrega,
         items: Array.isArray(items) ? items : [],
       });
-      if (promoCode) registerPromoUsage(promoCode).catch(() => {});
+      // Solo se gasta un uso del cupón si el descuento que se aplicó salió
+      // DE ÉL. Antes se descontaba igual aunque hubiera ganado una oferta
+      // automática: el cliente perdía su cupón sin haberlo disfrutado.
+      // Y se espera el resultado: en Vercel la función se congela justo
+      // después de responder, así que un trabajo sin await se pierde.
+      if (promoCode && descuentoDePromo) {
+        await registerPromoUsage(promoCode).catch(() => {});
+      }
     } catch (err) {
       console.log('No se pudo registrar el pedido (pago OK):', err?.message);
     }

@@ -2,6 +2,7 @@ import { hasDB, redisCmd } from './_store.js';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { listarTodasNormalizadas } from './_ofertas-auto.js';
 
 const KEY = 'ofertas:todas';
 
@@ -33,9 +34,17 @@ export default async function handler(req, res) {
     if (await rateLimitRequest(`ofertas-get:${clientIp(req)}`, 120, 3600)) {
       return res.status(429).json({ error: 'Demasiadas consultas seguidas.' });
     }
-    const todas = await listarOfertas();
     const esAdmin = (await checkAdminAuth(req)).ok;
-    return res.status(200).json({ ofertas: esAdmin ? todas : todas.filter((o) => o.activo !== false) });
+    if (esAdmin) {
+      // El panel edita solo su propia lista; no debe ver mezclada la otra.
+      return res.status(200).json({ ofertas: await listarOfertas() });
+    }
+    // Al checkout se le entregan TODAS las ofertas vigentes (de las dos
+    // pantallas del panel) y ya normalizadas, exactamente las mismas que usará
+    // el servidor para cobrar. Si aquí se devolviera otra lista, la pantalla
+    // mostraría un precio y el cobro sería otro.
+    const todas = await listarTodasNormalizadas();
+    return res.status(200).json({ ofertas: todas.filter((o) => o.activo !== false) });
   }
 
   // Crear, modificar y borrar sigue siendo solo del dueño.

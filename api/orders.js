@@ -52,7 +52,8 @@ export default async function handler(req, res) {
     // Los descuentos automáticos también valen para Yape/transferencia: antes
     // el pedido se guardaba al precio completo aunque el cliente viera otro.
     const { descuento: descuentoAuto } = await calcularDescuentoAuto(priced.items, priced.total, products);
-    const { descuento, total: montoFinal } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
+    const { descuento, total: montoFinal, vieneDePromo } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
+    const descuentoDePromo = vieneDePromo;
     promoDescuento = descuento;
 
     const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
@@ -77,7 +78,9 @@ export default async function handler(req, res) {
     };
     try {
       const saved = await saveOrder(order, { ownerEmail: s(catalog.storeConfig?.ownerEmail, 120) });
-      if (promoCode) registerPromoUsage(promoCode).catch(() => {});
+      // Solo se gasta el cupón si el descuento aplicado salió de él, y se
+      // espera: en Vercel la función se congela tras responder.
+      if (promoCode && descuentoDePromo) await registerPromoUsage(promoCode).catch(() => {});
       // Ya compró: quita su carrito de la lista de "abandonados".
       if (hasDB && telefono) redisCmd(['HDEL', 'carritos:abandonados', telefono]).catch(() => {});
       return res.status(200).json({ ok: true, code: order.code, saved, monto: montoFinal, promoDescuento });

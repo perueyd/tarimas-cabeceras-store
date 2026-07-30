@@ -32,10 +32,10 @@ export function vencida(fechaISO) {
   return fin.getTime() < Date.now();
 }
 
-async function listarOfertas() {
+async function leerLista(clave) {
   if (!hasDB) return [];
   try {
-    const data = await redisCmd(['GET', KEY]);
+    const data = await redisCmd(['GET', clave]);
     if (!data.result) return [];
     const list = JSON.parse(data.result);
     return Array.isArray(list) ? list : [];
@@ -43,6 +43,26 @@ async function listarOfertas() {
     return [];
   }
 }
+
+// Hay DOS pantallas del panel que crean descuentos automáticos, y cada una
+// guarda en su propia clave:
+//   · "💰 Ofertas y descuentos"    → 'ofertas:todas'      (tipo 'flash-sale')
+//   · "⚡ Descuentos automáticos"  → 'descuentos:automaticos' (tipo 'flashsale')
+// El cobro solo miraba la primera, así que todo lo creado en la segunda no
+// afectaba a ninguna compra: el dueño configuraba un descuento y no pasaba
+// nada. Aquí se leen las dos y se normaliza el nombre del tipo.
+export async function listarTodasNormalizadas() {
+  const [ofertas, automaticos] = await Promise.all([
+    leerLista(KEY),
+    leerLista('descuentos:automaticos'),
+  ]);
+  return [
+    ...ofertas,
+    ...automaticos.map((d) => ({ ...d, tipo: d.tipo === 'flashsale' ? 'flash-sale' : d.tipo })),
+  ];
+}
+
+const listarOfertas = listarTodasNormalizadas;
 
 // Devuelve { descuento, aplicadas } para un carrito ya validado por priceOrder.
 // `products` es el catálogo, necesario para saber la categoría de cada artículo.
