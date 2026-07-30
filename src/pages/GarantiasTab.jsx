@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Edita las tarjetas de confianza de la portada (las que dicen "Hechos a
 // medida", "Entrega en 3-4 días"...). Salen justo debajo de la vitrina.
@@ -21,6 +21,21 @@ export default function GarantiasTab({ catalog, api, flash }) {
         ]
   );
   const [saving, setSaving] = useState(false);
+  const [mostrar, setMostrar] = useState(cfg.mostrarOpiniones !== false);
+  const [nResenas, setNResenas] = useState(0);
+  const [cargandoResenas, setCargandoResenas] = useState(true);
+
+  // Se consultan las reseñas reales para poder decirle al dueño si la sección
+  // va a salir o no, en vez de dejarle adivinando.
+  useEffect(() => {
+    let cancelado = false;
+    fetch('/api/reviews?recientes=1')
+      .then((r) => (r.ok ? r.json() : { reviews: [] }))
+      .then((d) => { if (!cancelado) setNResenas((d.reviews || []).length); })
+      .catch(() => {})
+      .finally(() => { if (!cancelado) setCargandoResenas(false); });
+    return () => { cancelado = true; };
+  }, []);
 
   function cambiar(i, campo, valor) {
     setLista((prev) => prev.map((g, j) => (j === i ? { ...g, [campo]: valor } : g)));
@@ -48,7 +63,7 @@ export default function GarantiasTab({ catalog, api, flash }) {
       }));
     setSaving(true);
     try {
-      await api('POST', 'config', { garantias: limpias });
+      await api('POST', 'config', { garantias: limpias, mostrarOpiniones: mostrar });
       setLista(limpias);
       flash('Garantías actualizadas. Ya se ven en la portada.');
     } catch (err) {
@@ -172,11 +187,49 @@ export default function GarantiasTab({ catalog, api, flash }) {
         </div>
       </div>
 
-      <div className="rounded-lg bg-sky-50 p-3 text-sm text-sky-900">
-        💬 Las <strong>opiniones de clientes</strong> de la portada salen solas de las reseñas
-        reales que dejan tus compradores. No se pueden escribir a mano a propósito: así nadie puede
-        acusarte de inventar testimonios. Si aún no hay ninguna, esa parte no se muestra.
-      </div>
+      <section className="rounded-xl border border-neutral-200 bg-white p-4">
+        <h3 className="text-lg font-semibold">Opiniones de clientes en la portada</h3>
+        <p className="mt-1 text-sm text-neutral-500">
+          Salen solas de las reseñas reales que dejan tus compradores en cada producto. No se pueden
+          escribir a mano a propósito: así nadie puede acusarte de inventar testimonios.
+        </p>
+
+        <div className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm">
+          {cargandoResenas ? (
+            <span className="text-neutral-500">Contando reseñas...</span>
+          ) : nResenas > 0 ? (
+            <span className="text-green-800">
+              ✅ Tienes <strong>{nResenas} reseña{nResenas === 1 ? '' : 's'}</strong> publicable
+              {nResenas === 1 ? '' : 's'}. La sección {mostrar ? 'se está mostrando' : 'está apagada'}.
+            </span>
+          ) : (
+            <span className="text-neutral-600">
+              Todavía no hay reseñas. La sección <strong>no se muestra</strong> — aparecerá sola en
+              cuanto un cliente deje la primera. Puedes dejar esto activado desde ya.
+            </span>
+          )}
+        </div>
+
+        <label className="mt-3 flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={mostrar}
+            onChange={(e) => setMostrar(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <span>
+            Mostrar las opiniones en la portada cuando haya reseñas
+            <span className="block text-xs text-neutral-500">
+              Desactívalo si prefieres que no salgan aunque existan.
+            </span>
+          </span>
+        </label>
+
+        <p className="mt-3 text-xs text-neutral-500">
+          💡 ¿Cómo conseguir las primeras? Escribe por WhatsApp a quien ya te compró y pásale el
+          enlace de su producto: al final de la ficha puede dejar su estrella y su comentario.
+        </p>
+      </section>
     </div>
   );
 }

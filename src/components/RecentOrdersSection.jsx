@@ -56,6 +56,11 @@ export default function RecentOrdersSection() {
 
   const badges = storeConfig?.garantias?.length ? storeConfig.garantias : BADGES_POR_DEFECTO;
 
+  // El dueño puede apagar la franja de opiniones aunque ya tenga reseñas
+  // (por ejemplo si las primeras no le convencen). Por defecto está encendida:
+  // no se muestra igualmente hasta que exista alguna reseña real.
+  const mostrarOpiniones = storeConfig?.mostrarOpiniones !== false && reviews.length > 0;
+
   return (
     <section className="border-t border-neutral-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:py-16">
@@ -73,8 +78,8 @@ export default function RecentOrdersSection() {
         </div>
       </div>
 
-      {/* Opiniones: solo si existen de verdad. */}
-      {reviews.length > 0 && (
+      {/* Opiniones: solo si existen de verdad Y el dueño las tiene activadas. */}
+      {mostrarOpiniones && (
         <div className="bg-gradient-to-b from-white to-neutral-50">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:py-16 md:py-20">
             <div className="mb-10">

@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 // `messages` vive en el componente padre a propósito: este panel se desmonta
 // al cerrarlo, así que si el estado estuviera aquí la conversación se perdería
 // entera cada vez que el cliente lo cierra sin querer.
-function ChatWidgetContent({ onClose, messages, setMessages }) {
+function ChatWidgetContent({ onClose, messages, setMessages, reiniciar }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -60,21 +60,36 @@ function ChatWidgetContent({ onClose, messages, setMessages }) {
   }
 
   return (
-    // max-w y max-h: en un móvil de 375px, w-96 (384px) se salía de pantalla.
-    <div className="fixed bottom-5 right-5 z-50 flex h-[600px] max-h-[calc(100vh-2.5rem)] w-96 max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+    // En móvil ocupa toda la pantalla: una ventanita flotante de 384px en un
+    // teléfono de 375px dejaba el texto apretado y el teclado tapaba el campo.
+    // Se usa 100dvh (no vh) porque en el móvil la barra del navegador aparece
+    // y desaparece: con vh el botón de enviar quedaba fuera de la pantalla.
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-white sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)] sm:w-96 sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl"
+         style={{ height: '100dvh', maxHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between flex-shrink-0">
-        <div>
-          <h3 className="font-bold text-lg">🤖 CHAT-ED</h3>
+      <div className="flex flex-shrink-0 items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 p-4 text-white">
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold">🤖 CHAT-ED</h3>
           <p className="text-xs text-blue-100">Respuesta inmediata</p>
         </div>
-        <button
-          onClick={onClose}
-          className="text-2xl hover:opacity-80 transition flex-shrink-0"
-          title="Cerrar chat"
-        >
-          ✕
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-1">
+          {messages.length > 1 && (
+            <button
+              onClick={reiniciar}
+              className="rounded px-2 py-1 text-xs transition hover:bg-white/20"
+              title="Empezar una conversación nueva"
+            >
+              ↺ Reiniciar
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="rounded px-2 py-1 text-2xl leading-none transition hover:bg-white/20"
+            title="Cerrar (la conversación se guarda)"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Mensajes */}
@@ -152,17 +167,62 @@ function ChatWidgetContent({ onClose, messages, setMessages }) {
   );
 }
 
+const SALUDO = {
+  role: 'assistant',
+  content: '👋 Hola! Soy CHAT-ED, asistente de E|D Espacios. ¿En qué puedo ayudarte?',
+};
+
+// La charla se guarda en el navegador para que recargar la página no la borre.
+// Caduca a las 4 horas SIN ACTIVIDAD: quien está comparando muebles suele
+// volver a la pestaña un rato después, y perder el hilo a los pocos minutos
+// obliga a repetirlo todo. Se usa sessionStorage, así que al cerrar el
+// navegador desaparece igualmente (en una computadora compartida, la
+// conversación de una persona no le queda a la vista de la siguiente).
+const CLAVE = 'ed-chat';
+const HORAS_VIDA = 4;
+
+function leerGuardado() {
+  try {
+    const raw = sessionStorage.getItem(CLAVE);
+    if (!raw) return null;
+    const { mensajes, ultimo } = JSON.parse(raw);
+    if (!Array.isArray(mensajes) || !ultimo) return null;
+    if (Date.now() - ultimo > HORAS_VIDA * 3600 * 1000) {
+      sessionStorage.removeItem(CLAVE);
+      return null;
+    }
+    return mensajes;
+  } catch {
+    return null;
+  }
+}
+
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   // La conversación se guarda aquí, fuera del panel, para que cerrar no la
   // borre: el cliente puede cerrar sin querer y volver donde lo dejó.
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: '👋 Hola! Soy CHAT-ED, asistente de E|D Espacios. ¿En qué puedo ayudarte?',
-    },
-  ]);
+  const [messages, setMessages] = useState([SALUDO]);
+
+  // Se recupera después de montar, no en el useState inicial: leer
+  // sessionStorage durante el primer render rompe si algún día se renderiza
+  // en el servidor.
+  useEffect(() => {
+    const guardado = leerGuardado();
+    if (guardado?.length) setMessages(guardado);
+  }, []);
+
+  useEffect(() => {
+    if (messages.length <= 1) return; // no se guarda solo el saludo
+    try {
+      sessionStorage.setItem(CLAVE, JSON.stringify({ mensajes: messages, ultimo: Date.now() }));
+    } catch { /* modo incógnito o almacenamiento lleno: no pasa nada */ }
+  }, [messages]);
+
+  function reiniciar() {
+    setMessages([SALUDO]);
+    try { sessionStorage.removeItem(CLAVE); } catch { /* da igual */ }
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -196,6 +256,7 @@ export default function ChatbotWidget() {
           onClose={() => setIsOpen(false)}
           messages={messages}
           setMessages={setMessages}
+          reiniciar={reiniciar}
         />
       )}
     </>
