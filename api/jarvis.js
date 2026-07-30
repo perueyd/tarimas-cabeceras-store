@@ -203,9 +203,20 @@ export default async function handler(req, res) {
     }
 
     const chatCompletion = await groq.chat.completions.create(peticion);
-    const reply = chatCompletion.choices[0]?.message?.content || '';
+    const mensaje = chatCompletion.choices[0]?.message || {};
 
-    return res.status(200).json({ reply });
+    // Si el modelo decidió usar herramientas, se devuelven al navegador para
+    // que las ejecute de verdad (abrir una sección, consultar ventas...) y
+    // vuelva con el resultado. Esto es lo que hace que JARVIS EJECUTE en vez
+    // de limitarse a decir que lo hizo.
+    if (Array.isArray(mensaje.tool_calls) && mensaje.tool_calls.length) {
+      return res.status(200).json({
+        reply: mensaje.content || '',
+        tool_calls: mensaje.tool_calls,
+      });
+    }
+
+    return res.status(200).json({ reply: mensaje.content || '' });
   } catch (error) {
     console.error('Jarvis error:', error);
 

@@ -15,14 +15,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 //    y se respondería solo. Para cortarle, se toca el botón de interrumpir.
 //  · La calidad de la voz es la que tenga instalada el sistema operativo.
 
-const ACTIONS = {
-  generateDescription: 'generar descripción',
-  generateEmail: 'generar email',
-  analyzeSales: 'analizar ventas',
-  suggestPrice: 'sugerir precio',
-  seoAdvice: 'consejo seo',
-};
-
 // Silencio tras el cual se da por terminada la frase y se envía.
 const MS_SILENCIO = 1100;
 
@@ -107,7 +99,7 @@ function elegirVoz() {
   return lista[0];
 }
 
-export default function JarvisVoice({ adminKey }) {
+export default function JarvisVoice({ adminKey, onNavegar }) {
   const [isOpen, setIsOpen] = useState(false);
   const [minimizado, setMinimizado] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -297,15 +289,10 @@ export default function JarvisVoice({ adminKey }) {
     cambiarEstado('pensando');
 
     try {
-      const accion = detectAction(message);
-      if (accion) {
-        const r = await ejecutarAccion(accion, message, conVoz, historial);
-        setMessages((prev) => [...prev, { role: 'assistant', content: r, audio: true }]);
-        if (conVoz) hablar(r);
-        else cambiarEstado('quieto');
-        return;
-      }
-
+      // Ya no hay "acciones" adivinadas por palabras clave: ahora es el propio
+      // modelo el que decide qué herramienta usar, y se ejecuta de verdad
+      // dentro de preguntar(). Antes esto solo cambiaba el texto del prompt y
+      // hacía creer que había hecho algo.
       if (conVoz) {
         await preguntarHablando(historial);
       } else {
@@ -388,40 +375,62 @@ export default function JarvisVoice({ adminKey }) {
     return [...historial, { role: 'user', content: message }];
   }
 
-  async function preguntar(historial, voz) {
-    const res = await fetch('/api/jarvis', {
+  // Ejecuta de verdad lo que JARVIS pidió y devuelve el resultado real.
+  // Las de navegación las hace el propio navegador; las de consulta van al
+  // servidor porque necesitan la base de datos.
+  async function ejecutarHerramienta(llamada) {
+    let args = {};
+    try { args = JSON.parse(llamada.function?.arguments || '{}'); } catch { /* sin argumentos */ }
+    const nombre = llamada.function?.name;
+
+    if (nombre === 'abrir_seccion') {
+      const ok = onNavegar?.(args.seccion, args.subseccion);
+      return ok
+        ? { hecho: true, abierto: args.subseccion ? `${args.seccion} → ${args.subseccion}` : args.seccion }
+        : { hecho: false, motivo: 'No existe esa sección del panel.' };
+    }
+
+    const res = await fetch('/api/jarvis-accion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey || ''}` },
-      body: JSON.stringify({ messages: historial, voz: !!voz }),
+      body: JSON.stringify({ accion: nombre, args }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error || 'No se pudo contactar al asistente.');
-    return data.reply;
+    if (!res.ok) return { error: data?.error || 'No se pudo ejecutar.' };
+    return data.resultado;
   }
 
-  function detectAction(text) {
-    const lower = text.toLowerCase();
-    for (const [key, trigger] of Object.entries(ACTIONS)) {
-      if (lower.includes(trigger)) return key;
-    }
-    return null;
-  }
+  async function preguntar(historial, voz) {
+    let mensajes = historial;
 
-  async function ejecutarAccion(accion, contexto, voz, historial) {
-    const prompts = {
-      generateDescription: `Genera una descripción profesional y atractiva para el producto mencionado en: "${contexto}". Concisa, persuasiva, con material y disponibilidad.`,
-      generateEmail: `Redacta un email profesional basado en: "${contexto}". Conciso, con llamada a la acción clara, tono amigable.`,
-      seoAdvice: `Dame 3 consejos SEO específicos para: "${contexto}". Incluye palabras clave y meta descripción sugerida.`,
-    };
-    if (prompts[accion]) {
-      // Se sustituye el último turno (lo que dijo el dueño) por la instrucción
-      // detallada, conservando el contexto de la conversación anterior.
-      const conPrompt = [...historial.slice(0, -1), { role: 'user', content: prompts[accion] }];
-      return await preguntar(conPrompt, voz);
+    // Hasta 3 rondas: el modelo pide herramientas, se ejecutan, y con el
+    // resultado real redacta la respuesta. El tope evita quedarse en bucle.
+    for (let ronda = 0; ronda < 3; ronda++) {
+      const res = await fetch('/api/jarvis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey || ''}` },
+        body: JSON.stringify({ messages: mensajes, voz: !!voz }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'No se pudo contactar al asistente.');
+
+      if (!data.tool_calls?.length) return data.reply;
+
+      const resultados = await Promise.all(
+        data.tool_calls.map(async (ll) => ({
+          role: 'tool',
+          tool_call_id: ll.id,
+          content: JSON.stringify(await ejecutarHerramienta(ll)),
+        }))
+      );
+
+      mensajes = [
+        ...mensajes,
+        { role: 'assistant', content: data.reply || '', tool_calls: data.tool_calls },
+        ...resultados,
+      ];
     }
-    if (accion === 'analyzeSales') return '¿Cuántos pedidos tuviste este mes? Dame el número y lo analizo.';
-    if (accion === 'suggestPrice') return 'Dime tu costo actual y el precio de la competencia y te sugiero uno.';
-    return '¿Qué necesitas?';
+    return 'Me enredé con esa petición. ¿Puedes decírmelo de otra forma?';
   }
 
   // ------------------------------------------------------------- arranque

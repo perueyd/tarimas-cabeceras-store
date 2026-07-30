@@ -225,9 +225,11 @@ function useReordenarScopes() {
 // y los datos de la tienda (WhatsApp, cuentas bancarias, horarios de entrega)
 // directamente desde el navegador. Todo se guarda en la base de datos y se
 // refleja al instante en la tienda — sin tocar código ni hacer deploy.
-export default function CatalogEditor({ adminKey }) {
+export default function CatalogEditor({ adminKey, irA }) {
   const catalog = useCatalog();
   const [sub, setSub] = useState('productos');
+  // JARVIS puede pedir abrir una sub-pestaña concreta desde el panel.
+  useEffect(() => { if (irA) setSub(irA); }, [irA]);
   const [msg, setMsg] = useState(null); // { text, undo? }
 
   // flash(texto) muestra un aviso 2.5 s. flash(texto, fn) agrega un botón

@@ -128,7 +128,20 @@ export default function Orders() {
   const [avisoNuevos, setAvisoNuevos] = useState(0); // pedidos nuevos detectados en vivo
   const conocidosRef = useRef(null); // Set de códigos ya vistos (null = sin inicializar)
   const [tab, setTab] = useState('resumen');
+  // Sub-pestaña del editor que JARVIS puede pedir abrir (ej. "productos").
+  const [subEditor, setSubEditor] = useState(null);
   const [filtro, setFiltro] = useState('todos');
+
+  // La ejecuta JARVIS cuando le piden abrir una parte del panel. Devuelve
+  // false si la sección no existe, para que pueda decir "no encontré eso"
+  // en vez de afirmar que ya te llevó.
+  function abrirSeccion(seccion, subseccion) {
+    if (!SECCIONES_VALIDAS.has(seccion)) return false;
+    setTab(seccion);
+    if (seccion === 'editar' && subseccion) setSubEditor(subseccion);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+  }
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [editando, setEditando] = useState(null); // reseña en edición {id, estrellas, comentario}
@@ -717,14 +730,24 @@ export default function Orders() {
 
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
-      {tab === 'editar' && <CatalogEditor adminKey={key} />}
+      {tab === 'editar' && <CatalogEditor adminKey={key} irA={subEditor} />}
 
       {/* JARVIS acompaña TODO el panel, no solo la pestaña de edición. Va aquí
           (dentro del bloque autenticado) para que el cliente nunca lo vea. */}
-      <JarvisVoice adminKey={key} />
+      {/* onNavegar es lo que permite que JARVIS ABRA de verdad una sección
+          cuando se lo piden, en vez de decir "te estoy llevando" sin moverse. */}
+      <JarvisVoice adminKey={key} onNavegar={abrirSeccion} />
     </main>
   );
 }
+
+// Secciones que JARVIS puede abrir. Se valida contra esta lista para que no
+// pueda "abrir" algo que no existe y quedarse tan tranquilo.
+const SECCIONES_VALIDAS = new Set([
+  'resumen', 'pedidos', 'resenas', 'carritos', 'reclamos', 'suscriptores',
+  'encuestas', 'ofertas', 'promos', 'descAuto', 'analytics', 'automaciones',
+  'ia', 'gamificacion', 'omnichannel', 'historial', 'editar',
+]);
 
 // Campo "Referencia (WSP)" de cada pedido.
 //
