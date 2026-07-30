@@ -15,6 +15,7 @@ import SecurityTab from './SecurityTab.jsx';
 import SEOTab from './SEOTab.jsx';
 import GarantiasTab from './GarantiasTab.jsx';
 import ChatbotTab from './ChatbotTab.jsx';
+import VistaPrevia from '../components/VistaPrevia.jsx';
 
 // Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
 // (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
@@ -230,6 +231,9 @@ export default function CatalogEditor({ adminKey, irA }) {
   const [sub, setSub] = useState('productos');
   // JARVIS puede pedir abrir una sub-pestaña concreta desde el panel.
   useEffect(() => { if (irA) setSub(irA); }, [irA]);
+  // Sube cada vez que se guarda algo: la vista previa lo usa para refrescarse.
+  const [guardadoToken, setGuardadoToken] = useState(0);
+  const [verPrevia, setVerPrevia] = useState(false);
   const [msg, setMsg] = useState(null); // { text, undo? }
 
   // flash(texto) muestra un aviso 2.5 s. flash(texto, fn) agrega un botón
@@ -257,14 +261,28 @@ export default function CatalogEditor({ adminKey, irA }) {
     const data = await res.json();
     if (!res.ok) throw new Error(data?.error || 'No se pudo guardar.');
     await catalog.refetch();
+    // Todo lo que se guarda pasa por aquí, así que este es el sitio para
+    // avisar a la vista previa de que hay algo nuevo que mostrar.
+    setGuardadoToken((n) => n + 1);
     return data;
   }
 
   return (
-    <div>
-      <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
-        Los cambios aquí se aplican al instante en toda la tienda (productos, precios, colores y
-        datos de contacto) — no necesitas editar código ni esperar un deploy.
+    <div className={verPrevia ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:gap-6' : ''}>
+      <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900">
+        <span>
+          Los cambios aquí se aplican al instante en toda la tienda (productos, precios, colores y
+          datos de contacto) — no necesitas editar código ni esperar un deploy.
+        </span>
+        <button
+          onClick={() => setVerPrevia((v) => !v)}
+          className={`flex-shrink-0 rounded-lg border px-3 py-1.5 font-medium transition ${
+            verPrevia ? 'border-ink bg-ink text-white' : 'border-sky-300 bg-white hover:border-ink'
+          }`}
+        >
+          {verPrevia ? '✕ Ocultar vista previa' : '👁️ Ver cómo queda'}
+        </button>
       </div>
 
       {msg && (
@@ -344,6 +362,18 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'legal' && <LegalTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'encuesta' && <EncuestaTab catalog={catalog} api={api} flash={flash} />}
+      </div>
+
+      {/* Vista previa pegada al lado: en pantallas grandes se queda fija
+          mientras se hace scroll por el editor. */}
+      {verPrevia && (
+        <aside className="mt-6 lg:sticky lg:top-4 lg:mt-0 lg:h-[calc(100vh-2rem)]">
+          <VistaPrevia
+            recargarToken={guardadoToken}
+            productoEjemplo={catalog.products?.find((p) => !p.oculto)?.id}
+          />
+        </aside>
+      )}
     </div>
   );
 }
