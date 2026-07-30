@@ -16,6 +16,22 @@ import { hasDB, redisCmd } from './_store.js';
 
 const KEY = 'ofertas:todas';
 
+// Perú va 5 horas por detrás de UTC y no cambia de hora. El servidor de Vercel
+// corre en UTC, así que `new Date('2026-08-01T23:59:59')` se interpretaba como
+// las 23:59 UTC = las 18:59 de Lima: el último día de cada oferta el descuento
+// desaparecía a las 7 de la tarde, mientras el navegador del cliente (en hora
+// de Lima) seguía mostrándolo. Resultado: cinco horas en las que la pantalla
+// enseñaba un precio y el cobro se rechazaba por no cuadrar.
+//
+// Se compara con el final del día EN LIMA, sea cual sea la zona del servidor.
+const OFFSET_LIMA = '-05:00';
+
+export function vencida(fechaISO) {
+  const fin = new Date(`${fechaISO}T23:59:59${OFFSET_LIMA}`);
+  if (Number.isNaN(fin.getTime())) return false; // fecha rara: no se bloquea la oferta
+  return fin.getTime() < Date.now();
+}
+
 async function listarOfertas() {
   if (!hasDB) return [];
   try {
@@ -41,11 +57,10 @@ export async function calcularDescuentoAuto(items, total, products) {
   ];
 
   const aplicadas = [];
-  const ahora = new Date();
 
   for (const oferta of ofertas) {
     if (!oferta.activo) continue;
-    if (oferta.vence && new Date(oferta.vence + 'T23:59:59') < ahora) continue;
+    if (oferta.vence && vencida(oferta.vence)) continue;
 
     let aplica = false;
     let razon = '';

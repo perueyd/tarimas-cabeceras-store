@@ -7,6 +7,8 @@ export default function PagosTab({ catalog, api, flash }) {
     yapeTitular: cfg.yapeTitular || '',
     paymentMethods: cfg.paymentMethods || {},
     avisoColor: cfg.avisoColor || '',
+    // Por defecto visible, para no cambiar el comportamiento de quien ya lo usa.
+    mostrarCupon: cfg.mostrarCupon !== false,
   });
   const [saving, setSaving] = useState(false);
 
@@ -24,6 +26,28 @@ export default function PagosTab({ catalog, api, flash }) {
 
   return (
     <div className="space-y-6">
+      <section className="rounded-xl border border-neutral-200 bg-white p-4">
+        <h3 className="mb-1 text-lg font-semibold">Campo de código de descuento</h3>
+        <p className="mb-3 text-sm text-neutral-500">
+          Es el recuadro «¿Tienes un código de descuento?» del checkout.
+        </p>
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={data.mostrarCupon}
+            onChange={(e) => setData({ ...data, mostrarCupon: e.target.checked })}
+            className="mt-0.5 h-4 w-4"
+          />
+          <span>
+            Mostrarlo en el checkout
+            <span className="mt-0.5 block text-xs text-neutral-500">
+              Si aún no repartes cupones, conviene ocultarlo: ver ese campo hace que el cliente se
+              vaya a buscar un código a Google y muchos no vuelven.
+            </span>
+          </span>
+        </label>
+      </section>
+
       <section>
         <h3 className="mb-4 text-lg font-semibold">Yape/Plin Directo</h3>
         <div className="space-y-3">

@@ -1,6 +1,7 @@
 import Groq from 'groq-sdk';
 import { checkAdminAuth } from './_auth.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { HERRAMIENTAS, INSTRUCCIONES_ACCIONES } from './_jarvis-acciones.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -118,12 +119,28 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Falta la lista de mensajes.' });
   }
 
-  // Se aceptan solo turnos de conversación normales y de largo acotado: así
-  // nadie puede colar un mensaje "system" que reemplace las instrucciones.
+  // Se aceptan turnos de conversación normales, y además los mensajes de
+  // herramienta ("tool") con el resultado real de una acción ya ejecutada.
+  // Nunca "system": eso reemplazaría las instrucciones.
   const limpios = messages
-    .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
-    .slice(-10)
-    .map((m) => ({ role: m.role, content: String(m.content ?? '').slice(0, 2000) }));
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant' || m.role === 'tool'))
+    .slice(-12)
+    .map((m) => {
+      if (m.role === 'tool') {
+        return {
+          role: 'tool',
+          tool_call_id: String(m.tool_call_id || '').slice(0, 80),
+          content: String(m.content ?? '').slice(0, 4000),
+        };
+      }
+      const base = { role: m.role, content: String(m.content ?? '').slice(0, 2000) };
+      // Un turno del asistente que pidió herramientas debe conservarlas, o el
+      // modelo no entiende a qué responde el mensaje "tool" siguiente.
+      if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length) {
+        base.tool_calls = m.tool_calls;
+      }
+      return base;
+    });
 
   if (!limpios.length) {
     return res.status(400).json({ error: 'Falta la lista de mensajes.' });
@@ -137,12 +154,16 @@ export default async function handler(req, res) {
     });
   }
 
+  const instrucciones =
+    SYSTEM_PROMPT + INSTRUCCIONES_ACCIONES + (modoVoz ? PROMPT_VOZ : '');
+
   const peticion = {
-    messages: [
-      { role: 'system', content: modoVoz ? SYSTEM_PROMPT + PROMPT_VOZ : SYSTEM_PROMPT },
-      ...limpios,
-    ],
+    messages: [{ role: 'system', content: instrucciones }, ...limpios],
     model: MODELO,
+    // Las herramientas son lo que le permite EJECUTAR de verdad en vez de
+    // decir "ya te llevé" sin haber hecho nada.
+    tools: HERRAMIENTAS,
+    tool_choice: 'auto',
     max_tokens: modoVoz ? 300 : 1024, // hablando, las respuestas largas cansan
     temperature: 0.7,
     top_p: 0.95,

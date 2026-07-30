@@ -2,6 +2,7 @@
 // el panel /pedidos → "Promociones". Sin base de datos conectada, los códigos
 // simplemente no existen todavía (el checkout sigue funcionando sin ellos).
 import { hasDB, redisCmd } from './_store.js';
+import { vencida } from './_ofertas-auto.js';
 
 const KEY = 'promo:codes';
 const KEY_DESCUENTOS = 'descuentos:automaticos';
@@ -96,7 +97,7 @@ export async function validatePromo(rawCode, total, cartInfo = {}) {
   const promo = list.find((p) => p.code === code);
   if (!promo) return { valid: false, motivo: 'Ese código no existe.' };
   if (!promo.activo) return { valid: false, motivo: 'Ese código ya no está activo.' };
-  if (promo.vence && new Date(promo.vence + 'T23:59:59') < new Date()) {
+  if (promo.vence && vencida(promo.vence)) {
     return { valid: false, motivo: 'Ese código venció.' };
   }
   if (promo.maxUsos && (promo.usados || 0) >= promo.maxUsos) {
@@ -125,7 +126,7 @@ export async function calcularDescuentosAutomaticos(total, cartInfo = {}) {
 
   for (const d of descuentos) {
     if (!d.activo) continue;
-    if (d.vence && new Date(d.vence + 'T23:59:59') < new Date()) continue;
+    if (d.vence && vencida(d.vence)) continue;
 
     let aplica = false;
     let razon = '';

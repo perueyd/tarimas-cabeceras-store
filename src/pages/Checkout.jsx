@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import LocationSearch from '../components/LocationSearch.jsx';
@@ -34,7 +34,10 @@ function minDeliveryDate(deliveryMinDays) {
 
 export default function Checkout() {
   const { items, totalAmount, clearCart } = useCart();
-  const { storeConfig, currencyFormatter, getColorById, getSizeById } = useCatalog();
+  const { storeConfig, currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
+  // El campo del cupón se puede ocultar desde el panel mientras no haya
+  // códigos en circulación.
+  const mostrarCupon = storeConfig?.mostrarCupon !== false;
   const navigate = useNavigate();
   // Array.isArray, no ".length ? ...": una lista vacía significa que el
   // dueño la quitó a propósito — no debe "revivir" con el respaldo (mismo
@@ -90,10 +93,16 @@ export default function Checkout() {
       return;
     }
 
-    // Información del carrito para validar descuentos automáticos
+    // Información del carrito para validar descuentos automáticos.
+    // La categoría se busca en el catálogo por productId: los artículos del
+    // carrito NO guardan ese dato, así que `i.category` era siempre undefined
+    // y las ofertas por categoría nunca se veían en pantalla — aunque el
+    // servidor sí las aplicaba al cobrar. Ahora los dos miran lo mismo.
     const cartInfo = {
       cantidadItems: items.reduce((sum, i) => sum + i.qty, 0),
-      categorias: items.map((i) => i.category).filter(Boolean),
+      categorias: [
+        ...new Set(items.map((i) => getProductById(i.productId)?.category).filter(Boolean)),
+      ],
     };
 
     // Fetch descuentos automáticos desde el servidor
@@ -141,6 +150,10 @@ export default function Checkout() {
         setDescuentosAuto(aplicables);
       })
       .catch(() => {});
+    // getProductById se recrea en cada render del contexto, así que no se pone
+    // como dependencia: metería el efecto en un bucle. Lo que importa es que se
+    // vuelva a calcular cuando cambia el carrito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, totalAmount]);
 
   const descuentoTotal = Math.max(
@@ -255,13 +268,25 @@ export default function Checkout() {
     return () => clearTimeout(t);
   }, [form.nombre, form.telefono, items, totalAmount]);
 
+  // El callback de Culqi tiene que ver SIEMPRE los datos más recientes. Antes
+  // se registraba dentro de un efecto con dependencias [form, totalAmount,
+  // ubicacion], que no incluían `promo` ni los descuentos automáticos: al
+  // aplicar un cupón el efecto no se volvía a ejecutar, así que Culqi seguía
+  // llamando a la versión vieja de procesarPago — se cobraba el total SIN
+  // descuento y el cupón no llegaba al servidor.
+  //
+  // Con una referencia que se actualiza en cada render, el callback global
+  // siempre invoca la función actual, pase lo que pase con las dependencias.
+  const procesarPagoRef = useRef(procesarPago);
+  useEffect(() => { procesarPagoRef.current = procesarPago; });
+
   useEffect(() => {
     // Callback global que Culqi invoca tras cerrar su modal con un token.
     window.culqi = function culqiCallback() {
       if (window.Culqi.token) {
-        procesarPago(window.Culqi.token.id);
+        procesarPagoRef.current(window.Culqi.token.id);
       } else if (window.Culqi.order) {
-        procesarPago(null, window.Culqi.order.id);
+        procesarPagoRef.current(null, window.Culqi.order.id);
       } else {
         setStatus('error');
         setErrorMsg('No se pudo generar el token de pago. Intenta nuevamente.');
@@ -270,8 +295,7 @@ export default function Checkout() {
     return () => {
       window.culqi = undefined;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, totalAmount, ubicacion]);
+  }, []);
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -547,7 +571,11 @@ export default function Checkout() {
             </div>
           </form>
 
-          {/* ===== Código de descuento ===== */}
+          {/* ===== Código de descuento =====
+              Se puede ocultar desde el panel (Editar página → Pagos): mientras
+              no haya cupones en circulación, el campo solo invita a buscar uno
+              en Google y a abandonar el carrito. */}
+          {mostrarCupon && (
           <div className="mt-6">
             <p className="mb-2 text-sm font-medium text-neutral-700">¿Tienes un código de descuento?</p>
             {promo ? (
@@ -580,17 +608,26 @@ export default function Checkout() {
             )}
             {promoMsg && !promo && <p className="mt-1.5 text-xs text-red-600">{promoMsg}</p>}
           </div>
+          )}
 
+          {/* El resumen muestra SIEMPRE el mismo número que se va a cobrar.
+              Antes, si el descuento venía de una oferta automática (sin cupón),
+              aquí salía el precio sin rebajar mientras el botón cobraba el
+              rebajado: el cliente veía S/ 850 y se le pedía yapear otra cosa. */}
           <div className="mt-4 space-y-1.5 rounded-lg border border-neutral-200 px-4 py-3">
-            {promo ? (
+            {descuentoTotal > 0 ? (
               <>
                 <div className="flex items-center justify-between text-sm text-neutral-500">
                   <span>Subtotal</span>
                   <span>{currencyFormatter.format(totalAmount)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-green-700">
-                  <span>Descuento ({promo.code})</span>
-                  <span>-{currencyFormatter.format(promo.descuento)}</span>
+                  <span>
+                    {promo && promo.descuento >= descuentoTotal
+                      ? `Descuento (${promo.code})`
+                      : descuentosAuto.find((d) => d.descuento === descuentoTotal)?.razon || 'Descuento'}
+                  </span>
+                  <span>-{currencyFormatter.format(descuentoTotal)}</span>
                 </div>
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-1.5">
                   <span className="text-sm text-neutral-500">Total a pagar</span>

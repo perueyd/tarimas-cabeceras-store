@@ -1,4 +1,5 @@
 import { checkAdminAuth } from './_auth.js';
+import { vencida } from './_ofertas-auto.js';
 import { listarOfertas } from './ofertas.js';
 import { listarHistorial, buscarHistorialPorCodigo } from './_historial.js';
 
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
     const totalOfertas = ofertas.length;
     const ofertasActivas = ofertas.filter((o) => {
       if (!o.activo) return false;
-      if (o.vence && new Date(o.vence + 'T23:59:59') < new Date()) return false;
+      if (o.vence && vencida(o.vence)) return false;
       return true;
     }).length;
     const usosTotales = historialFiltrado.length;
