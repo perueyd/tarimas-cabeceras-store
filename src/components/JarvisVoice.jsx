@@ -61,26 +61,50 @@ function partirFrases(buffer) {
   return [frases, resto];
 }
 
-// De todas las voces del sistema, la mejor para español latino. Las que
-// llevan "Google" o "Natural" suelen sonar bastante mejor que las clásicas.
+// Nombres de voz masculinos habituales en Windows/Chrome/Android. Se usan para
+// dar preferencia a una voz de hombre, que es lo que se espera de JARVIS.
+const NOMBRES_HOMBRE = /pablo|jorge|miguel|carlos|juan|diego|alvaro|álvaro|dalia_?male|male|hombre|enrique|liam|raul|raúl/i;
+
+// Puntúa una voz para JARVIS: español LATINO primero (el dueño es de Perú y
+// prefiere el acento neutro del doblaje, no el de España), voz de hombre, y
+// motores modernos ("Natural"/"Neural"/Google) que suenan mucho menos robóticos.
+export function puntuarVoz(v) {
+  const l = (v.lang || '').toLowerCase();
+  const n = (v.name || '').toLowerCase();
+  if (!l.startsWith('es')) return -1;
+  let p = 10;
+  // Acento: Perú > resto de Latinoamérica > España.
+  if (l.includes('pe')) p += 12;
+  else if (l.includes('mx') || l.includes('419') || l.includes('us')) p += 10;
+  else if (l.includes('co') || l.includes('cl') || l.includes('ar') || l.includes('ve')) p += 8;
+  else if (l.includes('es')) p += 1; // España: último recurso
+  // Calidad del motor.
+  if (n.includes('natural') || n.includes('neural')) p += 8;
+  if (n.includes('google')) p += 5;
+  if (n.includes('online')) p += 2;
+  // Voz de hombre.
+  if (NOMBRES_HOMBRE.test(n)) p += 6;
+  return p;
+}
+
+export function vocesDisponibles() {
+  return (window.speechSynthesis?.getVoices?.() || [])
+    .filter((v) => puntuarVoz(v) >= 0)
+    .sort((a, b) => puntuarVoz(b) - puntuarVoz(a));
+}
+
+// Devuelve la voz guardada por el dueño, o la mejor disponible.
 function elegirVoz() {
-  const voces = window.speechSynthesis?.getVoices?.() || [];
-  if (!voces.length) return null;
-  const puntua = (v) => {
-    const l = (v.lang || '').toLowerCase();
-    const n = (v.name || '').toLowerCase();
-    let p = 0;
-    if (l.startsWith('es')) p += 10;
-    else return -1;
-    if (l.includes('pe')) p += 5;
-    else if (l.includes('mx') || l.includes('us') || l.includes('419')) p += 4;
-    else if (l.includes('co') || l.includes('ar') || l.includes('cl')) p += 3;
-    if (n.includes('google')) p += 4;
-    if (n.includes('natural') || n.includes('neural')) p += 4;
-    if (n.includes('online')) p += 2;
-    return p;
-  };
-  return voces.filter((v) => puntua(v) >= 0).sort((a, b) => puntua(b) - puntua(a))[0] || null;
+  const lista = vocesDisponibles();
+  if (!lista.length) return null;
+  try {
+    const guardada = localStorage.getItem('jarvis-voz');
+    if (guardada) {
+      const v = lista.find((x) => x.name === guardada);
+      if (v) return v;
+    }
+  } catch { /* sin localStorage: se usa la mejor */ }
+  return lista[0];
 }
 
 export default function JarvisVoice({ adminKey }) {
@@ -99,6 +123,14 @@ export default function JarvisVoice({ adminKey }) {
 
   const recognitionRef = useRef(null);
   const vozRef = useRef(null);
+  const velocidadRef = useRef(1.15);
+  const [ajustes, setAjustes] = useState(false);
+  const [voces, setVoces] = useState([]);
+  const [vozNombre, setVozNombre] = useState('');
+  const [velocidad, setVelocidad] = useState(() => {
+    const v = Number(localStorage.getItem('jarvis-velocidad'));
+    return Number.isFinite(v) && v >= 0.7 && v <= 1.8 ? v : 1.15;
+  });
   const messagesEndRef = useRef(null);
   // Los callbacks del reconocimiento se crean una sola vez, así que leen el
   // estado por referencia: con useState verían siempre el valor inicial.
@@ -118,6 +150,10 @@ export default function JarvisVoice({ adminKey }) {
 
   useEffect(() => { mensajesRef.current = messages; }, [messages]);
   useEffect(() => { estadoRef.current = estado; }, [estado]);
+  useEffect(() => {
+    velocidadRef.current = velocidad;
+    try { localStorage.setItem('jarvis-velocidad', String(velocidad)); } catch { /* da igual */ }
+  }, [velocidad]);
   useEffect(() => { modoRef.current = modoConversacion; }, [modoConversacion]);
 
   const cambiarEstado = useCallback((e) => {
@@ -163,9 +199,11 @@ export default function JarvisVoice({ adminKey }) {
     }
     const u = new SpeechSynthesisUtterance(frase);
     if (vozRef.current) u.voice = vozRef.current;
-    u.lang = vozRef.current?.lang || 'es-ES';
-    u.rate = 1.05; // un pelín rápido: suena más natural que el ritmo por defecto
-    u.pitch = 1;
+    u.lang = vozRef.current?.lang || 'es-MX';
+    // El ritmo por defecto (1.0) suena lento y artificial al escucharlo seguido.
+    // Ajustable por el dueño desde el panel de JARVIS.
+    u.rate = velocidadRef.current;
+    u.pitch = 0.95; // un punto más grave: más serio, estilo asistente de película
     hablandoRef.current = true;
     u.onend = () => { hablandoRef.current = false; seguirCola(); };
     u.onerror = () => { hablandoRef.current = false; seguirCola(); };
@@ -443,7 +481,11 @@ export default function JarvisVoice({ adminKey }) {
     };
 
     // La lista de voces llega de forma asíncrona en algunos navegadores.
-    const cargarVoz = () => { vozRef.current = elegirVoz(); };
+    const cargarVoz = () => {
+      vozRef.current = elegirVoz();
+      setVoces(vocesDisponibles());
+      setVozNombre(vozRef.current?.name || '');
+    };
     cargarVoz();
     window.speechSynthesis?.addEventListener?.('voiceschanged', cargarVoz);
 
@@ -555,6 +597,14 @@ export default function JarvisVoice({ adminKey }) {
             </div>
             <div className="flex flex-shrink-0 items-center gap-1">
               <button
+                onClick={() => setAjustes((v) => !v)}
+                className="rounded px-2 py-1 text-lg leading-none transition hover:bg-white/20"
+                title="Voz y velocidad"
+                aria-label="Ajustes de voz"
+              >
+                ⚙️
+              </button>
+              <button
                 onClick={minimizar}
                 className="rounded px-2 pb-1.5 text-2xl leading-none transition hover:bg-white/20"
                 title="Minimizar (sigue escuchando)"
@@ -576,6 +626,60 @@ export default function JarvisVoice({ adminKey }) {
           {!soportaVoz && (
             <div className="flex-shrink-0 bg-amber-50 px-4 py-2 text-xs text-amber-800">
               Este navegador no reconoce voz. Usa Chrome o Edge para hablar; aquí puedes escribir.
+            </div>
+          )}
+
+          {ajustes && (
+            <div className="flex-shrink-0 space-y-3 border-b bg-purple-50 px-4 py-3 text-sm">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-purple-900">Voz</span>
+                <select
+                  value={vozNombre}
+                  onChange={(e) => {
+                    const v = voces.find((x) => x.name === e.target.value);
+                    vozRef.current = v || null;
+                    setVozNombre(e.target.value);
+                    try { localStorage.setItem('jarvis-voz', e.target.value); } catch { /* da igual */ }
+                  }}
+                  className="w-full rounded-lg border border-purple-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-purple-600"
+                >
+                  {voces.map((v) => (
+                    <option key={v.name} value={v.name}>
+                      {v.name} · {v.lang}
+                    </option>
+                  ))}
+                </select>
+                {/* Solo hay voces de España instaladas: se avisa de cómo poner
+                    las latinas, que es lo que el dueño prefiere oír. */}
+                {voces.length > 0 && voces.every((v) => (v.lang || '').toLowerCase().includes('es-es')) && (
+                  <span className="mt-1 block text-xs text-purple-700">
+                    Solo tienes voces de España. Para el acento latino: Inicio → Configuración → Hora e
+                    idioma → Voz → <strong>Agregar voces</strong> → «Español (México)» o «Español (Perú)».
+                  </span>
+                )}
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-purple-900">
+                  Velocidad: {velocidad.toFixed(2)}×
+                </span>
+                <input
+                  type="range"
+                  min="0.8"
+                  max="1.6"
+                  step="0.05"
+                  value={velocidad}
+                  onChange={(e) => setVelocidad(Number(e.target.value))}
+                  className="w-full accent-purple-600"
+                />
+              </label>
+
+              <button
+                onClick={() => hablar('Sistemas en línea. ¿En qué puedo ayudarte con la tienda?')}
+                className="w-full rounded-lg border border-purple-300 bg-white px-3 py-1.5 text-xs transition hover:bg-purple-100"
+              >
+                🔊 Escuchar una prueba
+              </button>
             </div>
           )}
 

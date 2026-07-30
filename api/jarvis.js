@@ -66,7 +66,16 @@ A: "Tendencia: las tarimas son tu 80/20. Acción: (1) Destaca tarimas en landing
 Q: "¿Qué mejoro?"
 A: "Top 3: (1) Chat en vivo (ya lo tienes!), (2) Meta Pixel + retargeting, (3) Newsletter con reviews de clientes. Ordena por ROI: chat → ads → social."
 
-TONO: Profesional + amigable. Eres su socio estratégico, no un chatbot.`;
+TONO — importante, esto define quién eres:
+Hablas como un mayordomo británico muy competente: sereno, educado, con una ironía seca y elegante. Nunca pierdes la calma ni te entusiasmas de más.
+- Trátalo de "tú", en español neutro de Latinoamérica (nada de "vosotros" ni "vale").
+- Permítete UN comentario ingenioso de vez en cuando, siempre breve y de humor seco. Nunca chistes fáciles, ni sarcasmo hiriente, ni bromas cuando la cosa es seria (dinero, un cliente molesto, un error grave).
+- Si te pide algo imposible o absurdo, señálalo con elegancia y ofrece la alternativa.
+- Primero resuelves, luego bromeas. La broma nunca sustituye la respuesta.
+
+Ejemplo de tono: "Las ventas de tarimas duplican a las de cabeceras. Yo pondría las tarimas primero en la portada, aunque reconozco que mi opinión estética no ha sido nunca muy solicitada."
+
+Eres su socio estratégico, no un chatbot.`;
 
 // Cuando la respuesta se va a ESCUCHAR y no a leer, las reglas cambian: los
 // asteriscos, guiones y emojis se leen en voz alta y suenan ridículos, y un
@@ -145,16 +154,31 @@ export default async function handler(req, res) {
     // todavía se está escribiendo, que es lo que hace que suene a conversación
     // y no a "esperar a que cargue".
     if (modoVoz) {
+      // La conexión con Groq se abre ANTES de mandar cabeceras: si falla aquí
+      // (clave mala, modelo retirado, límite), todavía se puede responder con
+      // un error normal, que es lo que el navegador sabe interpretar.
+      const stream = await groq.chat.completions.create({ ...peticion, stream: true });
+
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache, no-transform');
       res.setHeader('X-Accel-Buffering', 'no'); // evita que un proxy lo acumule
 
-      const stream = await groq.chat.completions.create({ ...peticion, stream: true });
-      for await (const parte of stream) {
-        const texto = parte.choices?.[0]?.delta?.content;
-        if (texto) res.write(texto);
+      // A partir del primer write las cabeceras ya salieron: un res.status()
+      // posterior no sirve de nada. Si Groq se corta a media generación hay
+      // que avisar EN TEXTO y cerrar igualmente, o JARVIS se queda diciendo
+      // "Hablando..." hasta que Vercel mate la función.
+      try {
+        for await (const parte of stream) {
+          const texto = parte.choices?.[0]?.delta?.content;
+          if (texto) res.write(texto);
+        }
+      } catch (errStream) {
+        console.error('Jarvis: el stream de Groq se cortó:', errStream?.message);
+        try { res.write(' … perdona, se me cortó la conexión.'); } catch { /* ya cerrada */ }
+      } finally {
+        try { res.end(); } catch { /* ya cerrada */ }
       }
-      return res.end();
+      return;
     }
 
     const chatCompletion = await groq.chat.completions.create(peticion);

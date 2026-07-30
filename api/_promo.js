@@ -51,6 +51,33 @@ function normalizeCode(raw) {
     .replace(/\s+/g, '');
 }
 
+// Cupones creados desde la pestaña "Ofertas y descuentos" (tipo 'codigo').
+// Se traducen a la misma forma que usan los de 'promo:codes' para poder
+// validarlos con las mismas reglas.
+async function codigosDesdeOfertas() {
+  if (!hasDB) return [];
+  try {
+    const data = await redisCmd(['GET', 'ofertas:todas']);
+    if (!data.result) return [];
+    const list = JSON.parse(data.result);
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((o) => o.tipo === 'codigo' && (o.codigo || o.code))
+      .map((o) => ({
+        code: normalizeCode(o.codigo || o.code),
+        tipo: o.tipoDesc === 'monto' ? 'monto' : 'porcentaje',
+        valor: o.valor,
+        activo: o.activo !== false,
+        vence: o.vence || null,
+        maxUsos: o.maxUsos || null,
+        usados: o.usados || 0,
+        desdeOfertas: true, // el contador de usos vive en la otra clave
+      }));
+  } catch {
+    return [];
+  }
+}
+
 // Valida un código contra un total dado y calcula el descuento en soles.
 // SEGURIDAD: se llama tanto al mostrar el descuento en el checkout como al
 // confirmar el pedido — nunca se confía en un "descuento" que mande el
@@ -60,7 +87,12 @@ export async function validatePromo(rawCode, total, cartInfo = {}) {
   if (!code) return { valid: false, motivo: 'Ingresa un código.' };
   if (!(total > 0)) return { valid: false, motivo: 'El carrito está vacío.' };
 
-  const list = await listPromoCodes();
+  // Los códigos viven en DOS sitios por historia del proyecto: los de la
+  // pantalla "Códigos de descuento" en 'promo:codes', y los que se crean en
+  // "Ofertas y descuentos" con tipo 'codigo' en 'ofertas:todas'. El checkout
+  // solo miraba el primero, así que un cupón creado desde Ofertas se repartía
+  // y luego era rechazado. Aquí se buscan en los dos.
+  const list = [...(await listPromoCodes()), ...(await codigosDesdeOfertas())];
   const promo = list.find((p) => p.code === code);
   if (!promo) return { valid: false, motivo: 'Ese código no existe.' };
   if (!promo.activo) return { valid: false, motivo: 'Ese código ya no está activo.' };
@@ -133,11 +165,31 @@ export async function calcularDescuentosAutomaticos(total, cartInfo = {}) {
 
 // Suma un uso al código (se llama SOLO tras confirmar el pedido, nunca antes).
 export async function registerPromoUsage(code) {
+  const buscado = normalizeCode(code);
   const list = await listPromoCodes();
-  const idx = list.findIndex((p) => p.code === normalizeCode(code));
-  if (idx === -1) return;
-  list[idx] = { ...list[idx], usados: (list[idx].usados || 0) + 1 };
-  await savePromoCodes(list);
+  const idx = list.findIndex((p) => p.code === buscado);
+  if (idx !== -1) {
+    list[idx] = { ...list[idx], usados: (list[idx].usados || 0) + 1 };
+    await savePromoCodes(list);
+    return;
+  }
+
+  // El cupón puede venir de la pestaña "Ofertas y descuentos", que guarda en
+  // otra clave. Sin esto, el contador de usos se quedaba a cero y un código
+  // con límite de 10 usos se podía canjear infinitas veces.
+  if (!hasDB) return;
+  try {
+    const data = await redisCmd(['GET', 'ofertas:todas']);
+    if (!data.result) return;
+    const ofertas = JSON.parse(data.result);
+    if (!Array.isArray(ofertas)) return;
+    const i = ofertas.findIndex(
+      (o) => o.tipo === 'codigo' && normalizeCode(o.codigo || o.code) === buscado
+    );
+    if (i === -1) return;
+    ofertas[i] = { ...ofertas[i], usados: (ofertas[i].usados || 0) + 1 };
+    await redisCmd(['SET', 'ofertas:todas', JSON.stringify(ofertas)]);
+  } catch { /* no se bloquea la compra por no poder contar un uso */ }
 }
 
 export function isValidTipo(tipo) {
