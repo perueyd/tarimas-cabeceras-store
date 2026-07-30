@@ -1,12 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 
-function ChatWidgetContent({ onClose }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: '👋 Hola! Soy CHAT-ED, asistente de E|D Espacios. ¿En qué puedo ayudarte?',
-    },
-  ]);
+// `messages` vive en el componente padre a propósito: este panel se desmonta
+// al cerrarlo, así que si el estado estuviera aquí la conversación se perdería
+// entera cada vez que el cliente lo cierra sin querer.
+function ChatWidgetContent({ onClose, messages, setMessages }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -63,7 +60,8 @@ function ChatWidgetContent({ onClose }) {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+    // max-w y max-h: en un móvil de 375px, w-96 (384px) se salía de pantalla.
+    <div className="fixed bottom-5 right-5 z-50 flex h-[600px] max-h-[calc(100vh-2.5rem)] w-96 max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between flex-shrink-0">
         <div>
@@ -157,6 +155,14 @@ function ChatWidgetContent({ onClose }) {
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // La conversación se guarda aquí, fuera del panel, para que cerrar no la
+  // borre: el cliente puede cerrar sin querer y volver donde lo dejó.
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content: '👋 Hola! Soy CHAT-ED, asistente de E|D Espacios. ¿En qué puedo ayudarte?',
+    },
+  ]);
 
   useEffect(() => {
     setMounted(true);
@@ -164,20 +170,34 @@ export default function ChatbotWidget() {
 
   if (!mounted) return null;
 
+
   return (
     <>
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all"
+          // Justo ENCIMA del botón de WhatsApp. Antes los dos estaban en la
+          // esquina inferior derecha casi en la misma posición, así que el
+          // chat tapaba el de WhatsApp y no se podía tocar.
+          className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl"
           title="Abrir chat (IA responde al instante)"
           aria-label="Chat support"
         >
           <span className="text-2xl">💬</span>
+          {/* Aviso de que la charla sigue ahí donde se dejó. */}
+          {messages.length > 1 && (
+            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-amber-400" />
+          )}
         </button>
       )}
 
-      {isOpen && <ChatWidgetContent onClose={() => setIsOpen(false)} />}
+      {isOpen && (
+        <ChatWidgetContent
+          onClose={() => setIsOpen(false)}
+          messages={messages}
+          setMessages={setMessages}
+        />
+      )}
     </>
   );
 }

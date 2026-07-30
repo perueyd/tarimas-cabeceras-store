@@ -26,6 +26,10 @@ const ACTIONS = {
 // Silencio tras el cual se da por terminada la frase y se envía.
 const MS_SILENCIO = 1100;
 
+// Espera entre que JARVIS deja de hablar y se reabre el micrófono, para que no
+// capte la cola de su propia voz saliendo del altavoz.
+const MS_PAUSA_TRAS_HABLAR = 400;
+
 // Lo que se ve en pantalla no es lo que conviene escuchar: los asteriscos,
 // almohadillas y emojis se leerían literalmente ("asterisco asterisco hola").
 function limpiarParaVoz(texto) {
@@ -81,6 +85,7 @@ function elegirVoz() {
 
 export default function JarvisVoice({ adminKey }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [minimizado, setMinimizado] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [soportaVoz, setSoportaVoz] = useState(true);
   const [modoConversacion, setModoConversacion] = useState(false);
@@ -102,6 +107,12 @@ export default function JarvisVoice({ adminKey }) {
   const finalRef = useRef('');
   const silencioRef = useRef(null);
   const hablandoRef = useRef(false);
+  // Barrera contra el eco: solo cuando esto es true se hace caso a lo que
+  // capta el micrófono. Se apaga ANTES de pedir parar el reconocimiento,
+  // porque rec.stop() no es instantáneo y sigue entregando audio un rato.
+  // Sin esto, JARVIS se oía a sí mismo por el altavoz, lo transcribía y se lo
+  // reenviaba como si se lo hubiera dicho el dueño: un bucle infinito.
+  const micPermitidoRef = useRef(false);
   const colaRef = useRef([]);
   const mensajesRef = useRef(messages);
 
@@ -122,6 +133,14 @@ export default function JarvisVoice({ adminKey }) {
     try { window.speechSynthesis.cancel(); } catch { /* nada que cancelar */ }
   }, []);
 
+  // Mientras suene el altavoz, nada de lo que capte el micrófono cuenta.
+  const cerrarMicrofono = useCallback(() => {
+    micPermitidoRef.current = false;
+    clearTimeout(silencioRef.current);
+    finalRef.current = '';
+    try { recognitionRef.current?.stop(); } catch { /* ya estaba parado */ }
+  }, []);
+
   // Reproduce la cola de frases una tras otra. Al vaciarse, si el modo
   // conversación sigue activo, vuelve a abrir el micrófono.
   const seguirCola = useCallback(() => {
@@ -129,8 +148,16 @@ export default function JarvisVoice({ adminKey }) {
     const frase = colaRef.current.shift();
     if (!frase) {
       if (estadoRef.current === 'hablando') {
-        if (modoRef.current) escucharRef.current?.();
-        else cambiarEstado('quieto');
+        if (modoRef.current) {
+          // Pequeña pausa antes de volver a abrir el micrófono: reabrirlo en
+          // el mismo instante en que calla el altavoz hace que capte la cola
+          // de la última palabra y se la reenvíe a sí mismo.
+          setTimeout(() => {
+            if (modoRef.current && estadoRef.current === 'hablando') escucharRef.current?.();
+          }, MS_PAUSA_TRAS_HABLAR);
+        } else {
+          cambiarEstado('quieto');
+        }
       }
       return;
     }
@@ -158,6 +185,7 @@ export default function JarvisVoice({ adminKey }) {
 
   const hablar = useCallback((texto) => {
     detenerVoz();
+    cerrarMicrofono();
     cambiarEstado('hablando');
     const limpio = limpiarParaVoz(texto);
     if (!limpio) { cambiarEstado('quieto'); return; }
@@ -166,7 +194,7 @@ export default function JarvisVoice({ adminKey }) {
     const [frases, resto] = partirFrases(limpio + '\n');
     [...frases, resto].forEach((f) => f.trim() && colaRef.current.push(f.trim()));
     seguirCola();
-  }, [detenerVoz, cambiarEstado, seguirCola]);
+  }, [detenerVoz, cerrarMicrofono, cambiarEstado, seguirCola]);
 
   // -------------------------------------------------------------- escuchar
 
@@ -175,20 +203,29 @@ export default function JarvisVoice({ adminKey }) {
   const escuchar = useCallback(() => {
     const rec = recognitionRef.current;
     if (!rec) return;
+    // Se descarta lo captado mientras JARVIS hablaba: si algo se coló por el
+    // altavoz, no debe salir enviado como si lo hubiera dicho el dueño.
     finalRef.current = '';
     setParcial('');
+    clearTimeout(silencioRef.current);
+    micPermitidoRef.current = true;
     try {
       rec.start();
       cambiarEstado('escuchando');
     } catch {
       // start() lanza si ya estaba arrancado: no es un fallo real.
+      cambiarEstado('escuchando');
     }
   }, [cambiarEstado]);
 
   useEffect(() => { escucharRef.current = escuchar; }, [escuchar]);
 
   const dejarDeEscuchar = useCallback(() => {
+    // El orden importa: primero se cierra la barrera, después se pide parar.
+    micPermitidoRef.current = false;
     clearTimeout(silencioRef.current);
+    finalRef.current = '';
+    setParcial('');
     try { recognitionRef.current?.stop(); } catch { /* ya estaba parado */ }
   }, []);
 
@@ -256,6 +293,7 @@ export default function JarvisVoice({ adminKey }) {
       throw new Error(data?.error || 'No se pudo contactar al asistente.');
     }
 
+    cerrarMicrofono(); // el altavoz va a sonar: micrófono fuera
     cambiarEstado('hablando');
     // La posición del mensaje que se va rellenando se captura dentro del propio
     // setState, que es el único sitio donde la lista está garantizada al día.
@@ -356,6 +394,9 @@ export default function JarvisVoice({ adminKey }) {
     recognitionRef.current = rec;
 
     rec.onresult = (event) => {
+      // Si la barrera está cerrada, lo que llega es eco del altavoz o restos
+      // de audio de antes de parar: se tira sin mirarlo.
+      if (!micPermitidoRef.current || estadoRef.current !== 'escuchando') return;
       let interino = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const t = event.results[i][0].transcript;
@@ -377,9 +418,12 @@ export default function JarvisVoice({ adminKey }) {
     };
 
     rec.onend = () => {
-      // En modo conversación el micrófono se reabre solo, salvo que estemos
-      // pensando o hablando (ahí se reabre al terminar de hablar).
-      if (modoRef.current && estadoRef.current === 'escuchando') {
+      // El navegador corta el reconocimiento cada cierto tiempo por su cuenta;
+      // en modo conversación hay que reabrirlo. Pero SOLO si la barrera sigue
+      // abierta: antes se comprobaba el estado, que todavía no había cambiado
+      // a "pensando", así que reabría el micrófono justo cuando JARVIS iba a
+      // hablar y se oía a sí mismo.
+      if (modoRef.current && micPermitidoRef.current) {
         try { rec.start(); } catch { /* aún cerrándose */ }
       }
     };
@@ -429,14 +473,29 @@ export default function JarvisVoice({ adminKey }) {
     }
   }
 
-  // Al cerrar hay que soltar el micrófono y callar la voz: si no, sigue
-  // escuchando y hablando con el panel cerrado.
+  // Minimizar NO interrumpe nada: el panel se encoge a una barra pequeña y
+  // JARVIS sigue escuchando y respondiendo. Sirve para dictar mientras se
+  // trabaja en el panel sin tener la ventana encima.
+  function minimizar() {
+    setIsOpen(false);
+    setMinimizado(true);
+  }
+
+  function restaurar() {
+    setMinimizado(false);
+    setIsOpen(true);
+  }
+
+  // Cerrar sí suelta el micrófono y calla la voz (si no, seguiría escuchando
+  // con el panel cerrado). La conversación NO se borra: al volver a abrir
+  // sigue donde estaba.
   function cerrar() {
     setModoConversacion(false);
     modoRef.current = false;
     dejarDeEscuchar();
     detenerVoz();
     cambiarEstado('quieto');
+    setMinimizado(false);
     setIsOpen(false);
   }
 
@@ -458,7 +517,8 @@ export default function JarvisVoice({ adminKey }) {
 
   return (
     <>
-      {!isOpen && (
+      {/* Cerrado del todo: solo el botón redondo. */}
+      {!isOpen && !minimizado && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 left-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl"
@@ -466,23 +526,51 @@ export default function JarvisVoice({ adminKey }) {
           aria-label="Admin voice assistant"
         >
           <span className="text-2xl">🎙️</span>
+          {messages.length > 1 && (
+            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-amber-400" />
+          )}
+        </button>
+      )}
+
+      {/* Minimizado: barra pequeña que SIGUE escuchando y hablando. */}
+      {minimizado && (
+        <button
+          onClick={restaurar}
+          className="fixed bottom-6 left-6 z-40 flex items-center gap-3 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 py-2.5 pl-3 pr-5 text-white shadow-lg transition hover:shadow-xl"
+          title="Volver a abrir JARVIS"
+        >
+          <span className={`text-xl ${estado === 'escuchando' ? 'animate-pulse' : ''}`}>
+            {estado === 'escuchando' ? '🎤' : estado === 'hablando' ? '🔊' : estado === 'pensando' ? '💭' : '🎙️'}
+          </span>
+          <span className="text-sm font-medium">{etiquetaEstado}</span>
         </button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 left-6 z-50 flex h-[680px] w-96 max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border-2 border-purple-600 bg-white shadow-2xl">
+        <div className="fixed bottom-6 left-6 z-50 flex h-[680px] max-h-[calc(100vh-3rem)] w-96 max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border-2 border-purple-600 bg-white shadow-2xl">
           <div className="flex flex-shrink-0 items-center justify-between bg-gradient-to-r from-purple-600 to-purple-700 p-4 text-white">
             <div className="min-w-0">
               <h3 className="text-lg font-bold">🎙️ JARVIS</h3>
               <p className="truncate text-xs text-purple-100">{etiquetaEstado}</p>
             </div>
-            <button
-              onClick={cerrar}
-              className="flex-shrink-0 text-2xl transition hover:opacity-80"
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
+            <div className="flex flex-shrink-0 items-center gap-1">
+              <button
+                onClick={minimizar}
+                className="rounded px-2 pb-1.5 text-2xl leading-none transition hover:bg-white/20"
+                title="Minimizar (sigue escuchando)"
+                aria-label="Minimizar"
+              >
+                –
+              </button>
+              <button
+                onClick={cerrar}
+                className="rounded px-2 py-1 text-xl leading-none transition hover:bg-white/20"
+                title="Cerrar (la conversación se guarda)"
+                aria-label="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           {!soportaVoz && (
