@@ -353,7 +353,7 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'blog' && <BlogTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'ai' && <AITab catalog={catalog} api={api} flash={flash} />}
       {sub === 'analytics' && <AnalyticsAdvancedTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'integraciones' && <IntegrationsTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'integraciones' && <IntegrationsTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'emailMarketing' && <EmailMarketingTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'security' && <SecurityTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'seo' && <SEOTab catalog={catalog} api={api} flash={flash} />}

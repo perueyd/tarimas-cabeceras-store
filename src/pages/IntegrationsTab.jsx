@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function IntegrationsTab({ catalog, api, flash }) {
+export default function IntegrationsTab({ catalog, api, flash, adminKey }) {
   const cfg = catalog.storeConfig || {};
   const integrations = cfg.integrations || {};
+  const [cargando, setCargando] = useState(true);
   const [data, setData] = useState({
     instagramShop: { activo: integrations.instagramShop?.activo || false, businessId: integrations.instagramShop?.businessId || '', token: integrations.instagramShop?.token || '' },
     tiktokShop: { activo: integrations.tiktokShop?.activo || false, shopId: integrations.tiktokShop?.shopId || '', token: integrations.tiktokShop?.token || '' },
@@ -11,6 +12,21 @@ export default function IntegrationsTab({ catalog, api, flash }) {
     slack: { activo: integrations.slack?.activo || false, webhookUrl: integrations.slack?.webhookUrl || '' },
   });
   const [saving, setSaving] = useState(false);
+
+  // Las claves de estas integraciones ya NO viajan en el /api/catalog público
+  // (cualquiera podría leerlas). Se piden aparte, con la clave del panel.
+  useEffect(() => {
+    let cancelado = false;
+    fetch('/api/catalog', { headers: { Authorization: `Bearer ${adminKey}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const i = d?.storeConfig?.integrations;
+        if (!cancelado && i) setData((prev) => ({ ...prev, ...i }));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelado) setCargando(false); });
+    return () => { cancelado = true; };
+  }, [adminKey]);
 
   async function guardar() {
     setSaving(true);

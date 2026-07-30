@@ -7,10 +7,33 @@ import { checkAdminAuth } from './_auth.js';
 // POST    -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase   body: el objeto (crea o edita por id)
 //         -> ?resource=config                                                                body: cambios parciales de storeConfig
 // DELETE  -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase&id=xxx
+// Partes de la configuración que NO pueden salir a la web pública.
+//
+// /api/catalog es público (la tienda lo necesita para pintarse), y devolvía el
+// storeConfig ENTERO. Pero ahí dentro se guardan los tokens de Instagram,
+// TikTok, Google Ads, Mailchimp y el webhook de Slack que se escriben desde
+// "Integraciones": cualquiera que abriera esa dirección se los llevaba. Hoy no
+// hay ninguno configurado, así que no se ha filtrado nada — pero en cuanto se
+// conectara la primera red social quedarían a la vista.
+//
+// También se oculta el correo del dueño, que solo servía para recibir spam.
+const PRIVADO = ['integrations', 'ownerEmail'];
+
+function soloPublico(catalog) {
+  const cfg = catalog.storeConfig || {};
+  const limpio = {};
+  for (const [k, v] of Object.entries(cfg)) {
+    if (!PRIVADO.includes(k)) limpio[k] = v;
+  }
+  return { ...catalog, storeConfig: limpio };
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     const catalog = await getCatalog();
-    return res.status(200).json(catalog);
+    // El panel (con clave) sí necesita la configuración completa para editarla.
+    const auth = await checkAdminAuth(req);
+    return res.status(200).json(auth.ok ? catalog : soloPublico(catalog));
   }
 
   const auth = await checkAdminAuth(req);
