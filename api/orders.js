@@ -1,4 +1,4 @@
-import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
+import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, reemplazarEnLista, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, validatePromo } from './_promo.js';
@@ -161,7 +161,8 @@ export default async function handler(req, res) {
           if (estado) order.estado = estado;
           if (metodo) order.metodo = metodo;
           if (referencia !== null) order.referencia = referencia;
-          await redisCmd(['LSET', 'pedidos', String(i), JSON.stringify(order)]);
+          // Por VALOR, no por posición: ver reemplazarEnLista en _store.js.
+          await reemplazarEnLista('pedidos', list[i], JSON.stringify(order));
           // Agrega una fila nueva a la hoja de Google (historial con fecha de cada
           // cambio de estado) y avisa al cliente por correo, si hay email.
           if (estado) {

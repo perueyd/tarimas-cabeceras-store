@@ -1,4 +1,4 @@
-import { hasDB, redisCmd } from './_store.js';
+import { hasDB, redisCmd, reemplazarEnLista } from './_store.js';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
@@ -109,7 +109,9 @@ export default async function handler(req, res) {
           r.respuesta = respuesta;
           r.estado = 'Respondido';
           r.fechaRespuesta = new Date().toISOString();
-          await redisCmd(['LSET', 'reclamos', String(i), JSON.stringify(r)]);
+          // Por VALOR, no por posición: perder un asiento del Libro de
+          // Reclamaciones incumple la Ley 29571.
+          await reemplazarEnLista('reclamos', list[i], JSON.stringify(r));
           return res.status(200).json({ ok: true, reclamo: r });
         }
       } catch { /* sigue buscando */ }

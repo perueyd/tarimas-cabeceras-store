@@ -1,4 +1,4 @@
-import { hasDB, redisCmd } from './_store.js';
+import { hasDB, redisCmd, reemplazarEnLista } from './_store.js';
 import { s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { checkAdminAuth } from './_auth.js';
@@ -123,7 +123,8 @@ export default async function handler(req, res) {
             const actualizada = soloAprobar
               ? { ...r, aprobada: true }
               : { ...r, estrellas, comentario, editado: true };
-            await redisCmd(['LSET', listKey, String(i), JSON.stringify(actualizada)]);
+            // Por VALOR, no por posición: aprobar una reseña podía pisar otra.
+            await reemplazarEnLista(listKey, data.result[i], JSON.stringify(actualizada));
             return actualizada;
           }
         } catch { /* sigue buscando */ }

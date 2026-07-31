@@ -89,6 +89,27 @@ export async function saveOrder(order, extra = {}) {
   return saved;
 }
 
+// Reemplaza un elemento de una lista de Redis SIN usar su posición.
+//
+// El patrón anterior era: leer la lista con LRANGE, buscar el índice i, y
+// escribir con LSET <i>. Entre esas dos llamadas hay un viaje de red completo,
+// y como los elementos entran con LPUSH (por delante), cualquier pedido nuevo
+// que llegue en ese hueco corre todos los índices: el LSET pisaba el elemento
+// EQUIVOCADO. Un pedido real —con su cliente, dirección y monto— se perdía sin
+// recuperación posible, y quedaba duplicado el otro. En el Libro de
+// Reclamaciones eso además incumple la Ley 29571.
+//
+// Aquí se identifica por VALOR (LREM), que no depende de la posición.
+// El orden importa: primero se AÑADE el nuevo y luego se quita el viejo. Si
+// algo fallara en medio, queda un duplicado (molesto pero recuperable) en vez
+// de una pérdida (irrecuperable).
+export async function reemplazarEnLista(clave, valorViejo, valorNuevo) {
+  if (!hasDB) return false;
+  await redisCmd(['LPUSH', clave, valorNuevo]);
+  await redisCmd(['LREM', clave, '0', valorViejo]);
+  return true;
+}
+
 export async function deleteOrder(code) {
   if (!hasDB) return false;
   const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
@@ -104,9 +125,24 @@ export async function deleteOrder(code) {
 export async function listOrders(limit = 200) {
   if (!hasDB) return null;
   const data = await redisCmd(['LRANGE', 'pedidos', '0', String(limit - 1)]);
-  return (data.result || [])
+  const pedidos = (data.result || [])
     .map((raw) => {
       try { return JSON.parse(raw); } catch { return null; }
     })
     .filter(Boolean);
+
+  // Editar un pedido lo mueve al principio de la lista (ver reemplazarEnLista),
+  // así que el orden de la lista ya no equivale al orden de llegada. Se ordena
+  // por FECHA para que el panel muestre siempre los más recientes arriba.
+  pedidos.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+  // Si una escritura se quedó a medias podría haber dos copias del mismo
+  // pedido; se muestra solo la primera (la más reciente por fecha).
+  const vistos = new Set();
+  return pedidos.filter((o) => {
+    if (!o.code) return true;
+    if (vistos.has(o.code)) return false;
+    vistos.add(o.code);
+    return true;
+  });
 }
