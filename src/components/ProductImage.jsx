@@ -130,7 +130,7 @@ export default function ProductImage({
   if (!tintable || !mostrarColor) {
     return (
       <div className={`relative overflow-hidden bg-neutral-100 ${className}`}>
-        <img src={baseImage} alt={alt} className="absolute inset-0 h-full w-full object-contain" />
+        <img loading="lazy" decoding="async" src={baseImage} alt={alt} className="absolute inset-0 h-full w-full object-contain" />
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function ProductImage({
           // máscara aquí: el recorte lo hace la capa de color, como siempre.
           style={zona.mascara ? recorte(zona.mascara) : undefined}
         >
-          <img
+          <img loading="lazy" decoding="async"
             src={baseImage}
             alt={i === 0 ? alt : ''}
             aria-hidden={i > 0}

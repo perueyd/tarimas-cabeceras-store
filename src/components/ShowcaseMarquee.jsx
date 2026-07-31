@@ -218,7 +218,7 @@ export default function ShowcaseMarquee() {
                     style={{ backgroundColor: p.color, borderRadius: p.style.blob, filter: 'url(#ed-liquid)' }}
                   >
                     {p.img && (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={p.img}
                         alt=""
                         draggable={false}

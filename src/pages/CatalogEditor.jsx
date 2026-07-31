@@ -16,13 +16,16 @@ import SEOTab from './SEOTab.jsx';
 import GarantiasTab from './GarantiasTab.jsx';
 import ChatbotTab from './ChatbotTab.jsx';
 import VistaPrevia from '../components/VistaPrevia.jsx';
+import { comprimirImagen, formatearPeso } from '../lib/comprimirImagen.js';
 
-// Botón "Subir foto": abre el selector de archivos, sube la imagen al almacén
-// (Vercel Blob) y entrega la URL lista para usar. Máximo ~4 MB por foto.
+// Botón "Subir foto": abre el selector de archivos, COMPRIME la imagen en el
+// navegador, la sube al almacén (Vercel Blob) y entrega la URL lista para usar.
 function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = false, onBatch }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [progreso, setProgreso] = useState(''); // "2 / 5" al subir varias
+  const [ahorro, setAhorro] = useState(null); // cuánto se redujo la última subida
+  const ahorroRef = useRef({ original: 0, final: 0 });
   // Vista previa del último archivo elegido: miniatura + nombre original, para
   // que el dueño confirme QUÉ está subiendo antes de que termine.
   const [preview, setPreview] = useState(null); // { url, name }
@@ -31,12 +34,20 @@ function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = f
   useEffect(() => () => { if (preview?.url) URL.revokeObjectURL(preview.url); }, [preview]);
 
   async function subirUno(file) {
+    // Se encoge y comprime ANTES de subir. Una foto de celular pasa de ~4 MB a
+    // ~200 KB sin verse peor. Antes se subían tal cual y cada visitante de la
+    // tienda descargaba veinte veces más datos de los necesarios: así se
+    // agotaron los 10 GB gratuitos de Vercel Blob.
+    const listo = await comprimirImagen(file);
+    ahorroRef.current.original += file.size;
+    ahorroRef.current.final += listo.size;
+
     const res = await fetch(
-      `/api/upload?filename=${encodeURIComponent(file.name)}`,
+      `/api/upload?filename=${encodeURIComponent(listo.name)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/octet-stream', Authorization: `Bearer ${adminKey}` },
-        body: file,
+        body: listo,
       }
     );
     const data = await res.json();
@@ -48,11 +59,15 @@ function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = f
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
-    const grande = files.find((f) => f.size > 4 * 1024 * 1024);
+    // El tope sube a 12 MB porque ya no se envía el original: se comprime aquí
+    // y lo que viaja al servidor son unos cientos de KB. Antes había que
+    // rechazar cualquier foto de celular moderna.
+    const grande = files.find((f) => f.size > 12 * 1024 * 1024);
     if (grande) {
-      alert(`"${grande.name}" pesa más de 4 MB. Redúcela (1200 px de ancho es suficiente) e intenta de nuevo.`);
+      alert(`"${grande.name}" pesa más de 12 MB, demasiado incluso para comprimirla. Redúcela e intenta de nuevo.`);
       return;
     }
+    ahorroRef.current = { original: 0, final: 0 };
     setBusy(true);
     try {
       if (multiple && onBatch) {
@@ -71,6 +86,8 @@ function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = f
         const url = await subirUno(file);
         onUploaded(url);
       }
+      const { original, final } = ahorroRef.current;
+      if (original > final) setAhorro({ original, final });
     } catch (err) {
       alert(err.message);
     } finally {
@@ -97,6 +114,11 @@ function UploadButton({ adminKey, onUploaded, label = '📷 Subir', multiple = f
       >
         {busy ? (progreso ? `Subiendo ${progreso}...` : 'Subiendo...') : label}
       </button>
+      {ahorro && !busy && (
+        <span className="text-[11px] text-green-700" title="Se comprimió en tu navegador antes de subirla">
+          ✓ {formatearPeso(ahorro.original)} → {formatearPeso(ahorro.final)}
+        </span>
+      )}
       {/* Miniatura + nombre del archivo que se está subiendo (solo modo simple). */}
       {!multiple && preview && (
         <span className="inline-flex items-center gap-1 text-[11px] text-neutral-500">

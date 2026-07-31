@@ -226,7 +226,7 @@ export default function ProductDetail() {
                 mostrarColor={colorElegido}
               />
             ) : (
-              <img
+              <img loading="lazy" decoding="async"
                 src={vistaActiva.url}
                 alt={product.name}
                 className="aspect-[4/3] w-full rounded-xl object-cover"
@@ -254,7 +254,7 @@ export default function ProductDetail() {
                   className={`relative shrink-0 overflow-hidden rounded-lg border ${activeIdx === i ? 'border-ink ring-2 ring-ink' : 'border-neutral-200'}`}
                   title={i === 0 ? 'Foto principal' : v.tintable ? 'Esta foto también cambia de color' : 'Foto adicional'}
                 >
-                  <img src={v.url} alt="" className="h-16 w-16 object-cover" />
+                  <img loading="lazy" decoding="async" src={v.url} alt="" className="h-16 w-16 object-cover" />
                   {v.tintable && (
                     <span className="absolute bottom-0.5 right-0.5 rounded-full bg-white/90 px-1 text-[9px]">🎨</span>
                   )}
@@ -359,7 +359,7 @@ export default function ProductDetail() {
                       {/* Si la opción tiene foto (tipo de botón, modelo de pata),
                           se muestra para que el cliente vea de qué se trata. */}
                       {v.img && (
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={v.img}
                           alt={v.label}
                           className="aspect-square w-full object-cover"
@@ -574,7 +574,7 @@ function ReviewsSection({ productId }) {
               <p className="mt-2 text-sm text-neutral-600">{r.comentario}</p>
               {r.foto && (
                 <a href={r.foto} target="_blank" rel="noreferrer" className="mt-2 inline-block">
-                  <img src={r.foto} alt="Foto del cliente" className="h-24 w-24 rounded-lg border border-neutral-200 object-cover" />
+                  <img loading="lazy" decoding="async" src={r.foto} alt="Foto del cliente" className="h-24 w-24 rounded-lg border border-neutral-200 object-cover" />
                 </a>
               )}
               <p className="mt-2 text-xs text-neutral-400">{new Date(r.fecha).toLocaleDateString('es-PE')}</p>
@@ -620,7 +620,7 @@ function ReviewsSection({ productId }) {
           <div className="mt-3">
             {form.foto ? (
               <div className="flex items-center gap-2">
-                <img src={form.foto} alt="" className="h-14 w-14 rounded-lg border border-neutral-200 object-cover" />
+                <img loading="lazy" decoding="async" src={form.foto} alt="" className="h-14 w-14 rounded-lg border border-neutral-200 object-cover" />
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, foto: '' })}
