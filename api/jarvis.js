@@ -180,26 +180,65 @@ export default async function handler(req, res) {
       // un error normal, que es lo que el navegador sabe interpretar.
       const stream = await groq.chat.completions.create({ ...peticion, stream: true });
 
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache, no-transform');
-      res.setHeader('X-Accel-Buffering', 'no'); // evita que un proxy lo acumule
+      // El modelo hará UNA de dos cosas: escribir texto, o pedir herramientas
+      // (para abrir una sección, consultar ventas...). Hasta saber cuál, no se
+      // mandan cabeceras: si son herramientas hay que responder en JSON, y una
+      // vez enviadas las cabeceras de texto ya no se puede cambiar.
+      //
+      // Sin esto, pedirle "llévame al catálogo" en modo voz devolvía un flujo
+      // de texto VACÍO (solo llegaban trozos de herramienta) y el navegador
+      // mostraba "El asistente no devolvió respuesta".
+      const herramientas = [];
+      let empezoTexto = false;
 
-      // A partir del primer write las cabeceras ya salieron: un res.status()
-      // posterior no sirve de nada. Si Groq se corta a media generación hay
-      // que avisar EN TEXTO y cerrar igualmente, o JARVIS se queda diciendo
-      // "Hablando..." hasta que Vercel mate la función.
       try {
         for await (const parte of stream) {
-          const texto = parte.choices?.[0]?.delta?.content;
-          if (texto) res.write(texto);
+          const delta = parte.choices?.[0]?.delta || {};
+
+          // Los argumentos de una herramienta llegan troceados: hay que ir
+          // pegándolos por índice hasta tener el JSON completo.
+          if (Array.isArray(delta.tool_calls)) {
+            for (const tc of delta.tool_calls) {
+              const i = tc.index ?? 0;
+              herramientas[i] ||= { id: '', type: 'function', function: { name: '', arguments: '' } };
+              if (tc.id) herramientas[i].id = tc.id;
+              if (tc.function?.name) herramientas[i].function.name = tc.function.name;
+              if (tc.function?.arguments) herramientas[i].function.arguments += tc.function.arguments;
+            }
+          }
+
+          if (delta.content) {
+            if (!empezoTexto) {
+              empezoTexto = true;
+              res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+              res.setHeader('Cache-Control', 'no-cache, no-transform');
+              res.setHeader('X-Accel-Buffering', 'no'); // evita que un proxy lo acumule
+            }
+            res.write(delta.content);
+          }
         }
       } catch (errStream) {
         console.error('Jarvis: el stream de Groq se cortó:', errStream?.message);
-        try { res.write(' … perdona, se me cortó la conexión.'); } catch { /* ya cerrada */ }
-      } finally {
-        try { res.end(); } catch { /* ya cerrada */ }
+        if (empezoTexto) {
+          // Las cabeceras ya salieron: solo se puede avisar en texto y cerrar.
+          try { res.write(' … perdona, se me cortó la conexión.'); } catch { /* ya cerrada */ }
+          try { res.end(); } catch { /* ya cerrada */ }
+          return;
+        }
+        return res.status(503).json({ error: 'Se cortó la conexión con el asistente. Inténtalo otra vez.' });
       }
-      return;
+
+      if (empezoTexto) {
+        try { res.end(); } catch { /* ya cerrada */ }
+        return;
+      }
+
+      // No hubo texto: o pidió herramientas, o no dijo nada.
+      const llamadas = herramientas.filter((h) => h?.function?.name);
+      if (llamadas.length) {
+        return res.status(200).json({ reply: '', tool_calls: llamadas });
+      }
+      return res.status(200).json({ reply: '' });
     }
 
     const chatCompletion = await groq.chat.completions.create(peticion);

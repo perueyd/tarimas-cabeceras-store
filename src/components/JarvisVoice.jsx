@@ -313,16 +313,48 @@ export default function JarvisVoice({ adminKey, onNavegar }) {
 
   // Pide la respuesta por partes y va hablando cada frase en cuanto está
   // completa, sin esperar al texto entero.
-  async function preguntarHablando(historial) {
-    const res = await fetch('/api/jarvis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey || ''}` },
-      body: JSON.stringify({ messages: historial, voz: true }),
-    });
+  async function preguntarHablando(historialInicial) {
+    let historial = historialInicial;
+    let res;
 
-    if (!res.ok) {
+    // Hasta 3 rondas de herramientas antes de que haya respuesta hablada. El
+    // servidor responde en JSON cuando el modelo pide una acción (abrir una
+    // sección, consultar ventas) y en texto cuando ya tiene algo que decir.
+    for (let ronda = 0; ronda < 3; ronda++) {
+      res = await fetch('/api/jarvis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey || ''}` },
+        body: JSON.stringify({ messages: historial, voz: true }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || 'No se pudo contactar al asistente.');
+      }
+
+      // Texto: se sale del bucle y se lee en voz alta más abajo.
+      if (!(res.headers.get('content-type') || '').includes('application/json')) break;
+
       const data = await res.json().catch(() => ({}));
-      throw new Error(data?.error || 'No se pudo contactar al asistente.');
+      if (!data.tool_calls?.length) {
+        // Respondió sin texto y sin acción: no hay nada que decir.
+        if (data.reply) { hablar(data.reply); return; }
+        throw new Error('El asistente no devolvió respuesta.');
+      }
+
+      const resultados = await Promise.all(
+        data.tool_calls.map(async (ll) => ({
+          role: 'tool',
+          tool_call_id: ll.id,
+          content: JSON.stringify(await ejecutarHerramienta(ll)),
+        }))
+      );
+      historial = [
+        ...historial,
+        { role: 'assistant', content: data.reply || '', tool_calls: data.tool_calls },
+        ...resultados,
+      ];
+      if (ronda === 2) throw new Error('Me enredé con esa petición. ¿Puedes decírmelo de otra forma?');
     }
 
     cerrarMicrofono(); // el altavoz va a sonar: micrófono fuera
