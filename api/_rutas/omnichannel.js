@@ -1,8 +1,8 @@
 // Omnichannel: Sincroniza ofertas en WhatsApp, Instagram, TikTok
 // Un código en 3 plataformas simultáneamente
 
-import { hasDB, redisCmd } from './_store.js';
-import { checkAdminAuth } from './_auth.js';
+import { hasDB, redisCmd } from '../_store.js';
+import { checkAdminAuth } from '../_auth.js';
 
 const KEY_CANALES = 'omnichannel:canales';
 

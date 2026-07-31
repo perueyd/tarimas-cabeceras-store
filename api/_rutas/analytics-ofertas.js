@@ -1,7 +1,7 @@
-import { checkAdminAuth } from './_auth.js';
-import { vencida } from './_ofertas-auto.js';
+import { checkAdminAuth } from '../_auth.js';
+import { vencida } from '../_ofertas-auto.js';
 import { listarOfertas } from './ofertas.js';
-import { listarHistorial, buscarHistorialPorCodigo } from './_historial.js';
+import { listarHistorial, buscarHistorialPorCodigo } from '../_historial.js';
 
 // GET ?dias=30: estadísticas de ofertas en los últimos N días
 export default async function handler(req, res) {

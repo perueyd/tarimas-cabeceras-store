@@ -2,8 +2,8 @@
 // Usa: análisis de historial + datos del cliente para maximizar conversión
 
 import { listarOfertas } from './ofertas.js';
-import { listarHistorial } from './_historial.js';
-import { checkAdminAuth } from './_auth.js';
+import { listarHistorial } from '../_historial.js';
+import { checkAdminAuth } from '../_auth.js';
 
 // Sugerir descuento óptimo para un cliente/producto
 export async function sugerirDescuentoOptimo(clienteInfo, productoInfo) {

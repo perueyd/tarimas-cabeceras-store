@@ -1,8 +1,8 @@
 // ML Predictivo: Predice demanda, predice churn, sugiere acciones
 // Usa análisis de series temporales simple (linear regression)
 
-import { listarHistorial } from './_historial.js';
-import { checkAdminAuth } from './_auth.js';
+import { listarHistorial } from '../_historial.js';
+import { checkAdminAuth } from '../_auth.js';
 
 // Predice demanda para próximos N días
 export async function predecirDemanda(diasAdelante = 7) {

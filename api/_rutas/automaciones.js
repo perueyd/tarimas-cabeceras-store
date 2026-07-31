@@ -1,6 +1,6 @@
-import { hasDB, redisCmd } from './_store.js';
-import { s } from './_pricing.js';
-import { checkAdminAuth } from './_auth.js';
+import { hasDB, redisCmd } from '../_store.js';
+import { s } from '../_pricing.js';
+import { checkAdminAuth } from '../_auth.js';
 
 const KEY = 'automaciones:todas';
 

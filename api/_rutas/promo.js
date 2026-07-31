@@ -1,8 +1,8 @@
-import { isValidTipo, isValidTipoDesc, listPromoCodes, savePromoCodes, validatePromo, listDescuentosAutomaticos, saveDescuentosAutomaticos, calcularDescuentosAutomaticos } from './_promo.js';
-import { hasDB } from './_store.js';
-import { s } from './_pricing.js';
-import { checkAdminAuth } from './_auth.js';
-import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { isValidTipo, isValidTipoDesc, listPromoCodes, savePromoCodes, validatePromo, listDescuentosAutomaticos, saveDescuentosAutomaticos, calcularDescuentosAutomaticos } from '../_promo.js';
+import { hasDB } from '../_store.js';
+import { s } from '../_pricing.js';
+import { checkAdminAuth } from '../_auth.js';
+import { clientIp, rateLimitRequest } from '../_ratelimit.js';
 
 // GET   ?validar=CODE&total=123           -> público, sin clave. Valida un código para el checkout.
 // GET   Authorization: Bearer <admin>     -> lista todos los códigos (panel).

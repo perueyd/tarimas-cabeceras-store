@@ -1,7 +1,7 @@
-import { hasDB, redisCmd } from './_store.js';
-import { s } from './_pricing.js';
-import { checkAdminAuth } from './_auth.js';
-import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { hasDB, redisCmd } from '../_store.js';
+import { s } from '../_pricing.js';
+import { checkAdminAuth } from '../_auth.js';
+import { clientIp, rateLimitRequest } from '../_ratelimit.js';
 
 // Suscripciones al newsletter (solo el correo + fecha).
 // POST {email}                        -> público, se suscribe (rate-limited)

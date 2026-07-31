@@ -1,7 +1,7 @@
-import { hasDB, redisCmd } from './_store.js';
-import { s } from './_pricing.js';
-import { checkAdminAuth } from './_auth.js';
-import { isValidTipoDesc, listDescuentosAutomaticos, saveDescuentosAutomaticos } from './_promo.js';
+import { hasDB, redisCmd } from '../_store.js';
+import { s } from '../_pricing.js';
+import { checkAdminAuth } from '../_auth.js';
+import { isValidTipoDesc, listDescuentosAutomaticos, saveDescuentosAutomaticos } from '../_promo.js';
 
 // GET: lista descuentos automáticos (panel admin)
 // POST: crea/edita descuento (admin)

@@ -1,7 +1,7 @@
-import { hasDB, redisCmd, reemplazarEnLista } from './_store.js';
-import { s } from './_pricing.js';
-import { checkAdminAuth } from './_auth.js';
-import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { hasDB, redisCmd, reemplazarEnLista } from '../_store.js';
+import { s } from '../_pricing.js';
+import { checkAdminAuth } from '../_auth.js';
+import { clientIp, rateLimitRequest } from '../_ratelimit.js';
 
 // Libro de Reclamaciones Virtual — exigido por el Código de Protección y
 // Defensa del Consumidor (Ley 29571) y su reglamento (D.S. 011-2011-PCM y

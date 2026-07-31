@@ -6,11 +6,11 @@
 //
 // Solo el dueño: exige la clave del panel, igual que /api/jarvis.
 
-import { listOrders } from './_store.js';
-import { getCatalog } from './_catalog.js';
-import { checkAdminAuth } from './_auth.js';
-import { clientIp, rateLimitRequest } from './_ratelimit.js';
-import { s } from './_pricing.js';
+import { listOrders } from '../_store.js';
+import { getCatalog } from '../_catalog.js';
+import { checkAdminAuth } from '../_auth.js';
+import { clientIp, rateLimitRequest } from '../_ratelimit.js';
+import { s } from '../_pricing.js';
 
 const esVenta = (o) => o.estado === 'Pagado' || o.estado === 'Entregado';
 

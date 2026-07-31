@@ -43,7 +43,20 @@ async function createServer() {
     // Handle API routes
     if (req.url.startsWith('/api/')) {
       const apiPath = req.url.split('?')[0];
-      const modulePath = path.join(__dirname, 'api', apiPath.replace(/^\/api\//, '').replace(/\/$/, '') + '.js');
+      const nombre = apiPath.replace(/^\/api\//, '').replace(/\/$/, '');
+      let modulePath = path.join(__dirname, 'api', nombre + '.js');
+      // Igual que en Vercel: si no hay un archivo con ese nombre exacto, la
+      // petición la atiende el despachador api/[ruta].js, que agrupa las
+      // direcciones de poco tráfico en una sola función (el plan gratuito solo
+      // permite 12).
+      let rutaDinamica = null;
+      if (!fs.existsSync(modulePath)) {
+        const despachador = path.join(__dirname, 'api', '[ruta].js');
+        if (fs.existsSync(despachador)) {
+          modulePath = despachador;
+          rutaDinamica = nombre;
+        }
+      }
 
       try {
         if (fs.existsSync(modulePath)) {
@@ -61,7 +74,10 @@ async function createServer() {
             const mockReq = {
               method: req.method,
               headers: req.headers,
-              query: Object.fromEntries(new URL(req.url, 'http://localhost').searchParams),
+              query: {
+                ...Object.fromEntries(new URL(req.url, 'http://localhost').searchParams),
+                ...(rutaDinamica ? { ruta: rutaDinamica } : {}),
+              },
               body: req.method !== 'GET' ? await parseBody(req) : undefined,
             };
 

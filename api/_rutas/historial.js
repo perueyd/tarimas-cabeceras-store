@@ -1,5 +1,5 @@
-import { checkAdminAuth } from './_auth.js';
-import { listarHistorial, buscarHistorialPorCodigo, buscarHistorialPorCliente } from './_historial.js';
+import { checkAdminAuth } from '../_auth.js';
+import { listarHistorial, buscarHistorialPorCodigo, buscarHistorialPorCliente } from '../_historial.js';
 
 // GET: lista histórico de códigos usados (requiere admin)
 // GET ?codigo=X: busca uso de un código específico

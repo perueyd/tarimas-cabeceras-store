@@ -1,8 +1,8 @@
 // Sistema de Gamificación: Puntos, badges, ranking, rachas
 // Engancha clientes para comprar más veces
 
-import { hasDB, redisCmd } from './_store.js';
-import { checkAdminAuth } from './_auth.js';
+import { hasDB, redisCmd } from '../_store.js';
+import { checkAdminAuth } from '../_auth.js';
 
 const KEY_CLIENTES = 'gamificacion:clientes';
 const KEY_BADGES = 'gamificacion:badges';
