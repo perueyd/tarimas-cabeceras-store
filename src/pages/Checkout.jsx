@@ -381,6 +381,9 @@ export default function Checkout() {
           monto: totalConDescuento,
           entregaFecha: form.entregaFecha,
           entregaHorario: slot ? slot.label : '',
+          // El cobro salió bien pero el pedido no se pudo guardar: hay que
+          // decírselo al cliente en vez de darle un código que no funciona.
+          aviso: data.guardado === false ? data.aviso : null,
         },
       });
     } catch (err) {

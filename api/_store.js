@@ -103,6 +103,43 @@ export async function saveOrder(order, extra = {}) {
 // El orden importa: primero se AÑADE el nuevo y luego se quita el viejo. Si
 // algo fallara en medio, queda un duplicado (molesto pero recuperable) en vez
 // de una pérdida (irrecuperable).
+// Índice de pedidos por código, para poder buscar uno concreto sin recorrer
+// toda la lista. Sin esto, el seguimiento público leía solo los últimos 200
+// pedidos: a partir del 201, quien tuviera un código antiguo recibía "no
+// encontramos un pedido con ese código" aunque su pedido existiera.
+const IDX = 'pedidos:idx';
+
+export async function indexarPedido(order) {
+  if (!hasDB || !order?.code) return;
+  try {
+    await redisCmd(['HSET', IDX, order.code, JSON.stringify(order)]);
+  } catch { /* el índice es una ayuda: si falla, se recurre a la lista */ }
+}
+
+// Busca un pedido por su código. Primero en el índice (instantáneo); si no
+// está —pedidos anteriores a que existiera el índice— recorre la lista.
+export async function buscarPedido(code) {
+  if (!hasDB || !code) return null;
+  try {
+    const data = await redisCmd(['HGET', IDX, code]);
+    if (data.result) return JSON.parse(data.result);
+  } catch { /* sigue con la lista */ }
+
+  try {
+    const data = await redisCmd(['LRANGE', 'pedidos', '0', '999']);
+    for (const raw of data.result || []) {
+      try {
+        const o = JSON.parse(raw);
+        if (o.code === code) {
+          indexarPedido(o).catch(() => {}); // se guarda para la próxima
+          return o;
+        }
+      } catch { /* siguiente */ }
+    }
+  } catch { /* no se pudo leer */ }
+  return null;
+}
+
 export async function reemplazarEnLista(clave, valorViejo, valorNuevo) {
   if (!hasDB) return false;
   await redisCmd(['LPUSH', clave, valorNuevo]);
@@ -119,6 +156,9 @@ export async function deleteOrder(code) {
   });
   if (!raw) return false;
   await redisCmd(['LREM', 'pedidos', '0', raw]);
+  // Fuera también del índice: si no, el seguimiento seguiría encontrando un
+  // pedido que el dueño ya borró del panel.
+  try { await redisCmd(['HDEL', IDX, code]); } catch { /* el índice es auxiliar */ }
   return true;
 }
 

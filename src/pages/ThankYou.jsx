@@ -30,7 +30,33 @@ export default function ThankYou() {
           ? `Recibimos tu pedido. Quedará confirmado apenas verifiquemos tu pago por ${state?.metodo || 'el método elegido'}. Si aún no nos enviaste tu comprobante por WhatsApp, hazlo para agilizar la confirmación.`
           : 'Tu pago se procesó correctamente. Te enviaremos la confirmación por correo.'}
       </p>
-      {state?.orderCode && (
+      {/* El cobro salió bien pero el pedido no llegó a guardarse. Se avisa de
+          forma destacada: si no, el cliente se va con un código que no
+          funciona y acaba pagando dos veces. */}
+      {state?.aviso && (
+        <div className="mx-auto mt-6 max-w-md rounded-xl border-2 border-amber-300 bg-amber-50 p-4 text-left">
+          <p className="text-sm font-semibold text-amber-900">⚠️ Importante</p>
+          <p className="mt-1 text-sm text-amber-900">{state.aviso}</p>
+          {state.chargeId && (
+            <p className="mt-2 text-xs text-amber-800">
+              Comprobante de pago:{' '}
+              <span className="rounded bg-white px-1.5 py-0.5 font-mono">{state.chargeId}</span>
+            </p>
+          )}
+          <a
+            href={`https://wa.me/51951278010?text=${encodeURIComponent(
+              `Hola, pagué en la web pero el pedido no se registró. Mi comprobante es: ${state.chargeId || ''}`
+            )}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-block rounded-lg bg-[#25D366] px-4 py-2 text-sm font-medium text-white"
+          >
+            Escribirnos por WhatsApp
+          </a>
+        </div>
+      )}
+
+      {state?.orderCode && !state?.aviso && (
         <>
           <p className="mt-4 text-sm font-medium">
             N° de pedido: <span className="rounded bg-neutral-100 px-2 py-1 font-mono">{state.orderCode}</span>

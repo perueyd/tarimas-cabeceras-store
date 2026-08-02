@@ -1,4 +1,4 @@
-import { deleteOrder, hasDB, listOrders, newOrderCode, notifySheet, redisCmd, reemplazarEnLista, saveOrder } from './_store.js';
+import { deleteOrder, hasDB, buscarPedido, indexarPedido, listOrders, newOrderCode, notifySheet, redisCmd, reemplazarEnLista, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, validatePromo } from './_promo.js';
@@ -101,8 +101,8 @@ export default async function handler(req, res) {
       if (!hasDB) {
         return res.status(501).json({ error: 'El seguimiento aún no está disponible.' });
       }
-      const orders = await listOrders();
-      const found = orders?.find((o) => o.code === code);
+      // Busca por indice: no depende de cuantos pedidos haya acumulados.
+      const found = await buscarPedido(code);
       if (!found) return res.status(404).json({ error: 'No encontramos un pedido con ese código.' });
       return res.status(200).json({
         order: {
@@ -163,6 +163,9 @@ export default async function handler(req, res) {
           if (referencia !== null) order.referencia = referencia;
           // Por VALOR, no por posición: ver reemplazarEnLista en _store.js.
           await reemplazarEnLista('pedidos', list[i], JSON.stringify(order));
+          // El indice tambien: si no, el seguimiento publico seguiria
+          // mostrando el estado anterior.
+          await indexarPedido(order);
           // Agrega una fila nueva a la hoja de Google (historial con fecha de cada
           // cambio de estado) y avisa al cliente por correo, si hay email.
           if (estado) {

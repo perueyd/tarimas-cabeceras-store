@@ -93,11 +93,19 @@ export default async function handler(req, res) {
       return res.status(culqiRes.status).json(data);
     }
 
-    // Pago aprobado: registra el pedido (si falla el registro, el pago no se ve afectado).
+    // Pago aprobado: registra el pedido.
+    //
+    // OJO: saveOrder NO lanza si la base falla — devuelve false. Antes ese
+    // valor se ignoraba, así que si Redis fallaba justo aquí se cobraba la
+    // tarjeta, el pedido no quedaba guardado en ningún sitio y al cliente se
+    // le entregaba igualmente un código de seguimiento que no existía: al
+    // rastrearlo le decía "no encontramos un pedido con ese código". El dueño
+    // tampoco lo veía en el panel. Dinero cobrado y ningún rastro.
     let orderCode = null;
+    let guardado = false;
     try {
       orderCode = newOrderCode();
-      await saveOrder({
+      guardado = await saveOrder({
         code: orderCode,
         fecha: new Date().toISOString(),
         estado: 'Pagado',
@@ -127,7 +135,26 @@ export default async function handler(req, res) {
       console.log('No se pudo registrar el pedido (pago OK):', err?.message);
     }
 
-    return res.status(200).json({ ...data, orderCode });
+    if (!guardado) {
+      // El cobro SÍ se hizo: no se puede devolver un error, o el cliente
+      // pagaría e intentaría pagar otra vez. Se le avisa con claridad y se
+      // deja todo lo necesario en los registros para reconstruirlo a mano.
+      console.error(
+        'PEDIDO PAGADO SIN GUARDAR — reconstruir a mano:',
+        JSON.stringify({ chargeId: data.id, orderCode, monto: amount / 100, nombre, email, telefono, direccion, entrega, items })
+      );
+      return res.status(200).json({
+        ...data,
+        orderCode,
+        guardado: false,
+        aviso:
+          'Tu pago se procesó correctamente, pero tuvimos un problema al registrar el pedido. ' +
+          'Guarda este comprobante y escríbenos por WhatsApp al +51951278010 para confirmarlo — ' +
+          'no vuelvas a pagar.',
+      });
+    }
+
+    return res.status(200).json({ ...data, orderCode, guardado: true });
   } catch (err) {
     return res.status(500).json({ error: 'Error al conectar con Culqi.' });
   }
