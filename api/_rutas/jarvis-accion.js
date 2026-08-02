@@ -14,6 +14,15 @@ import { s } from '../_pricing.js';
 
 const esVenta = (o) => o.estado === 'Pagado' || o.estado === 'Entregado';
 
+// "Juan Pérez Gómez" -> "Juan P." — suficiente para identificar el pedido sin
+// mandar el nombre completo del cliente fuera del país.
+function abreviarNombre(nombre) {
+  const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return '';
+  if (partes.length === 1) return partes[0];
+  return `${partes[0]} ${partes[1][0].toUpperCase()}.`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
@@ -99,9 +108,15 @@ export default async function handler(req, res) {
         .slice(0, 5)
         // Solo lo necesario para responder: no se mandan al modelo la dirección
         // ni el correo del cliente, que no hacen falta para dar un estado.
+        //
+        // El nombre va abreviado ("Juan P.") en vez de completo: estas
+        // consultas viajan a los servidores de Groq en Estados Unidos, y el
+        // nombre completo de un comprador es un dato personal que la Ley 29733
+        // protege. Abreviado sigue bastando para que el dueño sepa de quién es
+        // el pedido, que es lo único que necesita.
         .map((o) => ({
           codigo: o.code,
-          cliente: o.nombre,
+          cliente: abreviarNombre(o.nombre),
           estado: o.estado,
           monto: o.monto,
           metodo: o.metodo,

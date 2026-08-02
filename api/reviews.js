@@ -150,6 +150,22 @@ export default async function handler(req, res) {
     if (!raw) return res.status(404).json({ error: 'Reseña no encontrada.' });
     await redisCmd(['LREM', `reviews:${productId}`, '0', raw]);
     await redisCmd(['LREM', 'reviews:all', '0', raw]);
+
+    // La foto también. Antes solo se borraba el texto de la reseña: la imagen
+    // seguía publicada en el almacén con su dirección accesible para siempre.
+    // Si el dueño rechazaba una foto indebida, seguía en internet — y además
+    // ocupando cuota de Blob, que ya se agotó una vez.
+    try {
+      const { foto } = JSON.parse(raw);
+      if (foto && /\.public\.blob\.vercel-storage\.com\//i.test(foto)) {
+        const { del } = await import('@vercel/blob');
+        await del(foto);
+      }
+    } catch (err) {
+      // No se bloquea el borrado de la reseña por no poder quitar la foto.
+      console.error('No se pudo borrar la foto de la reseña:', err?.message);
+    }
+
     return res.status(200).json({ ok: true });
   }
 
