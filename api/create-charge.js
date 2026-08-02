@@ -1,8 +1,9 @@
 import { newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
-import { registerPromoUsage, validatePromo } from './_promo.js';
+import { registerPromoUsage, reservarUso, validatePromo } from './_promo.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
+import { agregarAlHistorial } from './_historial.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
@@ -50,8 +51,11 @@ export default async function handler(req, res) {
   if (promoInput) {
     const promoResult = await validatePromo(promoInput, priced.total);
     if (promoResult.valid) {
-      promoDescuento = promoResult.descuento;
-      promoCode = promoResult.promo.code;
+      const reservado = await reservarUso(promoResult.promo.code, promoResult.promo.maxUsos);
+      if (reservado) {
+        promoDescuento = promoResult.descuento;
+        promoCode = promoResult.promo.code;
+      }
     }
   }
 
@@ -130,6 +134,7 @@ export default async function handler(req, res) {
       // después de responder, así que un trabajo sin await se pierde.
       if (promoCode && descuentoDePromo) {
         await registerPromoUsage(promoCode).catch(() => {});
+        await agregarAlHistorial(promoCode, { nombre, telefono, email }, amount / 100, promoDescuento).catch(() => {});
       }
     } catch (err) {
       console.log('No se pudo registrar el pedido (pago OK):', err?.message);

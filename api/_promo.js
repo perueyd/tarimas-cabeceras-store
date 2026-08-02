@@ -100,8 +100,14 @@ export async function validatePromo(rawCode, total, cartInfo = {}) {
   if (promo.vence && vencida(promo.vence)) {
     return { valid: false, motivo: 'Ese código venció.' };
   }
-  if (promo.maxUsos && (promo.usados || 0) >= promo.maxUsos) {
-    return { valid: false, motivo: 'Ese código alcanzó su límite de usos.' };
+  if (promo.maxUsos) {
+    // Se toma el mayor entre el contador atómico y el guardado en la lista:
+    // así los cupones creados antes de existir el contador siguen respetando
+    // su límite, y los nuevos no se pasan por una carrera entre dos compras.
+    const usados = Math.max(await usosDe(code), promo.usados || 0);
+    if (usados >= promo.maxUsos) {
+      return { valid: false, motivo: 'Ese código alcanzó su límite de usos.' };
+    }
   }
 
   let descuento;
@@ -165,8 +171,52 @@ export async function calcularDescuentosAutomaticos(total, cartInfo = {}) {
 }
 
 // Suma un uso al código (se llama SOLO tras confirmar el pedido, nunca antes).
+// Contador de usos APARTE, con suma atómica.
+//
+// Antes el uso se apuntaba leyendo la lista entera de cupones, sumando 1 y
+// volviendo a guardarla. Dos compras a la vez leían las dos "5 usos" y las dos
+// guardaban "6": se perdía un uso. Con un cupón limitado a 10, se podía
+// canjear más veces de las permitidas. HINCRBY suma en la base, sin huecos.
+const KEY_USOS = 'promo:usos';
+
+export async function usosDe(code) {
+  if (!hasDB) return 0;
+  try {
+    const data = await redisCmd(['HGET', KEY_USOS, normalizeCode(code)]);
+    return Number(data.result) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Reserva un uso ANTES de aplicar el descuento, de forma atómica.
+//
+// Comprobar el límite y luego sumarlo son dos pasos, y entre medias caben
+// otras compras: cinco clientes con el mismo cupón de 3 usos pasaban los cinco
+// la comprobación antes de que ninguno hubiera sumado el suyo. Aquí se suma
+// PRIMERO (HINCRBY devuelve el nuevo total) y, si se pasó del límite, se
+// devuelve el uso y se rechaza. Así nunca se reparten más de los permitidos.
+export async function reservarUso(code, maxUsos) {
+  const buscado = normalizeCode(code);
+  if (!hasDB || !maxUsos) return true; // sin límite, no hay nada que reservar
+  try {
+    const data = await redisCmd(['HINCRBY', KEY_USOS, buscado, '1']);
+    const n = Number(data.result) || 0;
+    if (n > maxUsos) {
+      await redisCmd(['HINCRBY', KEY_USOS, buscado, '-1']).catch(() => {});
+      return false;
+    }
+    return true;
+  } catch {
+    return true; // si la base falla, no se bloquea la compra por el cupón
+  }
+}
+
 export async function registerPromoUsage(code) {
   const buscado = normalizeCode(code);
+
+  // La lista se sigue actualizando para que el panel muestre el número, pero
+  // ya no es lo que decide si el cupón se agotó.
   const list = await listPromoCodes();
   const idx = list.findIndex((p) => p.code === buscado);
   if (idx !== -1) {

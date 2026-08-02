@@ -155,6 +155,23 @@ export function localRedisCmd(command) {
       break;
     }
 
+    case 'HGET':
+      result = entry?.t === 'h' ? (entry.v[String(args[0])] ?? null) : null;
+      mutado = false;
+      break;
+
+    // Suma atómica dentro de un hash. Es lo que evita que dos compras a la vez
+    // se pisen el contador de usos de un cupón.
+    case 'HINCRBY': {
+      const hash = entry?.t === 'h' ? entry.v : {};
+      const campo = String(args[0]);
+      const n = (Number(hash[campo]) || 0) + (Number(args[1]) || 0);
+      hash[campo] = String(n);
+      db[key] = { t: 'h', v: hash, exp: entry?.exp };
+      result = n;
+      break;
+    }
+
     case 'HVALS':
       result = entry?.t === 'h' ? Object.values(entry.v) : [];
       mutado = false;

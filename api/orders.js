@@ -1,8 +1,9 @@
 import { deleteOrder, hasDB, buscarPedido, indexarPedido, listOrders, newOrderCode, notifySheet, redisCmd, reemplazarEnLista, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
-import { registerPromoUsage, validatePromo } from './_promo.js';
+import { registerPromoUsage, reservarUso, validatePromo } from './_promo.js';
 import { checkAdminAuth } from './_auth.js';
+import { agregarAlHistorial } from './_historial.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 
@@ -44,8 +45,13 @@ export default async function handler(req, res) {
     if (promoInput) {
       const promoResult = await validatePromo(promoInput, priced.total);
       if (promoResult.valid) {
-        promoDescuento = promoResult.descuento;
-        promoCode = promoResult.promo.code;
+        // Se reserva el uso de forma atomica ANTES de aplicar el descuento:
+        // si el cupon se agoto justo ahora, no se aplica.
+        const reservado = await reservarUso(promoResult.promo.code, promoResult.promo.maxUsos);
+        if (reservado) {
+          promoDescuento = promoResult.descuento;
+          promoCode = promoResult.promo.code;
+        }
       }
     }
 
@@ -80,7 +86,13 @@ export default async function handler(req, res) {
       const saved = await saveOrder(order, { ownerEmail: s(catalog.storeConfig?.ownerEmail, 120) });
       // Solo se gasta el cupón si el descuento aplicado salió de él, y se
       // espera: en Vercel la función se congela tras responder.
-      if (promoCode && descuentoDePromo) await registerPromoUsage(promoCode).catch(() => {});
+      if (promoCode && descuentoDePromo) {
+        await registerPromoUsage(promoCode).catch(() => {});
+        // Deja constancia de quien uso el cupon: es lo que alimenta las
+        // pestanas Historial de codigos y Analytics de ofertas, que hasta
+        // ahora salian siempre vacias porque nadie escribia nada.
+        await agregarAlHistorial(promoCode, { nombre, telefono, email: s(body.email, 120) }, montoFinal, descuento).catch(() => {});
+      }
       // Ya compró: quita su carrito de la lista de "abandonados".
       if (hasDB && telefono) redisCmd(['HDEL', 'carritos:abandonados', telefono]).catch(() => {});
       return res.status(200).json({ ok: true, code: order.code, saved, monto: montoFinal, promoDescuento });
