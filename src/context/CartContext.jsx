@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
+import { useCatalog } from './CatalogContext.jsx';
+import { getEffectivePrice } from '../lib/pricing.js';
 
 const CartContext = createContext(null);
 const STORAGE_KEY = 'tarimas-cart-v1';
@@ -43,6 +45,12 @@ function reducer(state, action) {
       return state.filter((i) => lineKey(i) !== action.key);
     case 'CLEAR':
       return [];
+    // Vuelve a poner el precio ACTUAL del catálogo en cada línea del carrito.
+    case 'REFRESCAR_PRECIOS':
+      return state.map((i) => {
+        const nuevo = action.precios[lineKey(i)];
+        return nuevo == null || nuevo === i.unitPrice ? i : { ...i, unitPrice: nuevo };
+      });
     default:
       return state;
   }
@@ -54,6 +62,33 @@ export function CartProvider({ children }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
+
+  // El carrito vive en el navegador y guardaba el precio del día en que se
+  // añadió el producto, para siempre. Si el dueño subía un precio, el servidor
+  // cobraba el nuevo y el checkout rechazaba la compra por no cuadrar — y
+  // recargar no servía de nada, porque el carrito se conserva. El cliente
+  // quedaba atrapado sin poder pagar nunca.
+  //
+  // Aquí se refrescan los precios con los del catálogo en cuanto éste carga.
+  const { products, loaded } = useCatalog();
+  useEffect(() => {
+    if (!loaded || !items.length) return;
+    const precios = {};
+    let hayCambio = false;
+    for (const i of items) {
+      const p = products.find((x) => x.id === i.productId);
+      if (!p) continue;
+      const base = getEffectivePrice(p, i.sizeId);
+      if (!base) continue;
+      // Se conservan los recargos por opciones ya elegidas (brazos, patas...).
+      const extra = (i.unitPrice ?? 0) - (i.precioBase ?? i.unitPrice ?? 0);
+      const nuevo = Math.round((base.final + (Number.isFinite(extra) ? extra : 0)) * 100) / 100;
+      precios[lineKey(i)] = nuevo;
+      if (nuevo !== i.unitPrice) hayCambio = true;
+    }
+    if (hayCambio) dispatch({ type: 'REFRESCAR_PRECIOS', precios });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, products]);
 
   const addItem = (item) => dispatch({ type: 'ADD', item });
   const updateQty = (item, qty) => dispatch({ type: 'UPDATE_QTY', key: lineKey(item), qty });

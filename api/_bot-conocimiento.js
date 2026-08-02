@@ -28,19 +28,52 @@ REGLAS QUE SIEMPRE CUMPLES:
 - No pidas ni aceptes datos de tarjeta, contraseñas ni documentos por el chat.
 - Responde siempre en español de Perú. Los precios en soles (S/).`;
 
+// Precio REAL de venta de un tamaño: el mismo que ve el cliente en la ficha.
+//
+// Antes el bot leía sizePricing directamente, que es el precio SIN rebajar.
+// Si un producto tenía precio de oferta, el bot cotizaba el original: decía
+// S/ 1200 cuando la web cobraba S/ 890. Un cliente que pregunta y recibe un
+// precio más alto del real, simplemente no compra.
+function precioReal(producto, sizeId) {
+  const original = producto?.sizePricing?.[sizeId];
+  if (original == null) return null;
+
+  // 1) Precio de oferta propio de ese tamaño, si es válido.
+  const oferta = Number(producto?.offerPricing?.[sizeId]);
+  if (Number.isFinite(oferta) && oferta > 0 && oferta < original) {
+    return { final: Math.round(oferta * 100) / 100, rebajado: true };
+  }
+
+  // 2) Porcentaje de descuento general del producto.
+  const pct = Math.min(Math.max(Number(producto?.discountPercent) || 0, 0), 100);
+  if (pct > 0) {
+    return { final: Math.round(original * (1 - pct / 100) * 100) / 100, rebajado: true };
+  }
+
+  return { final: original, rebajado: false };
+}
+
 function resumirProductos(products) {
   const activos = products.filter((p) => !p.oculto);
   if (!activos.length) return 'Todavía no hay productos publicados.';
 
   const porCategoria = {};
   for (const p of activos) {
-    const precios = Object.values(p.sizePricing || {}).filter((n) => Number(n) > 0);
-    const rango = precios.length
-      ? precios.length > 1 && Math.min(...precios) !== Math.max(...precios)
-        ? `S/ ${Math.min(...precios)} a S/ ${Math.max(...precios)}`
-        : `S/ ${precios[0]}`
-      : 'precio a consultar';
-    const linea = `- ${p.name}: ${rango}${p.discountPercent ? ` (${p.discountPercent}% de descuento)` : ''}`;
+    const calculados = Object.keys(p.sizePricing || {})
+      .map((sizeId) => precioReal(p, sizeId))
+      .filter((x) => x && x.final > 0);
+
+    let rango = 'precio a consultar';
+    let hayRebaja = false;
+    if (calculados.length) {
+      const finales = calculados.map((x) => x.final);
+      hayRebaja = calculados.some((x) => x.rebajado);
+      const min = Math.min(...finales);
+      const max = Math.max(...finales);
+      rango = min === max ? `S/ ${min}` : `S/ ${min} a S/ ${max}`;
+    }
+
+    const linea = `- ${p.name}: ${rango}${hayRebaja ? ' (ya con descuento aplicado)' : ''}`;
     (porCategoria[p.category] ||= []).push(linea);
   }
 

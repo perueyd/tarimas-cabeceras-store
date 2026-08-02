@@ -39,12 +39,21 @@ export default async function handler(req, res) {
       // El panel edita solo su propia lista; no debe ver mezclada la otra.
       return res.status(200).json({ ofertas: await listarOfertas() });
     }
-    // Al checkout se le entregan TODAS las ofertas vigentes (de las dos
+    // Al checkout se le entregan las ofertas AUTOMÁTICAS vigentes (de las dos
     // pantallas del panel) y ya normalizadas, exactamente las mismas que usará
     // el servidor para cobrar. Si aquí se devolviera otra lista, la pantalla
     // mostraría un precio y el cobro sería otro.
+    //
+    // Los CUPONES quedan fuera a propósito: son de tipo 'codigo' y llevan el
+    // código dentro, así que devolverlos aquí equivalía a publicar todos los
+    // cupones de la tienda — cualquiera podía leerlos abriendo esta dirección
+    // y usarlos sin que se los dieras. El checkout no los necesita: cuando el
+    // cliente escribe uno, se valida contra /api/promo.
     const todas = await listarTodasNormalizadas();
-    return res.status(200).json({ ofertas: todas.filter((o) => o.activo !== false) });
+    const automaticas = todas.filter(
+      (o) => o.activo !== false && ['flash-sale', 'cantidad', 'categoria'].includes(o.tipo)
+    );
+    return res.status(200).json({ ofertas: automaticas });
   }
 
   // Crear, modificar y borrar sigue siendo solo del dueño.

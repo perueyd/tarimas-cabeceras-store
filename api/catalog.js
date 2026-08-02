@@ -46,10 +46,14 @@ export default async function handler(req, res) {
 
   const resource = s(req.query.resource, 20);
 
+  // Todo lo que escribe va dentro de este try. Si la base no responde,
+  // getCatalog({ paraEditar: true }) lanza y aquí se convierte en un aviso
+  // legible en vez de un 500 mudo — y sobre todo, no se guarda nada.
+  try {
   if (req.method === 'POST') {
     if (resource === 'config') {
       const cambios = req.body || {};
-      const catalog = await getCatalog();
+      const catalog = await getCatalog({ paraEditar: true });
       const merged = { ...catalog.storeConfig, ...cambios };
       await saveConfig(merged);
       return res.status(200).json({ ok: true, storeConfig: merged });
@@ -63,7 +67,7 @@ export default async function handler(req, res) {
     // la tienda). Los ids desconocidos se ignoran y los que falten se dejan al
     // final, para no perder ningún elemento por un desajuste.
     if (s(req.query.action, 20) === 'reorder') {
-      const catalog = await getCatalog();
+      const catalog = await getCatalog({ paraEditar: true });
       const actual = catalog[listKey] || [];
       const orden = Array.isArray(req.body?.ids) ? req.body.ids : [];
       const porId = new Map(actual.map((x) => [x.id, x]));
@@ -80,7 +84,7 @@ export default async function handler(req, res) {
     const id = s(item?.id, 60).trim();
     if (!id) return res.status(400).json({ error: 'Falta el id del elemento.' });
 
-    const catalog = await getCatalog();
+    const catalog = await getCatalog({ paraEditar: true });
     const list = [...catalog[listKey]];
     const idx = list.findIndex((x) => x.id === id);
     const clean = { ...item, id };
@@ -97,11 +101,15 @@ export default async function handler(req, res) {
     const id = s(req.query.id, 60);
     if (!id) return res.status(400).json({ error: 'Falta el id.' });
 
-    const catalog = await getCatalog();
+    const catalog = await getCatalog({ paraEditar: true });
     const list = catalog[listKey].filter((x) => x.id !== id);
     await saveList(listKey, list);
     return res.status(200).json({ ok: true, [listKey]: list });
   }
 
   return res.status(405).json({ error: 'Método no permitido' });
+  } catch (err) {
+    console.error('catalog:', err?.message);
+    return res.status(503).json({ error: err?.message || 'No se pudo guardar. Intenta de nuevo.' });
+  }
 }
