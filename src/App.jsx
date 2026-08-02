@@ -5,6 +5,7 @@ import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import WhatsAppButton from './components/WhatsAppButton.jsx';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
+import AvisoCookies from './components/AvisoCookies.jsx';
 import Landing from './pages/Landing.jsx';
 import Home from './pages/Home.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
@@ -26,7 +27,12 @@ function AnalyticsTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    // No arranca nada si el visitante aún no ha aceptado las cookies.
     initAnalytics();
+    // Si acepta después, se arranca en ese momento sin recargar.
+    const alCambiar = () => initAnalytics();
+    window.addEventListener('ed-consentimiento', alCambiar);
+    return () => window.removeEventListener('ed-consentimiento', alCambiar);
   }, []);
 
   useEffect(() => {
@@ -84,6 +90,7 @@ export default function App() {
       <Footer />
       <WhatsAppButton />
       <ChatbotWidget />
+      <AvisoCookies />
     </div>
   );
 }

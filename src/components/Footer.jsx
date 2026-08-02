@@ -130,6 +130,16 @@ export default function Footer() {
               {legal.terminosTitulo || 'Términos'}
             </Link>
           )}
+          {/* Poder cambiar de opinión sobre las cookies tiene que ser tan fácil
+              como haberlas aceptado: es lo que exige el RGPD y lo que más se
+              sanciona cuando falta. */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('ed-abrir-cookies'))}
+            className="font-medium text-neutral-600 transition hover:text-neutral-900"
+          >
+            Cookies
+          </button>
         </div>
       </div>
     </footer>
