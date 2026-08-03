@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import ProductZoomModal from '../components/ProductZoomModal.jsx';
+import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
@@ -40,7 +41,8 @@ export default function ProductDetail() {
   const [dosTelas, setDosTelas] = useState(false);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-  const [zoom, setZoom] = useState(false); // ventana ampliada de la imagen
+  const [zoom, setZoom] = useState(false);
+  const [enMiPared, setEnMiPared] = useState(false); // ventana ampliada de la imagen
   const [activeIdx, setActiveIdx] = useState(0); // qué foto se ve en grande: 0 = la principal, 1+ = galería
   // El cliente aún no eligió color: se muestra la foto TAL CUAL la subiste (a
   // color, sin desaturar). Recién al tocar un color se aplica el teñido — así
@@ -242,6 +244,17 @@ export default function ProductDetail() {
             </span>
           </button>
 
+          {/* La duda que frena una compra de mueble es "¿me quedará bien?".
+              Esto la responde: la cámara del celular con el mueble encima. */}
+          <button
+            type="button"
+            onClick={() => setEnMiPared(true)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-ink px-4 py-3 text-sm font-semibold transition hover:bg-neutral-50"
+          >
+            📷 Ver en mi pared
+            <span className="text-xs font-normal text-neutral-500">— con la cámara</span>
+          </button>
+
           {/* Miniaturas: la principal (cambia de color) + las fotos de galería
               (algunas también cambian de color, otras se ven tal cual). */}
           {vistas.length > 1 && (
@@ -435,6 +448,15 @@ export default function ProductDetail() {
       />
 
       <ReviewsSection productId={product.id} />
+
+      <VerEnMiPared
+        abierto={enMiPared}
+        onCerrar={() => setEnMiPared(false)}
+        imagenSrc={vistaActiva.url}
+        colorHex={selectedColor?.hex}
+        tintable={vistaActiva.tintable}
+        nombre={product.name}
+      />
 
       <ProductZoomModal
         open={zoom}
