@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import FormularioARCO from '../components/FormularioARCO.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 
 // Reemplaza {{proveedor}} y {{whatsapp}} en el texto legal con los datos
@@ -46,6 +47,10 @@ export default function LegalPage({ which }) {
           <p key={i} className="whitespace-pre-line">{parrafo}</p>
         ))}
       </div>
+      {/* Los derechos ARCO hay que poder EJERCERLOS, no solo mencionarlos:
+          es lo que exige la Ley 29733 y lo que la ANPD sanciona cuando falta. */}
+      {which === 'privacidad' && <FormularioARCO />}
+
       <Link to="/" className="mt-8 inline-block text-sm text-sky-700 underline">← Volver al inicio</Link>
     </main>
   );

@@ -24,6 +24,7 @@ const RUTAS = {
   encuesta: () => import('./_rutas/encuesta.js'),
   gamificacion: () => import('./_rutas/gamificacion.js'),
   historial: () => import('./_rutas/historial.js'),
+  'derechos-arco': () => import('./_rutas/derechos-arco.js'),
   // Temporal: rescate de las fotos bloqueadas por el límite de Blob.
   'migrar-fotos': () => import('./_rutas/migrar-fotos.js'),
   'jarvis-accion': () => import('./_rutas/jarvis-accion.js'),

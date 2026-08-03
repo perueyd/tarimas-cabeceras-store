@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PRIVACIDAD, TERMINOS } from '../data/textosLegales.js';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { PALETAS } from '../data/paletas.js';
 import BrandingTab from './BrandingTab.jsx';
@@ -2989,6 +2990,19 @@ function LegalTab({ catalog, api, flash }) {
               />
               <span className="mt-1 block text-xs text-neutral-400">Separa los párrafos con una línea en blanco.</span>
             </label>
+            {/* El texto guardado en la base manda sobre el que trae el
+                proyecto, así que hay que ofrecer explícitamente la versión
+                completa; si no, nunca llegaría a la web. */}
+            {legal.privacidadTexto !== PRIVACIDAD && (
+              <button
+                type="button"
+                onClick={() => set('privacidadTexto', PRIVACIDAD)}
+                className="w-full rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left text-xs font-medium text-sky-900 transition hover:border-sky-500"
+              >
+                ⚖️ Usar el texto completo — añade los proveedores que tratan los datos, el
+                envío al extranjero, los plazos de conservación y los derechos ARCO (Ley 29733)
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -3012,6 +3026,16 @@ function LegalTab({ catalog, api, flash }) {
               />
               <span className="mt-1 block text-xs text-neutral-400">Separa los párrafos con una línea en blanco.</span>
             </label>
+            {legal.terminosTexto !== TERMINOS && (
+              <button
+                type="button"
+                onClick={() => set('terminosTexto', TERMINOS)}
+                className="w-full rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-left text-xs font-medium text-sky-900 transition hover:border-sky-500"
+              >
+                ⚖️ Usar el texto completo — añade que los precios incluyen IGV, el derecho de
+                devolución, la garantía legal y la jurisdicción (Ley 29571)
+              </button>
+            )}
           </div>
         )}
       </div>
