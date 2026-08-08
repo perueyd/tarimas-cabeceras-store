@@ -8,6 +8,7 @@ import AnalyticsOfertasTab from './AnalyticsOfertasTab.jsx';
 import PromoEditor from './PromoEditor.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
+import QueHacerHoy from '../components/QueHacerHoy.jsx';
 import { urlSeguimiento } from '../data/sitio.js';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
@@ -121,6 +122,8 @@ export default function Orders() {
   const [suscriptores, setSuscriptores] = useState([]);
   const [encuestas, setEncuestas] = useState([]);
   const [carritos, setCarritos] = useState([]);
+  // Solicitudes de derechos ARCO: tienen plazo legal, por eso salen en el resumen.
+  const [arco, setArco] = useState([]);
   const [avisoNuevos, setAvisoNuevos] = useState(0); // pedidos nuevos detectados en vivo
   const conocidosRef = useRef(null); // Set de códigos ya vistos (null = sin inicializar)
   const [tab, setTab] = useState('resumen');
@@ -156,6 +159,10 @@ export default function Orders() {
       fetch('/api/reviews?all=1', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setReviews(d.reviews || []))
+        .catch(() => {});
+      fetch('/api/derechos-arco', { headers: authHeader })
+        .then((r) => r.json())
+        .then((d) => setArco(d.solicitudes || []))
         .catch(() => {});
       fetch('/api/reclamos', { headers: authHeader })
         .then((r) => r.json())
@@ -435,10 +442,21 @@ export default function Orders() {
       </div>
 
       {tab === 'resumen' && (
+        <>
+        <QueHacerHoy
+          orders={orders}
+          reviews={reviews}
+          reclamos={reclamos}
+          carritos={carritos}
+          arco={arco}
+          currencyFormatter={currencyFormatter}
+          onIr={setTab}
+        />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <GraficaVentasPorDia orders={orders} currencyFormatter={currencyFormatter} />
           <GraficaVentasPorProducto orders={orders} currencyFormatter={currencyFormatter} />
         </div>
+        </>
       )}
 
       {tab === 'pedidos' && (
