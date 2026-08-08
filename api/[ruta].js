@@ -16,13 +16,10 @@
 // El mapa es explícito a propósito: así una petición a /api/loquesea no puede
 // intentar cargar un archivo arbitrario del servidor.
 const RUTAS = {
-  'ai-engine': () => import('./_rutas/ai-engine.js'),
   'analytics-ofertas': () => import('./_rutas/analytics-ofertas.js'),
-  automaciones: () => import('./_rutas/automaciones.js'),
   carritos: () => import('./_rutas/carritos.js'),
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
-  gamificacion: () => import('./_rutas/gamificacion.js'),
   historial: () => import('./_rutas/historial.js'),
   'derechos-arco': () => import('./_rutas/derechos-arco.js'),
   // Temporal: rescate de las fotos bloqueadas por el límite de Blob.
@@ -30,8 +27,6 @@ const RUTAS = {
   'jarvis-accion': () => import('./_rutas/jarvis-accion.js'),
   newsletter: () => import('./_rutas/newsletter.js'),
   ofertas: () => import('./_rutas/ofertas.js'),
-  omnichannel: () => import('./_rutas/omnichannel.js'),
-  prediccion: () => import('./_rutas/prediccion.js'),
   promo: () => import('./_rutas/promo.js'),
   reclamos: () => import('./_rutas/reclamos.js'),
 };

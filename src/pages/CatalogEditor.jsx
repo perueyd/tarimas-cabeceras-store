@@ -5,15 +5,8 @@ import { PALETAS } from '../data/paletas.js';
 import BrandingTab from './BrandingTab.jsx';
 import PagosTab from './PagosTab.jsx';
 import EntregaTab from './EntregaTab.jsx';
-import BannersTab from './BannersTab.jsx';
-import DesignTab from './DesignTab.jsx';
-import BlogTab from './BlogTab.jsx';
-import AITab from './AITab.jsx';
-import AnalyticsAdvancedTab from './AnalyticsAdvancedTab.jsx';
 import IntegrationsTab from './IntegrationsTab.jsx';
-import EmailMarketingTab from './EmailMarketingTab.jsx';
 import SecurityTab from './SecurityTab.jsx';
-import SEOTab from './SEOTab.jsx';
 import GarantiasTab from './GarantiasTab.jsx';
 import ChatbotTab from './ChatbotTab.jsx';
 import VistaPrevia from '../components/VistaPrevia.jsx';
@@ -334,15 +327,8 @@ export default function CatalogEditor({ adminKey, irA }) {
           { id: 'chatbot', label: '💬 Entrenar chatbot' },
           { id: 'pagos', label: '💳 Pagos' },
           { id: 'entrega', label: '🚚 Entrega' },
-          { id: 'banners', label: '📢 Banners' },
-          { id: 'design', label: '🎨 Diseño' },
-          { id: 'blog', label: '📝 Blog' },
-          { id: 'ai', label: '🤖 IA & Automación' },
-          { id: 'analytics', label: '📊 Analytics Avanzado' },
           { id: 'integraciones', label: '🔗 Integraciones' },
-          { id: 'emailMarketing', label: '📧 Email Marketing' },
           { id: 'security', label: '🔒 Seguridad' },
-          { id: 'seo', label: '📈 SEO' },
           { id: 'portada', label: 'Página principal' },
           { id: 'vitrina', label: 'Vitrina animada' },
           { id: 'faq', label: 'Preguntas' },
@@ -371,15 +357,8 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'chatbot' && <ChatbotTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'pagos' && <PagosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'entrega' && <EntregaTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'banners' && <BannersTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'design' && <DesignTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'blog' && <BlogTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'ai' && <AITab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'analytics' && <AnalyticsAdvancedTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'integraciones' && <IntegrationsTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
-      {sub === 'emailMarketing' && <EmailMarketingTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'security' && <SecurityTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'seo' && <SEOTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'portada' && <PortadaTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'faq' && <FaqTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}

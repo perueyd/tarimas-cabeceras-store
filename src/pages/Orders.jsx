@@ -5,10 +5,6 @@ import CatalogEditor from './CatalogEditor.jsx';
 import MegaOfertasEditor from './MegaOfertasEditor.jsx';
 import HistorialCodigosTab from './HistorialCodigosTab.jsx';
 import AnalyticsOfertasTab from './AnalyticsOfertasTab.jsx';
-import AutomacionesTab from './AutomacionesTab.jsx';
-import AIRecommendationsTab from './AIRecommendationsTab.jsx';
-import GamificacionTab from './GamificacionTab.jsx';
-import OmniChannelTab from './OmniChannelTab.jsx';
 import PromoEditor from './PromoEditor.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
@@ -423,10 +419,6 @@ export default function Orders() {
           { id: 'promos', label: '🏷️ Códigos de descuento' },
           { id: 'descAuto', label: '⚡ Descuentos automáticos' },
           { id: 'analytics', label: '📈 Analytics' },
-          { id: 'automaciones', label: '⚙️ Automaciones' },
-          { id: 'ia', label: '🤖 IA Recomendador' },
-          { id: 'gamificacion', label: '🎮 Gamificación' },
-          { id: 'omnichannel', label: '📱 Omnichannel' },
           { id: 'historial', label: '📋 Historial de códigos' },
           { id: 'editar', label: '✏️ Editar página' },
         ].map((t) => (
@@ -720,13 +712,9 @@ export default function Orders() {
 
       {tab === 'analytics' && <AnalyticsOfertasTab adminKey={key} />}
 
-      {tab === 'automaciones' && <AutomacionesTab adminKey={key} />}
 
-      {tab === 'ia' && <AIRecommendationsTab adminKey={key} />}
 
-      {tab === 'gamificacion' && <GamificacionTab adminKey={key} />}
 
-      {tab === 'omnichannel' && <OmniChannelTab adminKey={key} />}
 
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
@@ -745,8 +733,7 @@ export default function Orders() {
 // pueda "abrir" algo que no existe y quedarse tan tranquilo.
 const SECCIONES_VALIDAS = new Set([
   'resumen', 'pedidos', 'resenas', 'carritos', 'reclamos', 'suscriptores',
-  'encuestas', 'ofertas', 'promos', 'descAuto', 'analytics', 'automaciones',
-  'ia', 'gamificacion', 'omnichannel', 'historial', 'editar',
+  'encuestas', 'ofertas', 'promos', 'descAuto', 'analytics', 'historial', 'editar',
 ]);
 
 // Campo "Referencia (WSP)" de cada pedido.
