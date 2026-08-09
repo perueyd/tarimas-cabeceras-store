@@ -106,12 +106,21 @@ export default function ProductImage({
   // sigue corriendo igual mientras tanto, para que el segundo selector de
   // color aparezca a tiempo.
   mostrarColor = true,
+  // Zonas corregidas A MANO por el dueño desde el panel (Editar producto →
+  // "Elegir qué parte cambia de color"). Cuando existen mandan sobre la
+  // detección automática: la web adivina bien casi siempre, pero cuando se
+  // equivoca (pinta las patas de madera, parte una tela en dos) esto es lo
+  // único que lo arregla. Formato: [{ mascara, brillo }, …].
+  zonasManual,
 }) {
-  const analisis = useAnalisis(baseImage, tintable);
+  const manual = Array.isArray(zonasManual) && zonasManual.length > 0;
+  // Si hay corrección manual no hace falta analizar la foto: se ahorra el
+  // trabajo y, sobre todo, no se contradice a sí misma.
+  const analisis = useAnalisis(baseImage, tintable && !manual);
 
   // Avisa a la página del producto si esta foto tiene dos telas, para que
   // muestre (o no) el segundo selector de color.
-  const dosTelas = Boolean(analisis?.dosTelas);
+  const dosTelas = manual ? zonasManual.length > 1 : Boolean(analisis?.dosTelas);
   useEffect(() => {
     if (onDosTelas) onDosTelas(dosTelas);
   }, [dosTelas, onDosTelas]);
@@ -135,15 +144,28 @@ export default function ProductImage({
     );
   }
 
-  const zonas = analisis?.zonas || [{ mascara: null, brillo: BRILLO_BASE }];
+  const zonas = manual ? zonasManual : analisis?.zonas || [{ mascara: null, brillo: BRILLO_BASE }];
   // El segundo color solo aplica si de verdad se detectaron dos telas; si no,
   // la segunda zona no existe y todo se pinta del color principal.
   const colores = [colorHex, colorHex2 || colorHex];
+  // Con zonas dibujadas a mano puede haber partes que NO se repintan (las patas
+  // de madera, un cojín de otro material). Esas partes tienen que seguir
+  // viéndose: por eso debajo va la foto original tal cual. Cuando la máscara
+  // cubre todo el mueble esta capa queda tapada y no se nota.
+  const necesitaFondo = manual && zonas.some((z) => z.mascara);
 
   return (
     // "isolate" encierra la mezcla dentro de esta tarjeta: sin eso, el blend se
     // mezclaría también con el fondo de la página.
     <div className={`relative isolate overflow-hidden bg-neutral-100 ${className}`}>
+      {necesitaFondo && (
+        <img loading="lazy" decoding="async"
+          src={baseImage}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+      )}
       {zonas.map((zona, i) => (
         <div
           key={i}
@@ -157,7 +179,7 @@ export default function ProductImage({
             alt={i === 0 ? alt : ''}
             aria-hidden={i > 0}
             className="absolute inset-0 h-full w-full object-contain"
-            style={{ filter: `grayscale(1) brightness(${zona.brillo.toFixed(2)})` }}
+            style={{ filter: `grayscale(1) brightness(${(zona.brillo || BRILLO_BASE).toFixed(2)})` }}
           />
           <div
             className="absolute inset-0 mix-blend-multiply transition-colors duration-150"

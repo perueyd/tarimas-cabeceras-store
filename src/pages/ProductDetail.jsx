@@ -33,6 +33,11 @@ export default function ProductDetail() {
   // cabecera King puede venir en menos colores que una de 1.5 plaza.
   const colorIdsForSize = product ? product.colorsBySize?.[sizeId] || product.availableColors : [];
   const availableColors = colors.filter((c) => colorIdsForSize.includes(c.id));
+  // Colores de la SEGUNDA tela (el detalle: botones, panel, ribete). Si el
+  // dueño no eligió una lista aparte se usan los mismos de la tela principal —
+  // pero muchas veces el detalle viene en menos colores que el cuerpo.
+  const colorIds2 = product?.availableColors2?.length ? product.availableColors2 : colorIdsForSize;
+  const availableColors2 = colors.filter((c) => colorIds2.includes(c.id));
 
   const [colorId, setColorId] = useState(availableColors[0]?.id);
   // Segundo color: solo se usa si la foto tiene dos telas distintas (se
@@ -85,7 +90,7 @@ export default function ProductDetail() {
   // Identifica la lista de colores disponible. Cambia tanto al elegir otro
   // tamaño como cuando el catálogo termina de cargar (llega async), así que
   // sirve para corregir el color en ambos casos.
-  const colorKey = availableColors.map((c) => c.id).join(',');
+  const colorKey = `${availableColors.map((c) => c.id).join(',')}|${availableColors2.map((c) => c.id).join(',')}`;
   // El tamaño también puede quedar sin elegir si al montar el catálogo aún no
   // había cargado — este key detecta cuándo aparecen los tamaños.
   const sizeKey = availableSizes.map((s) => s.id).join(',');
@@ -100,8 +105,8 @@ export default function ProductDetail() {
     if (availableColors.length && !availableColors.some((c) => c.id === colorId)) {
       setColorId(availableColors[0].id);
     }
-    if (availableColors.length && !availableColors.some((c) => c.id === colorId2)) {
-      setColorId2(availableColors[0].id);
+    if (availableColors2.length && !availableColors2.some((c) => c.id === colorId2)) {
+      setColorId2(availableColors2[0].id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sizeKey, colorKey]);
@@ -109,7 +114,7 @@ export default function ProductDetail() {
   // Para pintar: si el estado aún no se corrigió (justo tras cargar), se usa el
   // primer color disponible como respaldo, así la imagen nunca sale sin color.
   const selectedColor = colors.find((c) => c.id === colorId) || availableColors[0];
-  const selectedColor2 = colors.find((c) => c.id === colorId2) || availableColors[0];
+  const selectedColor2 = colors.find((c) => c.id === colorId2) || availableColors2[0];
   const priceInfo = useMemo(
     () => (product ? getUnitPrice(product, sizeId, opciones) : null),
     [product, sizeId, opciones]
@@ -129,6 +134,9 @@ export default function ProductDetail() {
       ]
     : [];
   const vistaActiva = vistas[activeIdx] || vistas[0];
+  // Corrección manual de "qué parte cambia de color", si el dueño la hizo para
+  // ESTA foto (se guarda por dirección de foto, así cada ángulo tiene la suya).
+  const zonasManual = vistaActiva ? product?.zonasFoto?.[vistaActiva.url] : undefined;
   // Medida visible sobre la imagen: la propia de este producto para el tamaño
   // elegido, o la general del tamaño si no la personalizó.
   const tamanoElegido = availableSizes.find((s) => s.id === sizeId);
@@ -226,6 +234,7 @@ export default function ProductDetail() {
                 className="aspect-[4/3] w-full rounded-xl"
                 tintable
                 mostrarColor={colorElegido}
+                zonasManual={zonasManual}
               />
             ) : (
               <img loading="lazy" decoding="async"
@@ -339,10 +348,10 @@ export default function ProductDetail() {
           )}
 
           {/* Segundo selector: aparece solo si la foto tiene dos telas. */}
-          {dosTelas && availableColors.length > 0 && (
+          {dosTelas && availableColors2.length > 0 && (
             <div className="mt-6">
               <ColorPicker
-                colors={availableColors}
+                colors={availableColors2}
                 selectedId={colorElegido ? colorId2 : null}
                 onSelect={elegirColor2}
                 titulo="Color del detalle"
@@ -465,6 +474,8 @@ export default function ProductDetail() {
         selectedColor={selectedColor}
         selectedColor2={selectedColor2}
         availableColors={availableColors}
+        availableColors2={availableColors2}
+        zonasManual={zonasManual}
         colorId={colorId}
         colorId2={colorId2}
         onSelectColor={elegirColor}

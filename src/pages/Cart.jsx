@@ -34,9 +34,13 @@ export default function Cart() {
               <ProductImage
                 baseImage={item.baseImage}
                 colorHex={color?.hex}
+                colorHex2={getColorById(item.colorId2)?.hex}
                 alt={item.productName}
                 className="h-20 w-24 flex-shrink-0 rounded-lg"
                 tintable={item.tintable !== false}
+                // Misma corrección de zonas que en la página del producto: el
+                // carrito tiene que mostrar exactamente lo que el cliente eligió.
+                zonasManual={product?.zonasFoto?.[item.baseImage]}
               />
               <div className="flex flex-1 flex-col justify-between">
                 <div className="flex justify-between gap-2">

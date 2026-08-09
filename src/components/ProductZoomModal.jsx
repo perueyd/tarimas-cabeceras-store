@@ -12,6 +12,10 @@ export default function ProductZoomModal({
   selectedColor,
   selectedColor2,
   availableColors,
+  // Lista aparte para la segunda tela (el detalle). Si no llega, se usan los
+  // mismos colores de la tela principal.
+  availableColors2,
+  zonasManual,
   colorId,
   colorId2,
   onSelectColor,
@@ -71,6 +75,7 @@ export default function ProductZoomModal({
             className="aspect-square w-full rounded-xl"
             tintable={img.tintable}
             mostrarColor={mostrarColor}
+            zonasManual={zonasManual}
           />
 
           {/* Cuadro grande del color/tela + selector */}
@@ -95,7 +100,7 @@ export default function ProductZoomModal({
             {dosTelas && (
               <div className="mt-5">
                 <ColorPicker
-                  colors={availableColors}
+                  colors={availableColors2?.length ? availableColors2 : availableColors}
                   selectedId={colorId2}
                   onSelect={onSelectColor2}
                   titulo="Color del detalle"

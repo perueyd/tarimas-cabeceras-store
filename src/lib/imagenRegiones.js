@@ -66,14 +66,29 @@ function lum(r, g, b) {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
 
+// Medidas de la máscara RESPETANDO la proporción de la foto.
+//
+// Antes se dibujaba en un cuadrado fijo (512x512), lo que ESTIRABA la foto: la
+// máscara se aplica con `mask-size: contain` sobre la misma caja donde la foto
+// va con `object-contain`, así que una foto que no fuera cuadrada quedaba con
+// las zonas corridas — el color se pintaba en un sitio y el mueble estaba en
+// otro. Con la proporción original las dos coinciden exactamente.
+export function medidasMascara(img) {
+  const w = img.naturalWidth || img.width || TAM_MASCARA;
+  const h = img.naturalHeight || img.height || TAM_MASCARA;
+  const escala = Math.min(1, TAM_MASCARA / Math.max(w, h));
+  return { w: Math.max(1, Math.round(w * escala)), h: Math.max(1, Math.round(h * escala)) };
+}
+
 // Crea una máscara PNG donde solo son opacos los píxeles de la zona pedida.
 function crearMascara(img, corte, quedarseConLosClaros) {
+  const { w: mw, h: mh } = medidasMascara(img);
   const cv = document.createElement('canvas');
-  cv.width = TAM_MASCARA;
-  cv.height = TAM_MASCARA;
+  cv.width = mw;
+  cv.height = mh;
   const ctx = cv.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(img, 0, 0, TAM_MASCARA, TAM_MASCARA);
-  const imagen = ctx.getImageData(0, 0, TAM_MASCARA, TAM_MASCARA);
+  ctx.drawImage(img, 0, 0, mw, mh);
+  const imagen = ctx.getImageData(0, 0, mw, mh);
   const d = imagen.data;
   for (let i = 0; i < d.length; i += 4) {
     if (d[i + 3] < 128) continue; // ya es transparente (fondo recortado)
@@ -132,4 +147,6 @@ export function analizarImagen(img) {
   };
 }
 
-export { BRILLO_BASE };
+// Se exportan para el editor de zonas del panel: necesita medir el brillo de una
+// zona que el dueño dibujó a mano con el mismo criterio que usa la web sola.
+export { BRILLO_BASE, brilloDe, lum };

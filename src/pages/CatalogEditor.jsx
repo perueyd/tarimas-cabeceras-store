@@ -10,6 +10,7 @@ import SecurityTab from './SecurityTab.jsx';
 import GarantiasTab from './GarantiasTab.jsx';
 import ChatbotTab from './ChatbotTab.jsx';
 import VistaPrevia from '../components/VistaPrevia.jsx';
+import EditorZonasColor from '../components/EditorZonasColor.jsx';
 import { comprimirImagen, formatearPeso } from '../lib/comprimirImagen.js';
 
 // Botón "Subir foto": abre el selector de archivos, COMPRIME la imagen en el
@@ -766,6 +767,8 @@ const PRODUCTO_VACIO = {
   offerPricing: {},
   discountPercent: 0,
   availableColors: [],
+  availableColors2: [],
+  zonasFoto: {},
   colorImages: {},
   sizeImages: {},
   sizeDims: {},
@@ -1177,6 +1180,8 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
 function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
   const [p, setP] = useState(initial);
   const [saving, setSaving] = useState(false);
+  // Foto cuya "zona que cambia de color" se está editando (null = cerrado).
+  const [zonaEditando, setZonaEditando] = useState(null);
   const isNew = !catalog.products.some((x) => x.id === initial.id);
   // Opciones reutilizables guardadas (ej. "Laterales", "Tipo de botón"): se
   // guardan en la config de la tienda para no reescribirlas en cada producto.
@@ -1220,6 +1225,31 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
         ? prev.availableColors.filter((c) => c !== colorId)
         : [...prev.availableColors, colorId],
     }));
+  }
+  // Lista aparte de colores para la SEGUNDA tela (el detalle). Vacía = usa los
+  // mismos de la tela principal.
+  function toggleColor2(colorId) {
+    setP((prev) => {
+      const actual = prev.availableColors2 || [];
+      return {
+        ...prev,
+        availableColors2: actual.includes(colorId)
+          ? actual.filter((c) => c !== colorId)
+          : [...actual, colorId],
+      };
+    });
+  }
+  // Qué parte de CADA foto cambia de color (corrección manual del dueño).
+  // Se guarda por dirección de foto: así la principal, cada foto de la galería
+  // y las fotos por tamaño tienen su propia selección, y si se cambia la foto
+  // la corrección vieja simplemente deja de aplicarse (no queda pegada a otra).
+  function setZonasFoto(url, zonas) {
+    setP((prev) => {
+      const zf = { ...(prev.zonasFoto || {}) };
+      if (!zonas || !zonas.length) delete zf[url]; // volver a la detección automática
+      else zf[url] = zonas;
+      return { ...prev, zonasFoto: zf };
+    });
   }
   function setColorImage(colorId, url) {
     setP((prev) => {
@@ -1458,6 +1488,27 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
           color elegido conservando la textura y los pliegues. Desmárcalo solo si quieres que la
           foto se vea siempre tal cual la subiste (ej. un acabado de madera real).
         </p>
+
+        {/* Corregir a mano qué parte se repinta. La web lo adivina sola mirando
+            el brillo de la foto y acierta casi siempre, pero cuando se equivoca
+            (pinta las patas de madera, parte una tela en dos) antes no había
+            forma de arreglarlo: solo apagar el repintado entero. */}
+        {p.tintable && p.baseImage && (
+          <div className="mt-2 pl-6">
+            <button
+              type="button"
+              onClick={() => setZonaEditando(p.baseImage)}
+              className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50"
+            >
+              🖌️ Elegir qué parte cambia de color
+            </button>
+            <span className="ml-2 text-xs text-neutral-500">
+              {p.zonasFoto?.[p.baseImage]
+                ? `✓ Corregido a mano (${p.zonasFoto[p.baseImage].length === 2 ? 'dos telas' : 'una tela'})`
+                : 'Ahora lo decide la web sola'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Galería: fotos adicionales del producto (varias a la vez). El modelo
@@ -1499,6 +1550,20 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                   >
                     🎨
                   </button>
+                  {/* Si esta foto también se repinta, también se puede corregir
+                      qué parte suya cambia de color. */}
+                  {f.tintable && (
+                    <button
+                      type="button"
+                      onClick={() => setZonaEditando(f.url)}
+                      className={`absolute bottom-1 right-1 rounded-full px-1 text-[10px] ${
+                        p.zonasFoto?.[f.url] ? 'bg-emerald-600 text-white' : 'bg-white/90 text-neutral-500'
+                      }`}
+                      title="Elegir qué parte de esta foto cambia de color"
+                    >
+                      🖌️
+                    </button>
+                  )}
                   <button
                     onClick={() => quitarFoto(f.url)}
                     className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white"
@@ -1681,6 +1746,46 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
             </button>
           ))}
         </div>
+        <p className="mt-2 text-xs text-neutral-500">
+          Estos son los círculos de color que el cliente ve en la página del producto. Si no marcas
+          ninguno, el producto sale sin selector de color.
+        </p>
+      </div>
+
+      {/* Colores de la segunda tela (opcional). Solo tiene sentido en muebles
+          con dos telas: por defecto el detalle se ofrece en los mismos colores
+          que el cuerpo, pero muchas veces viene en menos. */}
+      <div className="mt-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={(p.availableColors2 || []).length > 0}
+            onChange={(e) => set('availableColors2', e.target.checked ? [...p.availableColors] : [])}
+          />
+          El <strong>detalle</strong> (segunda tela) se ofrece en otros colores
+        </label>
+        <p className="mt-1 pl-6 text-xs text-neutral-500">
+          Solo para muebles con dos telas. Sin marcar, el detalle usa los mismos colores de arriba.
+        </p>
+        {(p.availableColors2 || []).length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2 pl-6">
+            {catalog.colors.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => toggleColor2(c.id)}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
+                  (p.availableColors2 || []).includes(c.id)
+                    ? 'border-ink bg-neutral-100 font-medium'
+                    : 'border-neutral-200 text-neutral-500'
+                }`}
+              >
+                <span className="h-3 w-3 rounded-full border border-black/10" style={{ backgroundColor: c.hex }} />
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Colores por tamaño (opcional) */}
@@ -1966,6 +2071,19 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
           Cancelar
         </button>
       </div>
+
+      {/* Editor de "qué parte cambia de color" (varita, pincel y borrador). */}
+      <EditorZonasColor
+        abierto={Boolean(zonaEditando)}
+        foto={zonaEditando}
+        zonas={zonaEditando ? p.zonasFoto?.[zonaEditando] : null}
+        colores={catalog.colors.filter((c) => p.availableColors.includes(c.id))}
+        onGuardar={(zonas) => {
+          setZonasFoto(zonaEditando, zonas);
+          setZonaEditando(null);
+        }}
+        onCerrar={() => setZonaEditando(null)}
+      />
     </div>
   );
 }
