@@ -69,6 +69,28 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
     if (!abierto) { setCaptura(null); setPos({ x: 50, y: 45, escala: 1 }); }
   }, [abierto]);
 
+  // Mientras la cámara está abierta, la página de atrás NO se puede mover.
+  //
+  // Sin esto, arrastrar el mueble hacia abajo se le escapaba al navegador del
+  // celular y lo tomaba como "desliza la página": aparecía y desaparecía la
+  // barra de direcciones (que cambia el alto de la pantalla bajo los pies de
+  // esta ventana) y en Android bastaba con jalar hacia abajo estando arriba del
+  // todo para disparar el "recargar página" — la pantalla se quedaba en blanco.
+  // Es la misma protección que ya tenía la ventana de "Ver en grande".
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const cuerpo = document.body.style;
+    const raiz = document.documentElement.style;
+    const antesOverflow = cuerpo.overflow;
+    const antesRebote = raiz.overscrollBehavior;
+    cuerpo.overflow = 'hidden';
+    raiz.overscrollBehavior = 'none'; // corta el "jalar para recargar"
+    return () => {
+      cuerpo.overflow = antesOverflow;
+      raiz.overscrollBehavior = antesRebote;
+    };
+  }, [abierto]);
+
   if (!abierto) return null;
 
   // ---- mover y escalar con el dedo ----
@@ -89,13 +111,21 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
 
   function moverArrastre(clientX, clientY) {
     const caja = contenedorRef.current?.getBoundingClientRect();
-    if (!caja || !arrastre.current) return;
-    const dx = ((clientX - arrastre.current.tocX) / caja.width) * 100;
-    const dy = ((clientY - arrastre.current.tocY) / caja.height) * 100;
+    // Se copian los valores ANTES de pedirle a React que redibuje.
+    //
+    // Antes se leían dentro del propio redibujado, y ese redibujado ocurre un
+    // instante DESPUÉS: si en ese instante el dedo ya se había levantado, el
+    // dato del arrastre ya no existía y la página se caía entera —la pantalla
+    // se quedaba en blanco y solo se recuperaba recargando. Pasaba sobre todo
+    // arrastrando hacia abajo, porque el dedo sale de la zona de la cámara.
+    const inicio = arrastre.current;
+    if (!caja || !inicio || !caja.width || !caja.height) return;
+    const dx = ((clientX - inicio.tocX) / caja.width) * 100;
+    const dy = ((clientY - inicio.tocY) / caja.height) * 100;
     setPos((p) => ({
       ...p,
-      x: acotar(arrastre.current.x + dx, 0, 100),
-      y: acotar(arrastre.current.y + dy, 0, 100),
+      x: acotar(inicio.x + dx, 0, 100),
+      y: acotar(inicio.y + dy, 0, 100),
     }));
   }
 
@@ -109,9 +139,12 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
   }
 
   function alMover(e) {
-    if (e.touches.length === 2 && pellizco.current) {
-      const factor = distancia(e.touches) / pellizco.current.d;
-      setPos((p) => ({ ...p, escala: acotar(pellizco.current.escala * factor, 0.25, 4) }));
+    // Mismo cuidado que en el arrastre: los valores del pellizco se copian
+    // antes de redibujar, porque al levantar los dedos se borran.
+    const pin = pellizco.current;
+    if (e.touches.length === 2 && pin && pin.d > 0) {
+      const factor = distancia(e.touches) / pin.d;
+      setPos((p) => ({ ...p, escala: acotar(pin.escala * factor, 0.25, 4) }));
       return;
     }
     if (e.touches.length === 1) moverArrastre(e.touches[0].clientX, e.touches[0].clientY);
@@ -184,7 +217,13 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-black" style={{ height: '100dvh' }}>
+    // `touch-none` en TODA la ventana (antes solo en la zona de la cámara): con
+    // el dedo sobre el título o los botones, el navegador seguía creyendo que
+    // se quería desplazar la página.
+    <div
+      className="fixed inset-0 z-[70] flex touch-none flex-col overflow-hidden bg-black"
+      style={{ height: '100dvh', maxHeight: '100dvh', overscrollBehavior: 'none' }}
+    >
       <div className="flex flex-shrink-0 items-center justify-between px-4 py-3 text-white">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{nombre}</p>
@@ -199,7 +238,12 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
 
       <div
         ref={contenedorRef}
-        className="relative flex-1 touch-none overflow-hidden"
+        // "isolate": encierra la mezcla de color DENTRO de esta caja. Sin eso,
+        // la capa de color se mezclaba con todo lo pintado detrás —y detrás hay
+        // un vídeo en vivo, que el celular dibuja en una capa aparte. Esa
+        // combinación es la que deja la pantalla en blanco en varios Android.
+        // Es la misma protección que lleva la foto en la ficha del producto.
+        className="relative isolate min-h-0 flex-1 touch-none overflow-hidden"
         onTouchStart={alTocar}
         onTouchMove={alMover}
         onTouchEnd={alSoltar}
