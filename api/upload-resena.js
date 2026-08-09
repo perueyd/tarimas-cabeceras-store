@@ -62,7 +62,18 @@ export default async function handler(req, res) {
     });
     return res.status(200).json({ ok: true, url: blob.url });
   } catch (err) {
-    console.log('Error al subir foto de reseña:', err?.message);
-    return res.status(500).json({ error: 'No se pudo subir la foto. Intenta de nuevo.' });
+    console.error('Error al subir foto de reseña:', err?.name, err?.message);
+
+    // Si el almacén está bloqueado por cuota, reintentar no sirve de nada. Al
+    // cliente no se le cuentan los problemas internos de la tienda: se le dice
+    // que deje su opinión sin foto, que es lo que sí puede hacer.
+    const texto = `${err?.name || ''} ${err?.message || ''}`.toLowerCase();
+    if (/suspend|blocked|quota|limit|store is blocked/.test(texto)) {
+      return res.status(507).json({
+        error: 'Ahora mismo no podemos recibir fotos. Puedes dejar tu reseña solo con texto.',
+      });
+    }
+
+    return res.status(500).json({ error: 'No se pudo subir la foto. Puedes dejar tu reseña sin ella.' });
   }
 }

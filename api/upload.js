@@ -68,7 +68,29 @@ export default async function handler(req, res) {
     });
     return res.status(200).json({ ok: true, url: blob.url });
   } catch (err) {
-    console.log('Error al subir a Blob:', err?.message);
-    return res.status(500).json({ error: 'No se pudo subir la foto. Intenta de nuevo.' });
+    console.error('Error al subir a Blob:', err?.name, err?.message);
+
+    // El almacén se bloquea al superar la cuota gratuita de Vercel, y entonces
+    // NINGUNA subida va a funcionar por más veces que se intente. Decir
+    // "intenta de nuevo" en ese caso solo hace perder el tiempo: hay que
+    // explicar qué pasa y hasta cuándo.
+    const texto = `${err?.name || ''} ${err?.message || ''}`.toLowerCase();
+    if (/suspend|blocked|quota|limit|store is blocked/.test(texto)) {
+      return res.status(507).json({
+        error:
+          'El almacén de fotos está bloqueado por Vercel: se superó el límite gratuito de 10 GB. ' +
+          'No se puede subir nada hasta que se libere (30 días desde el aviso) o se amplíe el plan. ' +
+          'No sigas intentando: la foto está bien, el problema es la cuota.',
+        motivo: 'almacen-bloqueado',
+      });
+    }
+
+    if (/network|fetch|timeout|ECONN/i.test(texto)) {
+      return res.status(503).json({ error: 'Se cortó la conexión al subir la foto. Intenta de nuevo.' });
+    }
+
+    return res.status(500).json({
+      error: `No se pudo subir la foto (${err?.name || 'error desconocido'}). Si se repite, avísanos.`,
+    });
   }
 }
