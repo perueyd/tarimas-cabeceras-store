@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node dev-server.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fotos": "node scripts/elegir-fotos.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.6.1",
