@@ -769,13 +769,28 @@ function ProvinciaFlow({
   const ubicacionLabel = [form.distrito, form.provincia, form.departamento].filter(Boolean).join(', ');
   return (
     <div>
+      {/* Quién paga qué, dicho exacto.
+          El texto anterior prometía "te respondemos con el costo total": eso es
+          una promesa que la tienda NO puede cumplir, porque el flete lo cobra y
+          lo fija la agencia de transporte, no nosotros. Prometer un precio que
+          no se controla es justo lo que termina en un reclamo. Se cambia por lo
+          que de verdad se cubre, y se dan el peso y la medida del bulto para
+          que el cliente pueda cotizar solo. */}
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-medium">Envíos a provincia</p>
+        <p className="font-medium">Envío a provincia</p>
         <p className="mt-1">
-          El costo del envío corre por cuenta del cliente y se cotiza antes del pago
-          (depende del destino y la agencia de transporte). Déjanos tu destino y te
-          respondemos con el costo total para completar tu compra.
+          Preparamos y embalamos tu pedido y lo llevamos <strong>sin costo</strong> hasta la agencia
+          de transporte que elijas en Lima.
         </p>
+        <p className="mt-1">
+          El flete desde esa agencia hasta tu ciudad <strong>lo pagas tú al recogerlo</strong>,
+          directamente a la agencia: ese precio lo fija ella, no nosotros.
+        </p>
+        {storeConfig.pesoEnvio && (
+          <p className="mt-1">
+            Para cotizar con la agencia: {storeConfig.pesoEnvio}
+          </p>
+        )}
       </div>
 
       <form className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
@@ -807,7 +822,7 @@ function ProvinciaFlow({
           rel="noreferrer"
           className="mt-6 block w-full rounded-lg bg-[#25D366] px-6 py-3 text-center text-sm font-medium text-white transition hover:opacity-90"
         >
-          Cotizar envío por WhatsApp
+          Coordinar mi envío por WhatsApp
         </a>
       ) : (
         <p className="mt-6 rounded-lg bg-neutral-100 px-4 py-3 text-center text-sm text-neutral-600">
@@ -815,7 +830,7 @@ function ProvinciaFlow({
         </p>
       )}
       <p className="mt-3 text-center text-xs text-neutral-400">
-        Tu carrito queda guardado: cuando tengas la cotización podrás completar el pago.
+        Escríbenos a qué agencia lo llevamos y coordinamos la entrega. Tu carrito queda guardado.
       </p>
     </div>
   );

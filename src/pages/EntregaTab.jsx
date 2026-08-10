@@ -4,6 +4,7 @@ export default function EntregaTab({ catalog, api, flash }) {
   const cfg = catalog.storeConfig || {};
   const [data, setData] = useState({
     leadTime: cfg.leadTime || '',
+    pesoEnvio: cfg.pesoEnvio || '',
     deliveryMinDays: cfg.deliveryMinDays || 4,
     deliverySlots: cfg.deliverySlots || [],
   });
@@ -56,6 +57,24 @@ export default function EntregaTab({ catalog, api, flash }) {
               placeholder="3 a 4 días hábiles"
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />
+          </label>
+          {/* Lo que la agencia de transporte necesita para cotizar. Sin esto el
+              cliente de provincia no puede pedir precio y termina preguntando
+              por WhatsApp una y otra vez. */}
+          <label className="block">
+            <span className="text-sm font-medium text-neutral-700">
+              Peso y medida del bulto (para que el cliente cotice con la agencia)
+            </span>
+            <input
+              type="text"
+              value={data.pesoEnvio}
+              onChange={(e) => setData({ ...data, pesoEnvio: e.target.value })}
+              placeholder="30 kg aprox. y la caja mide lo mismo que el mueble"
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            />
+            <span className="mt-1 block text-xs text-neutral-500">
+              Aparece en el aviso de envío a provincia. Si lo dejas vacío, no se muestra.
+            </span>
           </label>
           <label className="block">
             <span className="text-sm font-medium text-neutral-700">Días mínimos para elegir entrega (desde hoy)</span>
