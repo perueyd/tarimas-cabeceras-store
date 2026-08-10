@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import ProductZoomModal from '../components/ProductZoomModal.jsx';
+import BotonCompartir from '../components/BotonCompartir.jsx';
 import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -152,6 +153,18 @@ export default function ProductDetail() {
     : [];
   const vistaActiva = vistas[activeIdx] || vistas[0];
   const specs = normalizarSpecs(product?.specs);
+
+  // Las decisiones del cliente, numeradas. Con tamaño, 21 colores, un segundo
+  // color y las opciones de tela y laterales, la ficha era una lista larga sin
+  // orden aparente: numerarlas dice de un vistazo cuántas cosas hay que elegir
+  // y cuántas faltan. Se calcula aquí porque las secciones aparecen y
+  // desaparecen (el segundo color solo si la foto tiene dos telas).
+  const pasos = [];
+  if (availableSizes.length) pasos.push('tamano');
+  if (availableColors.length) pasos.push('color');
+  if (dosTelas && availableColors2.length) pasos.push('color2');
+  gruposOpciones.forEach((g) => pasos.push(`op:${g.id}`));
+  const numeroDe = (clave) => pasos.indexOf(clave) + 1;
   // Corrección manual de "qué parte cambia de color", si el dueño la hizo para
   // ESTA foto (se guarda por dirección de foto, así cada ángulo tiene la suya).
   const zonasManual = vistaActiva ? product?.zonasFoto?.[vistaActiva.url] : undefined;
@@ -282,6 +295,14 @@ export default function ProductDetail() {
             <span className="text-xs font-normal text-neutral-500">— con la cámara</span>
           </button>
 
+          {/* Compartir va justo debajo de la foto: es donde el cliente decide
+              "esto se lo mando a mi esposa", no al final de la página. */}
+          <BotonCompartir
+            nombre={product.name}
+            precio={currencyFormatter.format(unitPrice)}
+            className="mt-2"
+          />
+
           {/* Miniaturas: la principal (cambia de color) + las fotos de galería
               (algunas también cambian de color, otras se ven tal cual). */}
           {vistas.length > 1 && (
@@ -334,7 +355,9 @@ export default function ProductDetail() {
           )}
 
           <div className="mt-6">
-            <p className="mb-2 text-sm font-medium text-neutral-700">Tamaño</p>
+            <p className="mb-2 text-sm font-medium text-neutral-700">
+              <Paso n={numeroDe('tamano')} /> Tamaño
+            </p>
             <div className="flex flex-wrap gap-2">
               {availableSizes.map((s) => (
                 <button
@@ -359,7 +382,7 @@ export default function ProductDetail() {
                 colors={availableColors}
                 selectedId={colorElegido ? colorId : null}
                 onSelect={elegirColor}
-                titulo={dosTelas ? 'Color principal' : 'Color'}
+                titulo={<><Paso n={numeroDe('color')} /> {dosTelas ? 'Color principal' : 'Color'}</>}
                 aviso={dosTelas ? undefined : storeConfig.avisoColor}
               />
             </div>
@@ -372,7 +395,7 @@ export default function ProductDetail() {
                 colors={availableColors2}
                 selectedId={colorElegido ? colorId2 : null}
                 onSelect={elegirColor2}
-                titulo="Color del detalle"
+                titulo={<><Paso n={numeroDe('color2')} /> Color del detalle</>}
                 aviso={storeConfig.avisoColor}
               />
             </div>
@@ -381,7 +404,9 @@ export default function ProductDetail() {
           {/* Opciones del producto: brazos, tipo de patas, tipo de botón... */}
           {gruposOpciones.map((g) => (
             <div key={g.id} className="mt-6">
-              <p className="mb-2 text-sm font-medium text-neutral-700">{g.label}</p>
+              <p className="mb-2 text-sm font-medium text-neutral-700">
+                <Paso n={numeroDe(`op:${g.id}`)} /> {g.label}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {(g.valores || []).map((v) => {
                   const activo = opciones[g.id] === v.id;
@@ -507,6 +532,17 @@ export default function ProductDetail() {
         mostrarColor={colorElegido}
       />
     </main>
+  );
+}
+
+// Numerito delante de cada cosa que hay que elegir. No se dibuja si el paso no
+// existe (n = 0), para no sacar un "0" suelto si alguna sección desaparece.
+function Paso({ n }) {
+  if (!n) return null;
+  return (
+    <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-200 text-[11px] font-semibold text-neutral-600">
+      {n}
+    </span>
   );
 }
 
