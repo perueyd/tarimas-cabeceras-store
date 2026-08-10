@@ -28,6 +28,8 @@ const SITIO = process.env.TIENDA_URL || 'https://eydperu.vercel.app';
 const PUERTO = 4321;
 const ANCHO_MAX = 1600;
 const CALIDAD = 82;
+const ANCHO_CHICO = 500; // la que se ve en el catálogo
+const CALIDAD_CHICA = 72;
 const RAIZ = process.cwd();
 const DESTINO = path.join(RAIZ, 'public', 'productos');
 // Marca para "esta foto va a la galería del producto" (fotos adicionales, no
@@ -126,6 +128,12 @@ for (const archivo of archivos) {
       .resize({ width: ANCHO_MAX, withoutEnlargement: true })
       .webp({ quality: CALIDAD, alphaQuality: 100 })
       .toFile(salida);
+    // Gemela liviana para el catálogo, donde se cargan las 34 de golpe: en una
+    // tarjeta de 300 px no se nota, y baja la pagina de varios megas a uno.
+    await sharp(entrada)
+      .resize({ width: ANCHO_CHICO, withoutEnlargement: true })
+      .webp({ quality: CALIDAD_CHICA, alphaQuality: 100 })
+      .toFile(path.join(DESTINO, `${nombre}-sm.webp`));
     const despues = fs.statSync(salida).size;
     pesoAntes += antes;
     pesoDespues += despues;

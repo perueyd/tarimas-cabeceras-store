@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import ProductImage from './ProductImage.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { getEffectivePrice } from '../lib/pricing.js';
+import { fotoChica } from '../lib/fotoChica.js';
 
 export default function ProductCard({ product }) {
   const { colors, currencyFormatter } = useCatalog();
@@ -22,7 +23,10 @@ export default function ProductCard({ product }) {
     >
       <div className="relative overflow-hidden bg-neutral-50">
         <ProductImage
-          baseImage={img.src}
+          // Versión liviana: en el catálogo se cargan las 34 fotos de golpe y
+          // en una tarjeta chica no se distingue de la grande. La foto en
+          // tamaño completo se sigue usando en la ficha del producto.
+          baseImage={fotoChica(img.src)}
           colorHex={defaultColor.hex}
           alt={product.name}
           className="aspect-[4/3] w-full transition-transform duration-300 group-hover:scale-105"

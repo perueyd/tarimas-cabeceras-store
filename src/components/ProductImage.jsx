@@ -139,7 +139,15 @@ export default function ProductImage({
   if (!tintable || !mostrarColor) {
     return (
       <div className={`relative overflow-hidden bg-neutral-100 ${className}`}>
-        <img loading="lazy" decoding="async" src={baseImage} alt={alt} className="absolute inset-0 h-full w-full object-contain" />
+        <img loading="lazy" decoding="async" src={baseImage} alt={alt}
+          className="absolute inset-0 h-full w-full object-contain"
+          // Red de seguridad para las fotos livianas ("-sm"): si alguna no se
+          // generó, en vez de un icono roto se muestra la grande.
+          onError={(e) => {
+            const grande = e.currentTarget.src.replace('-sm.webp', '.webp');
+            if (grande !== e.currentTarget.src) e.currentTarget.src = grande;
+          }}
+        />
       </div>
     );
   }
