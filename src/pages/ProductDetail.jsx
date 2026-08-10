@@ -18,6 +18,23 @@ function normalizarFotoGaleria(item) {
   return { url: item.url, tintable: Boolean(item.tintable) };
 }
 
+// Las especificaciones vienen en DOS formatos y hay que aguantar los dos:
+//  · lista [{ label, value }]  -> lo que guarda el panel
+//  · objeto { Material: '...' } -> los productos de fábrica del código
+// Esta página solo entendía el objeto, así que en cuanto un producto se
+// editaba desde el panel la ficha se caía entera y salía en blanco (React no
+// sabe dibujar un objeto suelto). Se normaliza a lista y se descarta lo que
+// venga a medias, para que un renglón vacío nunca tumbe la página.
+function normalizarSpecs(specs) {
+  if (Array.isArray(specs)) {
+    return specs.filter((s) => s && s.label).map((s) => ({ label: String(s.label), value: String(s.value ?? '') }));
+  }
+  if (specs && typeof specs === 'object') {
+    return Object.entries(specs).map(([label, value]) => ({ label, value: String(value ?? '') }));
+  }
+  return [];
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -134,6 +151,7 @@ export default function ProductDetail() {
       ]
     : [];
   const vistaActiva = vistas[activeIdx] || vistas[0];
+  const specs = normalizarSpecs(product?.specs);
   // Corrección manual de "qué parte cambia de color", si el dueño la hizo para
   // ESTA foto (se guarda por dirección de foto, así cada ángulo tiene la suya).
   const zonasManual = vistaActiva ? product?.zonasFoto?.[vistaActiva.url] : undefined;
@@ -436,17 +454,19 @@ export default function ProductDetail() {
             Al pagar eliges la fecha y el rango de horario que te acomode.
           </p>
 
-          <div className="mt-10">
-            <h2 className="mb-3 text-sm font-medium text-neutral-700">Especificaciones</h2>
-            <dl className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 text-sm">
-              {Object.entries(product.specs).map(([label, value]) => (
-                <div key={label} className="flex justify-between gap-4 px-4 py-2.5">
-                  <dt className="text-neutral-500">{label}</dt>
-                  <dd className="text-right font-medium">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          {specs.length > 0 && (
+            <div className="mt-10">
+              <h2 className="mb-3 text-sm font-medium text-neutral-700">Especificaciones</h2>
+              <dl className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 text-sm">
+                {specs.map((s) => (
+                  <div key={s.label} className="flex justify-between gap-4 px-4 py-2.5">
+                    <dt className="shrink-0 text-neutral-500">{s.label}</dt>
+                    <dd className="text-right font-medium">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </div>
       </div>
 
