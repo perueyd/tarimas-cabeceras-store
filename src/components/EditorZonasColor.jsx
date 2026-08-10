@@ -90,6 +90,10 @@ export default function EditorZonasColor({ abierto, foto, zonas, colores = [], o
   const [tolerancia, setTolerancia] = useState(28);
   const [grosor, setGrosor] = useState(26);
   const [hayZona2, setHayZona2] = useState(false);
+  // Raya lo que NO va a cambiar de color. Sin esto cuesta ver si quedó un
+  // trozo suelto sin marcar, sobre todo cuando el color de prueba se parece al
+  // de la foto. Se puede apagar para ver la foto tal cual la verá el cliente.
+  const [rayarLoQueNoCambia, setRayarLoQueNoCambia] = useState(true);
   const [version, setVersion] = useState(0); // sube para forzar el repintado
   const [aviso, setAviso] = useState('');
 
@@ -225,6 +229,17 @@ export default function EditorZonasColor({ abierto, foto, zonas, colores = [], o
         o[p] = src[p];
         o[p + 1] = src[p + 1];
         o[p + 2] = src[p + 2];
+        // Rayado diagonal sobre lo que se queda como está: se ve de un vistazo
+        // qué parte NO va a cambiar, sin tener que adivinar por el color.
+        if (rayarLoQueNoCambia && src[p + 3] >= 128) {
+          const x = i % cv.width;
+          const y = (i / cv.width) | 0;
+          if ((x + y) % 12 < 4) {
+            o[p] = o[p] * 0.6 + 30 * 0.4;
+            o[p + 1] = o[p + 1] * 0.6 + 34 * 0.4;
+            o[p + 2] = o[p + 2] * 0.6 + 40 * 0.4;
+          }
+        }
       }
       o[p + 3] = src[p + 3];
 
@@ -240,7 +255,7 @@ export default function EditorZonasColor({ abierto, foto, zonas, colores = [], o
       }
     }
     ctx.putImageData(out, 0, 0);
-  }, [colorPrueba, colorPrueba2, accion]);
+  }, [colorPrueba, colorPrueba2, accion, rayarLoQueNoCambia]);
 
   useEffect(() => {
     if (estado === 'listo') pintar();
@@ -684,6 +699,26 @@ export default function EditorZonasColor({ abierto, foto, zonas, colores = [], o
                 )}
                 <p className="mt-1 text-xs text-neutral-500">Solo para ver aquí; no cambia nada en la tienda.</p>
               </div>
+
+              <label className="flex items-start gap-2 rounded-lg bg-neutral-50 p-2 text-xs">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={rayarLoQueNoCambia}
+                  onChange={(e) => {
+                    setRayarLoQueNoCambia(e.target.checked);
+                    setVersion((v) => v + 1);
+                  }}
+                />
+                <span>
+                  <strong>Rayar lo que NO cambia de color</strong>
+                  <br />
+                  <span className="text-neutral-500">
+                    Ayuda a ver si quedó algún trozo suelto. Quítalo para ver la foto tal cual la
+                    verá el cliente.
+                  </span>
+                </span>
+              </label>
 
               <div className="flex flex-wrap gap-2 border-t border-neutral-200 pt-3">
                 <button
