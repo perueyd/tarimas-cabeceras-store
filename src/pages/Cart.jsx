@@ -41,6 +41,7 @@ export default function Cart() {
                 // Misma corrección de zonas que en la página del producto: el
                 // carrito tiene que mostrar exactamente lo que el cliente eligió.
                 zonasManual={product?.zonasFoto?.[item.baseImage]}
+                invertirTelas={product?.invertirTelas}
               />
               <div className="flex flex-1 flex-col justify-between">
                 <div className="flex justify-between gap-2">

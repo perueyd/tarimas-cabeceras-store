@@ -112,6 +112,11 @@ export default function ProductImage({
   // equivoca (pinta las patas de madera, parte una tela en dos) esto es lo
   // único que lo arregla. Formato: [{ mascara, brillo }, …].
   zonasManual,
+  // Cambia cuál de las dos telas manda. La web separa las telas por su brillo,
+  // no por su importancia: en un modelo con el cuerpo claro y el diseño oscuro
+  // encima, lo que el dueño llama "color principal" quedaba asignado al
+  // detalle. Esto lo da vuelta sin tocar la foto ni las máscaras.
+  invertirTelas = false,
 }) {
   const manual = Array.isArray(zonasManual) && zonasManual.length > 0;
   // Si hay corrección manual no hace falta analizar la foto: se ahorra el
@@ -155,7 +160,14 @@ export default function ProductImage({
   const zonas = manual ? zonasManual : analisis?.zonas || [{ mascara: null, brillo: BRILLO_BASE }];
   // El segundo color solo aplica si de verdad se detectaron dos telas; si no,
   // la segunda zona no existe y todo se pinta del color principal.
-  const colores = [colorHex, colorHex2 || colorHex];
+  // Invertir SOLO si de verdad hay dos telas. En un mueble de una sola tela el
+  // cliente nunca ve el segundo selector, así que ese segundo color se queda en
+  // el de fábrica: invertir ahí pintaría el mueble del color por defecto en vez
+  // del que eligió el cliente.
+  const invertir = invertirTelas && zonas.length > 1;
+  const colores = invertir
+    ? [colorHex2 || colorHex, colorHex]
+    : [colorHex, colorHex2 || colorHex];
   // Con zonas dibujadas a mano puede haber partes que NO se repintan (las patas
   // de madera, un cojín de otro material). Esas partes tienen que seguir
   // viéndose: por eso debajo va la foto original tal cual. Cuando la máscara

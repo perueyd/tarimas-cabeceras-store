@@ -16,6 +16,7 @@ export default function ProductZoomModal({
   // mismos colores de la tela principal.
   availableColors2,
   zonasManual,
+  invertirTelas,
   colorId,
   colorId2,
   onSelectColor,
@@ -76,6 +77,7 @@ export default function ProductZoomModal({
             tintable={img.tintable}
             mostrarColor={mostrarColor}
             zonasManual={zonasManual}
+            invertirTelas={invertirTelas}
           />
 
           {/* Cuadro grande del color/tela + selector */}

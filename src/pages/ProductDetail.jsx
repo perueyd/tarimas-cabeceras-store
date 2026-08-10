@@ -266,6 +266,7 @@ export default function ProductDetail() {
                 tintable
                 mostrarColor={colorElegido}
                 zonasManual={zonasManual}
+                invertirTelas={product.invertirTelas}
               />
             ) : (
               <img loading="lazy" decoding="async"
@@ -521,6 +522,7 @@ export default function ProductDetail() {
         availableColors={availableColors}
         availableColors2={availableColors2}
         zonasManual={zonasManual}
+        invertirTelas={product.invertirTelas}
         colorId={colorId}
         colorId2={colorId2}
         onSelectColor={elegirColor}

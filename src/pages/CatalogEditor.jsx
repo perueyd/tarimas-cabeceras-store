@@ -768,6 +768,7 @@ const PRODUCTO_VACIO = {
   discountPercent: 0,
   availableColors: [],
   availableColors2: [],
+  invertirTelas: false,
   zonasFoto: {},
   colorImages: {},
   sizeImages: {},
@@ -1507,6 +1508,23 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                 ? `✓ Corregido a mano (${p.zonasFoto[p.baseImage].length === 2 ? 'dos telas' : 'una tela'})`
                 : 'Ahora lo decide la web sola'}
             </span>
+
+            {/* La web separa las dos telas por su BRILLO, no por cuál es más
+                importante. En un modelo con el cuerpo claro y el diseño oscuro
+                encima, lo que el dueño llama "color principal" terminaba
+                asignado al detalle. Esta casilla lo da vuelta. */}
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={Boolean(p.invertirTelas)}
+                onChange={(e) => set('invertirTelas', e.target.checked)}
+              />
+              Intercambiar las dos telas (el «color principal» está al revés)
+            </label>
+            <p className="mt-1 pl-6 text-xs text-neutral-500">
+              Solo para muebles de dos telas. Márcalo si al elegir el color principal se pinta el
+              detalle en vez del cuerpo del mueble.
+            </p>
           </div>
         )}
       </div>
