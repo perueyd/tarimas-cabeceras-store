@@ -1178,8 +1178,18 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   );
 }
 
+// La ficha técnica DEBE ser una lista. Se han visto productos guardados con
+// ella convertida en objeto ({0:{...},1:{...}}), y entonces `p.specs.map`
+// revienta y el panel entero se queda en blanco al abrir ese producto. Se
+// normaliza al cargar el formulario para que eso no pueda pasar.
+function normalizarSpecsForm(specs) {
+  if (Array.isArray(specs)) return specs;
+  if (specs && typeof specs === 'object') return Object.values(specs);
+  return [];
+}
+
 function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
-  const [p, setP] = useState(initial);
+  const [p, setP] = useState(() => ({ ...initial, specs: normalizarSpecsForm(initial?.specs) }));
   const [saving, setSaving] = useState(false);
   // Foto cuya "zona que cambia de color" se está editando (null = cerrado).
   const [zonaEditando, setZonaEditando] = useState(null);
