@@ -550,10 +550,16 @@ const servidor = http.createServer(async (req, res) => {
 });
 
 servidor.listen(PUERTO, () => {
+  const direccion = `http://localhost:${PUERTO}`;
   console.log('─'.repeat(60));
-  console.log('  Abre esta dirección en tu navegador:\n');
-  console.log(`      http://localhost:${PUERTO}\n`);
+  console.log('  Abriendo el navegador...\n');
+  console.log(`  Si no se abre solo, entra a:  ${direccion}\n`);
   console.log('  Ahí eliges a qué producto va cada foto y pulsas Guardar.');
-  console.log('  Cuando termines, cierra esta ventana negra (Ctrl+C).');
+  console.log('  Cuando termines, cierra esta ventana negra.');
   console.log('─'.repeat(60));
+
+  // Se abre el navegador solo: el dueño no tiene por qué copiar direcciones a
+  // mano. Si el sistema no lo permite, arriba queda escrita la dirección.
+  const abrir = process.platform === 'win32' ? 'start ""' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  execFile(process.platform === 'win32' ? 'cmd' : 'sh', process.platform === 'win32' ? ['/c', `${abrir} ${direccion}`] : ['-c', `${abrir} ${direccion}`], () => {});
 });
