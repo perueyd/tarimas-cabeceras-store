@@ -815,8 +815,10 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   const orden = useReordenar(visibles.map((p) => p.id), aplicarNuevoOrdenVisible);
 
   async function guardar(producto) {
+    // Se normaliza antes de convertir: si llega una ficha guardada a mano en
+    // otro formato, aquí queda arreglada en vez de guardarse peor todavía.
     const specsObj = {};
-    for (const { label, value } of producto.specs) {
+    for (const { label, value } of normalizarSpecsForm(producto.specs)) {
       if (label.trim()) specsObj[label.trim()] = value;
     }
     const payload = { ...producto, specs: specsObj };
@@ -1178,14 +1180,22 @@ function ProductosTab({ catalog, api, flash, adminKey }) {
   );
 }
 
-// La ficha técnica DEBE ser una lista. Se han visto productos guardados con
-// ella convertida en objeto ({0:{...},1:{...}}), y entonces `p.specs.map`
-// revienta y el panel entero se queda en blanco al abrir ese producto. Se
-// normaliza al cargar el formulario para que eso no pueda pasar.
+// La ficha técnica se GUARDA como objeto { Etiqueta: valor } pero el
+// formulario trabaja con una lista [{ label, value }]. Como además hubo
+// productos guardados a mano como lista, hay que saber leer las tres formas:
+//   { Material: 'Madera' } · [{label,value}] · { 0:{label,value}, 1:{...} }
+// Sin esto, `p.specs.map` revienta y el panel entero se queda en blanco al
+// abrir ese producto.
 function normalizarSpecsForm(specs) {
-  if (Array.isArray(specs)) return specs;
-  if (specs && typeof specs === 'object') return Object.values(specs);
-  return [];
+  const bruto = Array.isArray(specs) ? specs : specs && typeof specs === 'object' ? Object.entries(specs) : [];
+  return bruto
+    .map((item) => {
+      if (!Array.isArray(item)) return { label: item?.label ?? '', value: item?.value ?? '' };
+      const [clave, valor] = item;
+      if (valor && typeof valor === 'object') return { label: valor.label ?? '', value: valor.value ?? '' };
+      return { label: clave, value: valor ?? '' };
+    })
+    .map((f) => ({ label: String(f.label ?? ''), value: String(f.value ?? '') }));
 }
 
 function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {

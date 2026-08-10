@@ -19,21 +19,26 @@ function normalizarFotoGaleria(item) {
   return { url: item.url, tintable: Boolean(item.tintable) };
 }
 
-// Las especificaciones vienen en DOS formatos y hay que aguantar los dos:
-//  · lista [{ label, value }]  -> lo que guarda el panel
-//  · objeto { Material: '...' } -> los productos de fábrica del código
-// Esta página solo entendía el objeto, así que en cuanto un producto se
-// editaba desde el panel la ficha se caía entera y salía en blanco (React no
-// sabe dibujar un objeto suelto). Se normaliza a lista y se descarta lo que
-// venga a medias, para que un renglón vacío nunca tumbe la página.
+// Las especificaciones han llegado a guardarse de TRES formas distintas:
+//  · objeto { Material: 'Madera' }            -> lo que guarda el panel
+//  · lista  [{ label, value }]                -> como trabaja el formulario
+//  · objeto { 0: {label, value}, 1: {...} }   -> una lista que se guardó mal
+// La tercera es la que salía en la tienda como "[object Object]". En vez de
+// perseguir cuál se guardó, se aceptan las tres y siempre se dibuja una lista.
 function normalizarSpecs(specs) {
-  if (Array.isArray(specs)) {
-    return specs.filter((s) => s && s.label).map((s) => ({ label: String(s.label), value: String(s.value ?? '') }));
-  }
-  if (specs && typeof specs === 'object') {
-    return Object.entries(specs).map(([label, value]) => ({ label, value: String(value ?? '') }));
-  }
-  return [];
+  const bruto = Array.isArray(specs) ? specs : specs && typeof specs === 'object' ? Object.entries(specs) : [];
+  const filas = bruto.map((item) => {
+    // De una lista: { label, value }
+    if (!Array.isArray(item)) return { label: item?.label, value: item?.value };
+    // De un objeto: [clave, valor]. El valor puede ser el texto... o el
+    // renglón entero, si lo que se guardó era en realidad una lista.
+    const [clave, valor] = item;
+    if (valor && typeof valor === 'object') return { label: valor.label, value: valor.value };
+    return { label: clave, value: valor };
+  });
+  return filas
+    .filter((f) => f.label != null && String(f.label).trim() !== '')
+    .map((f) => ({ label: String(f.label), value: String(f.value ?? '') }));
 }
 
 export default function ProductDetail() {
@@ -151,6 +156,16 @@ export default function ProductDetail() {
         ...(Array.isArray(product.gallery) ? product.gallery.map(normalizarFotoGaleria) : []),
       ]
     : [];
+  // Si la foto principal cambia (porque el cliente eligió otro tamaño, o un
+  // color con foto propia), se vuelve a ella. Si no, el cliente que estaba
+  // mirando una foto de galería seguía viéndola mientras la medida de al lado
+  // ya decía otra cosa: la ficha decía "King, llega en 2 piezas" y la foto
+  // mostraba una tarima de una sola pieza.
+  const urlPrincipal = img?.src;
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [urlPrincipal]);
+
   const vistaActiva = vistas[activeIdx] || vistas[0];
   const specs = normalizarSpecs(product?.specs);
 
