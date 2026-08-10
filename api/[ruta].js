@@ -18,6 +18,10 @@
 const RUTAS = {
   'analytics-ofertas': () => import('./_rutas/analytics-ofertas.js'),
   carritos: () => import('./_rutas/carritos.js'),
+  // Vista previa con la foto del producto cuando se comparte el enlace.
+  // No la piden los clientes: la piden WhatsApp, Facebook y compañía (ver el
+  // rewrite por user-agent en vercel.json).
+  compartir: () => import('./_rutas/compartir.js'),
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
   historial: () => import('./_rutas/historial.js'),

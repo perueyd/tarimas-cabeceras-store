@@ -354,6 +354,24 @@ document.getElementById('guardar').addEventListener('click', async () => {
 }
 
 // ---------- 5. Guardar: publicar las fotos y apuntar los productos ----------
+// Imagen de 1200x630 en JPG para la vista previa al compartir por WhatsApp.
+// En JPG y con fondo blanco a propósito: WhatsApp no siempre muestra las WebP,
+// y el JPG no admite transparencia (sin el fondo, el mueble saldría en negro).
+async function imagenParaCompartir(nombre) {
+  const origen = path.join(DESTINO, `${nombre}.webp`);
+  if (!fs.existsSync(origen)) return;
+  try {
+    await sharp(origen)
+      .resize(1200, 630, { fit: 'contain', background: { r: 255, g: 255, b: 255 } })
+      .flatten({ background: { r: 255, g: 255, b: 255 } })
+      .jpeg({ quality: 82 })
+      .toFile(path.join(DESTINO, `${nombre}-og.jpg`));
+  } catch {
+    // Sin esta imagen la vista previa sale con la foto genérica de la tienda;
+    // no es motivo para abortar la subida.
+  }
+}
+
 function correr(cmd, args) {
   return new Promise((resolve) => {
     execFile(cmd, args, { cwd: RAIZ }, (err, stdout, stderr) => {
@@ -389,7 +407,15 @@ async function guardar(asignaciones) {
   // PRIMERO se publican los archivos: si se apuntara el catálogo antes, los
   // clientes verían fotos rotas hasta que Vercel terminara de republicar.
   lineas.push('', 'Publicando las fotos en el repositorio...');
-  await correr('git', ['add', '--', ...usadas.map((a) => `public/productos/${a.nombre}.webp`)]);
+  // Se suben las tres versiones de cada foto: la grande, la liviana del
+  // catálogo y (solo si es foto principal) la de compartir. Se comprueba que
+  // cada archivo exista porque `git add` falla ENTERO —y no sube nada— si se
+  // le nombra uno que no está.
+  const aSubir = usadas
+    .flatMap((a) => [`${a.nombre}.webp`, `${a.nombre}-sm.webp`, `${a.nombre}-og.jpg`])
+    .filter((f) => fs.existsSync(path.join(DESTINO, f)))
+    .map((f) => `public/productos/${f}`);
+  await correr('git', ['add', '--', ...aSubir]);
   const commit = await correr('git', ['commit', '-m', `Fotos de productos (${usadas.length})`]);
   if (!commit.ok && !/nothing to commit/i.test(commit.salida)) {
     lineas.push(`  ⚠ No se pudo guardar el commit: ${commit.salida.split('\n')[0]}`);
@@ -446,6 +472,7 @@ async function guardar(asignaciones) {
       } else {
         actualizado.baseImage = a.ruta;
         detalle.push('foto principal');
+        await imagenParaCompartir(a.nombre);
       }
     }
     if (extras) detalle.push(`${extras} foto${extras === 1 ? '' : 's'} adicional${extras === 1 ? '' : 'es'}`);
