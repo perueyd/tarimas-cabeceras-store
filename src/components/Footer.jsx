@@ -112,6 +112,18 @@ export default function Footer() {
         <div className="space-y-2 text-xs sm:text-sm text-neutral-600">
           <p className="font-medium">{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.`}</p>
           <p>{storeConfig.footer?.paymentText || '🔒 Pagos seguros con Culqi | Precios en Soles (S/)'}</p>
+          {/* Quién vende, visible en TODA la web. La Ley 29571 obliga a
+              identificar al proveedor; hasta ahora el RUC solo salía dentro del
+              Libro de Reclamaciones y de las páginas legales, que es donde casi
+              nadie entra. Si el dato está vacío no se pinta el renglón. */}
+          {(storeConfig.razonSocial || storeConfig.ruc) && (
+            <p>
+              {storeConfig.razonSocial}
+              {storeConfig.razonSocial && storeConfig.ruc ? ' · ' : ''}
+              {storeConfig.ruc && `RUC ${storeConfig.ruc}`}
+            </p>
+          )}
+          {storeConfig.direccionFiscal && <p>{storeConfig.direccionFiscal}</p>}
         </div>
 
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs">
