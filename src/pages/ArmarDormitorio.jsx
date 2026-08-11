@@ -242,6 +242,22 @@ export default function ArmarDormitorio() {
         </section>
       )}
 
+      {/* Cómo encajan las tres piezas. Va aquí porque es justo la duda que
+          abre esta página: son productos independientes y el cliente necesita
+          ver que las medidas calzan entre sí antes de comprar los tres. */}
+      <section className="mt-12">
+        <p className="mb-3 text-sm font-medium text-neutral-700">Cómo encaja todo</p>
+        <a href="/productos/medidas-conjunto.webp" target="_blank" rel="noreferrer" className="block">
+          <img
+            loading="lazy"
+            src="/productos/medidas-conjunto-sm.webp"
+            alt="Guía de medidas: cómo encajan la cabecera, la box tarima y el colchón"
+            className="w-full max-w-3xl rounded-xl border border-neutral-200"
+          />
+          <span className="mt-2 block text-xs text-neutral-400">Toca para verlo en grande</span>
+        </a>
+      </section>
+
       {/* Resumen fijo abajo: el total siempre a la vista mientras elige */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
