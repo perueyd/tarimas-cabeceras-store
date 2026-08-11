@@ -5,9 +5,8 @@
 // Las fotos que viven dentro del proyecto (carpeta public/) se sirven por otra
 // cuota distinta —100 GB, casi sin usar— y no dependen de ese almacén.
 //
-// El script anterior (subir-fotos.mjs) adivinaba solo qué foto era de cada
-// producto comparando nombres. Este NO adivina nada: abre una página en tu
-// navegador donde ves cada foto y eliges tú el producto y el tamaño.
+// No adivina nada: abre una página en tu navegador donde ves cada foto y eliges
+// tú el producto y el tamaño.
 //
 // CÓMO SE USA:
 //   node scripts/elegir-fotos.mjs "C:\ruta\a\tus\fotos"
