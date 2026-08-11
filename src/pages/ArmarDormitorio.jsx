@@ -43,6 +43,7 @@ export default function ArmarDormitorio() {
 
   const [medida, setMedida] = useState(null);
   const [elegido, setElegido] = useState({}); // { cabeceras: id, tarimas: id, colchones: id }
+  const [colorElegido, setColorElegido] = useState(null);
   const [anadido, setAnadido] = useState(false);
 
   const medidaActual = medida || medidas[0]?.id;
@@ -61,9 +62,33 @@ export default function ArmarDormitorio() {
   const seleccion = PASOS.map((p) => products.find((x) => x.id === elegido[p.cat])).filter(Boolean);
   const total = seleccion.reduce((s, p) => s + precioDe(p), 0);
 
+  // La tarima y la cabecera van SIEMPRE del mismo color: son las dos piezas
+  // tapizadas que quedan pegadas, y de distinto tono se ve como un error. Por
+  // eso el color se elige una sola vez y solo se ofrecen los tonos que existen
+  // en las dos: si una viene en 21 colores y la otra en 8, se ofrecen esos 8.
+  const coloresDe = (producto) => {
+    if (!producto || producto.tintable === false) return null;
+    return producto.colorsBySize?.[medidaActual] || producto.availableColors || [];
+  };
+  const listasDeColor = seleccion.map(coloresDe).filter((l) => Array.isArray(l) && l.length);
+  const idsComunes = listasDeColor.length
+    ? listasDeColor.reduce((a, b) => a.filter((id) => b.includes(id)))
+    : [];
+  const coloresComunes = colors.filter((c) => idsComunes.includes(c.id));
+  const colorActual = coloresComunes.some((c) => c.id === colorElegido)
+    ? colorElegido
+    : coloresComunes[0]?.id;
+  // Con 2 o más piezas el envío va incluido (lo pidió el dueño).
+  const envioIncluido = seleccion.length >= 2;
+
   function anadirTodo() {
     for (const producto of seleccion) {
-      const color = colors.find((c) => c.id === (producto.availableColors || [])[0]);
+      // El color elegido, si esta pieza lo admite. El colchón no se tiñe, así
+      // que va sin color en vez de heredar uno que no existe.
+      const propios = coloresDe(producto);
+      const color = propios?.includes(colorActual)
+        ? colors.find((c) => c.id === colorActual)
+        : colors.find((c) => c.id === (propios || [])[0]);
       const img = resolveProductImage(producto, color?.id, medidaActual);
       const info = getUnitPrice(producto, medidaActual, {});
       const item = {
@@ -104,8 +129,8 @@ export default function ArmarDormitorio() {
     <main className="mx-auto max-w-6xl px-4 py-10 pb-40">
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Arma tu dormitorio</h1>
       <p className="mt-2 max-w-2xl text-neutral-500">
-        Elige tu medida y las tres piezas. Se añaden juntas al carrito, cada una a su precio de
-        siempre.
+        Elige tu medida y las piezas que quieras. Cada una va a su precio de siempre, y{' '}
+        <strong className="text-neutral-700">desde 2 piezas el envío va incluido</strong>.
       </p>
 
       {/* Paso 0: la medida, una sola vez para las tres piezas */}
@@ -180,6 +205,43 @@ export default function ArmarDormitorio() {
         );
       })}
 
+      {/* El color, una sola vez para todo lo tapizado */}
+      {coloresComunes.length > 0 && (
+        <section className="mt-10">
+          <p className="mb-1 text-sm font-medium text-neutral-700">
+            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white">5</span>
+            Color
+            <span className="ml-2 font-normal text-neutral-400">
+              {colors.find((c) => c.id === colorActual)?.label}
+            </span>
+          </p>
+          <p className="mb-3 pl-7 text-xs text-neutral-500">
+            La cabecera y la tarima van <strong>del mismo color</strong>: son las dos piezas
+            tapizadas que quedan juntas.
+          </p>
+          <div className="flex flex-wrap gap-3 pl-7">
+            {coloresComunes.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                title={c.label}
+                aria-label={c.label}
+                onClick={() => setColorElegido(c.id)}
+                className={`h-9 w-9 overflow-hidden rounded-full border bg-cover bg-center transition ring-offset-2 ${
+                  colorActual === c.id ? 'ring-2 ring-ink' : 'ring-0 border-neutral-300'
+                }`}
+                style={c.img ? { backgroundImage: `url(${c.img})` } : { backgroundColor: c.hex }}
+              />
+            ))}
+          </div>
+          {listasDeColor.length > 1 && (
+            <p className="mt-2 pl-7 text-xs text-neutral-400">
+              Se muestran los {coloresComunes.length} colores que existen en las dos piezas.
+            </p>
+          )}
+        </section>
+      )}
+
       {/* Resumen fijo abajo: el total siempre a la vista mientras elige */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -193,8 +255,20 @@ export default function ArmarDormitorio() {
               {currencyFormatter.format(total)}
               <span className="ml-2 text-xs font-normal text-neutral-400">
                 {seleccion.length} {seleccion.length === 1 ? 'pieza' : 'piezas'} · {tallaLabel}
+                {colorActual && seleccion.some((p) => coloresDe(p)?.length)
+                  ? ` · ${colors.find((c) => c.id === colorActual)?.label}`
+                  : ''}
               </span>
             </p>
+            {envioIncluido ? (
+              <p className="text-xs font-medium text-emerald-700">🚚 Envío incluido</p>
+            ) : (
+              seleccion.length === 1 && (
+                <p className="text-xs text-neutral-500">
+                  Suma una pieza más y el <strong>envío va incluido</strong>
+                </p>
+              )
+            )}
           </div>
           <button
             onClick={anadirTodo}
