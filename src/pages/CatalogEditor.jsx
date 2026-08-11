@@ -1438,8 +1438,11 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
       alert('Agrega el precio de al menos un tamaño en "Precios por tamaño" antes de guardar.');
       return;
     }
-    if ((p.availableColors || []).length === 0) {
-      alert('Marca al menos un color en "Colores disponibles" antes de guardar.');
+    // Los colores solo hacen falta si la foto se repinta. Un colchón (o
+    // cualquier producto con foto real) se vende tal cual y no tiene colores
+    // que elegir: antes esta validación impedía guardarlo desde el panel.
+    if (p.tintable && (p.availableColors || []).length === 0) {
+      alert('Marca al menos un color en "Colores disponibles", o desmarca "Repintar esta foto" si el producto se vende tal cual.');
       return;
     }
     // Un precio de oferta solo cuenta si es menor al precio regular de ese
