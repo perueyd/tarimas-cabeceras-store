@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 
@@ -68,6 +68,22 @@ export default function Home() {
           Elige el tamaño y el color, y visualiza el cambio al instante. Envíos a todo el Perú.
         </p>
       </section>
+
+      {/* Atajo al armador. Va arriba del todo porque quien viene a amoblar un
+          dormitorio no sabe que puede llevarse las tres piezas de una vez, y
+          nadie busca lo que no sabe que existe. */}
+      <Link
+        to="/arma-tu-dormitorio"
+        className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-ink/15 bg-neutral-50 px-5 py-4 transition hover:border-ink hover:bg-neutral-100"
+      >
+        <span>
+          <span className="block text-sm font-semibold">🛏️ Arma tu dormitorio completo</span>
+          <span className="block text-xs text-neutral-500">
+            Cabecera, tarima y colchón de tu medida, en un solo paso
+          </span>
+        </span>
+        <span className="shrink-0 text-sm text-neutral-400">→</span>
+      </Link>
 
       <div className="mb-5">
         <div className="relative max-w-md">

@@ -8,6 +8,7 @@ import ChatbotWidget from './components/ChatbotWidget.jsx';
 import AvisoCookies from './components/AvisoCookies.jsx';
 import Landing from './pages/Landing.jsx';
 import Home from './pages/Home.jsx';
+import ArmarDormitorio from './pages/ArmarDormitorio.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
@@ -73,6 +74,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/tienda" element={<Home />} />
+          <Route path="/arma-tu-dormitorio" element={<ArmarDormitorio />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
