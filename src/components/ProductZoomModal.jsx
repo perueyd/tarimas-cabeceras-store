@@ -89,15 +89,20 @@ export default function ProductZoomModal({
               {dosTelas && <Cuadro color={selectedColor2} label="Color del detalle" />}
             </div>
 
-            <div className="mt-6">
-              <ColorPicker
-                colors={availableColors}
-                selectedId={colorId}
-                onSelect={onSelectColor}
-                titulo={dosTelas ? 'Color principal' : 'Color'}
-                aviso={dosTelas ? undefined : aviso}
-              />
-            </div>
+            {/* Sin colores no se dibuja NADA de esto. En un colchón (que se
+                vende tal cual) salía el título "Color" y el aviso del tono,
+                con la fila de círculos vacía debajo. */}
+            {availableColors?.length > 0 && (
+              <div className="mt-6">
+                <ColorPicker
+                  colors={availableColors}
+                  selectedId={colorId}
+                  onSelect={onSelectColor}
+                  titulo={dosTelas ? 'Color principal' : 'Color'}
+                  aviso={dosTelas ? undefined : aviso}
+                />
+              </div>
+            )}
 
             {dosTelas && (
               <div className="mt-5">
