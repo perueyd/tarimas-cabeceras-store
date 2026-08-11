@@ -130,7 +130,7 @@ export default function ArmarDormitorio() {
       <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Arma tu dormitorio</h1>
       <p className="mt-2 max-w-2xl text-neutral-500">
         Elige tu medida y las piezas que quieras. Cada una va a su precio de siempre, y{' '}
-        <strong className="text-neutral-700">desde 2 piezas el envío va incluido</strong>.
+        <strong className="text-neutral-700">desde 2 piezas el envío en Lima va incluido</strong>.
       </p>
 
       {/* Paso 0: la medida, una sola vez para las tres piezas */}
@@ -261,11 +261,11 @@ export default function ArmarDormitorio() {
               </span>
             </p>
             {envioIncluido ? (
-              <p className="text-xs font-medium text-emerald-700">🚚 Envío incluido</p>
+              <p className="text-xs font-medium text-emerald-700">🚚 Envío incluido en Lima</p>
             ) : (
               seleccion.length === 1 && (
                 <p className="text-xs text-neutral-500">
-                  Suma una pieza más y el <strong>envío va incluido</strong>
+                  Suma una pieza más y el <strong>envío en Lima va incluido</strong>
                 </p>
               )
             )}
