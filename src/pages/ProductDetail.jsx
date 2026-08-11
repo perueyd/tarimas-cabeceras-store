@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import ProductZoomModal from '../components/ProductZoomModal.jsx';
@@ -50,7 +50,12 @@ export default function ProductDetail() {
 
   const availableSizes = product ? sizes.filter((s) => product.sizePricing[s.id] != null) : [];
 
-  const [sizeId, setSizeId] = useState(availableSizes[0]?.id);
+  // Si llegó desde el catálogo filtrando por medida, se abre en ESA medida.
+  // Si la que pide no existe en este producto, el efecto de más abajo la
+  // corrige sola al primer tamaño disponible.
+  const [searchParams] = useSearchParams();
+  const tamanoPedido = searchParams.get('tamano');
+  const [sizeId, setSizeId] = useState(tamanoPedido || availableSizes[0]?.id);
   // Colores según el tamaño elegido: si ese tamaño tiene su propia lista
   // (colorsBySize) se usa esa; si no, la lista general del producto — una
   // cabecera King puede venir en menos colores que una de 1.5 plaza.
