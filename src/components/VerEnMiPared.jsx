@@ -17,6 +17,9 @@ import { useEffect, useRef, useState } from 'react';
 
 export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, nombre, tintable }) {
   const videoRef = useRef(null);
+  // Se guarda la cámara aparte del elemento <video>, porque el elemento se
+  // destruye y se vuelve a crear cada vez que se toma una foto y se repite.
+  const camaraRef = useRef(null);
   const contenedorRef = useRef(null);
   const [estado, setEstado] = useState('pidiendo'); // pidiendo | listo | error
   const [error, setError] = useState('');
@@ -40,10 +43,8 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
           audio: false,
         });
         if (cancelado) { stream.getTracks().forEach((t) => t.stop()); return; }
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
+        camaraRef.current = stream;
+        conectarCamara(videoRef.current);
         setEstado('listo');
       } catch (err) {
         setEstado('error');
@@ -62,8 +63,24 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
       // Soltar la cámara al cerrar: si no, el celular sigue con la luz
       // encendida y consumiendo batería.
       if (stream) stream.getTracks().forEach((t) => t.stop());
+      camaraRef.current = null;
     };
   }, [abierto]);
+
+  // Engancha la cámara al elemento <video> CADA VEZ que aparece.
+  //
+  // Al tomar una foto se deja de mostrar el video (se muestra la captura), así
+  // que el navegador lo destruye; al pulsar "Repetir" se crea uno NUEVO, vacío.
+  // La cámara seguía encendida, pero nadie la volvía a conectar a ese elemento
+  // nuevo: la pantalla se quedaba en negro y solo se arreglaba cerrando y
+  // volviendo a abrir. Por eso esto no va en el arranque, sino aquí: se ejecuta
+  // en cada montaje del video.
+  function conectarCamara(el) {
+    videoRef.current = el;
+    if (!el || !camaraRef.current) return;
+    if (el.srcObject !== camaraRef.current) el.srcObject = camaraRef.current;
+    el.play().catch(() => {});
+  }
 
   useEffect(() => {
     if (!abierto) { setCaptura(null); setPos({ x: 50, y: 45, escala: 1 }); }
@@ -265,7 +282,7 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
           <img src={captura} alt="Tu foto" className="h-full w-full object-contain" />
         ) : (
           <>
-            <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+            <video ref={conectarCamara} playsInline muted className="h-full w-full object-cover" />
             <img
               src={imagenSrc}
               alt=""
