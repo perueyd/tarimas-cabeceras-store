@@ -5,6 +5,7 @@ import ProductImage from '../components/ProductImage.jsx';
 import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
+import { fichaDeVariante } from '../lib/variantesFoto.js';
 import { fotoChica } from '../lib/fotoChica.js';
 import { trackAddToCart } from '../lib/analytics.js';
 
@@ -82,6 +83,18 @@ export default function ArmarDormitorio() {
       if (v?.fuerza) Object.assign(impuestos, v.fuerza);
     }
     return { ...base, ...impuestos };
+  };
+
+  // Lo elegido de una pieza, en palabras: "Terciopelo · Sin laterales · Aérea".
+  // Va en la tarjeta de la vista previa porque la foto no puede mostrarlo: es
+  // la misma foto del modelo con laterales y falda, y el cliente necesita leer
+  // que lo que pidió es otra cosa.
+  const resumenOpciones = (producto) => {
+    const elegidas = opcionesDe(producto);
+    return (producto.opciones || [])
+      .map((g) => (g.valores || []).find((v) => v.id === elegidas[g.id])?.label)
+      .filter(Boolean)
+      .join(' · ');
   };
 
   // Qué grupos quedaron impuestos por otra elección, para bloquearlos.
@@ -265,43 +278,6 @@ export default function ArmarDormitorio() {
         );
       })}
 
-      {/* El color, una sola vez para todo lo tapizado */}
-      {coloresComunes.length > 0 && (
-        <section className="mt-10">
-          <p className="mb-1 text-sm font-medium text-neutral-700">
-            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white">5</span>
-            Color
-            <span className="ml-2 font-normal text-neutral-400">
-              {colors.find((c) => c.id === colorActual)?.label}
-            </span>
-          </p>
-          <p className="mb-3 pl-7 text-xs text-neutral-500">
-            La cabecera y la tarima van <strong>del mismo color</strong>: son las dos piezas
-            tapizadas que quedan juntas.
-          </p>
-          <div className="flex flex-wrap gap-3 pl-7">
-            {coloresComunes.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                title={c.label}
-                aria-label={c.label}
-                onClick={() => setColorElegido(c.id)}
-                className={`h-9 w-9 overflow-hidden rounded-full border bg-cover bg-center transition ring-offset-2 ${
-                  colorActual === c.id ? 'ring-2 ring-ink' : 'ring-0 border-neutral-300'
-                }`}
-                style={c.img ? { backgroundImage: `url(${c.img})` } : { backgroundColor: c.hex }}
-              />
-            ))}
-          </div>
-          {listasDeColor.length > 1 && (
-            <p className="mt-2 pl-7 text-xs text-neutral-400">
-              Se muestran los {coloresComunes.length} colores que existen en las dos piezas.
-            </p>
-          )}
-        </section>
-      )}
-
       {/* Las opciones de cada pieza (el modelo de pata de la tarima, y lo que
           se agregue después). Faltaban: desde la ficha del producto se elegían
           y desde aquí no, así que la tarima se pedía sin decir qué pata — y las
@@ -310,7 +286,7 @@ export default function ArmarDormitorio() {
       {piezasConOpciones.length > 0 && (
         <section className="mt-10">
           <p className="mb-1 text-sm font-medium text-neutral-700">
-            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white">6</span>
+            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white">5</span>
             Detalles
             <span className="ml-2 font-normal text-neutral-400">acabados de cada pieza</span>
           </p>
@@ -381,6 +357,43 @@ export default function ArmarDormitorio() {
         </section>
       )}
 
+      {/* El color, una sola vez para todo lo tapizado */}
+      {coloresComunes.length > 0 && (
+        <section className="mt-10">
+          <p className="mb-1 text-sm font-medium text-neutral-700">
+            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white">6</span>
+            Color
+            <span className="ml-2 font-normal text-neutral-400">
+              {colors.find((c) => c.id === colorActual)?.label}
+            </span>
+          </p>
+          <p className="mb-3 pl-7 text-xs text-neutral-500">
+            La cabecera y la tarima van <strong>del mismo color</strong>: son las dos piezas
+            tapizadas que quedan juntas.
+          </p>
+          <div className="flex flex-wrap gap-3 pl-7">
+            {coloresComunes.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                title={c.label}
+                aria-label={c.label}
+                onClick={() => setColorElegido(c.id)}
+                className={`h-9 w-9 overflow-hidden rounded-full border bg-cover bg-center transition ring-offset-2 ${
+                  colorActual === c.id ? 'ring-2 ring-ink' : 'ring-0 border-neutral-300'
+                }`}
+                style={c.img ? { backgroundImage: `url(${c.img})` } : { backgroundColor: c.hex }}
+              />
+            ))}
+          </div>
+          {listasDeColor.length > 1 && (
+            <p className="mt-2 pl-7 text-xs text-neutral-400">
+              Se muestran los {coloresComunes.length} colores que existen en las dos piezas.
+            </p>
+          )}
+        </section>
+      )}
+
       {/* Vista previa. Hasta aquí el cliente elegía sus piezas en los recuadros
           de arriba, que muestran la foto de fábrica, y el color en la fila de
           círculos — pero en ningún momento veía su dormitorio en el color que
@@ -420,11 +433,53 @@ export default function ArmarDormitorio() {
                       {color ? `${color.label} · ` : ''}
                       {currencyFormatter.format(precioDe(p))}
                     </p>
+                    {resumenOpciones(p) && (
+                      <p className="mt-1 text-xs text-neutral-500">{resumenOpciones(p)}</p>
+                    )}
+                    {/* Para leer la ficha técnica sin perder lo que lleva
+                        armado: se abre aparte y el armador se queda como
+                        estaba, con sus piezas y su color. */}
+                    <Link
+                      to={`/producto/${p.id}?tamano=${medidaActual}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1.5 inline-block text-xs font-medium text-neutral-700 underline underline-offset-2 hover:text-ink"
+                    >
+                      Ver ficha técnica →
+                    </Link>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* Si lo que pidió NO es lo que enseña la foto (una cabecera aérea, o
+              una sin laterales), va aquí su ficha. La foto se queda como está a
+              propósito: es lo único que muestra el diseño y el color, que es lo
+              que el cliente está comprando. La ficha dice la forma. */}
+          {seleccion.map((p) => {
+            const ficha = fichaDeVariante(p, opcionesDe(p), medidaActual);
+            if (!ficha) return null;
+            return (
+              <div key={`ficha-${p.id}`} className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                <p className="text-xs font-medium text-neutral-700">
+                  Ojo con {p.name}: pediste {resumenOpciones(p)}
+                </p>
+                {ficha.aviso && <p className="mt-1 text-xs text-neutral-500">{ficha.aviso}</p>}
+                <a href={ficha.url} target="_blank" rel="noreferrer" className="mt-2 block">
+                  <img
+                    loading="lazy"
+                    src={ficha.url}
+                    alt={`Medidas de ${p.name} en la versión que elegiste`}
+                    className="w-full rounded-lg border border-neutral-200 bg-white"
+                  />
+                  <span className="mt-1 block text-[11px] text-neutral-400">
+                    Toca para ver las medidas en grande
+                  </span>
+                </a>
+              </div>
+            );
+          })}
 
           {/* La cámara SOLO para la cabecera. Lo que hace es pegar un recorte
               plano sobre lo que enfoca el celular: una cabecera va contra la

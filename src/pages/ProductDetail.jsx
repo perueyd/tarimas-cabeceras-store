@@ -10,53 +10,8 @@ import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
+import { fotoDeGaleria, avisoDeVariante } from '../lib/variantesFoto.js';
 
-// Normaliza un elemento de la galería. Puede venir de cuatro formas:
-//  · una URL simple (fotos viejas, no cambian de color)
-//  · { url, tintable } — también se pinta con el color elegido
-//  · { url, porTamano } — tiene una versión por cada tamaño
-//  · { url, porTamano, segunOpcion } — además cambia según lo que elija el
-//    cliente en un grupo de opciones
-// La tercera es la de las fichas de medidas: la de 2 Plazas dice 150 cm y la
-// King dice 200, así que la ficha tiene que seguir al tamaño que eligió el
-// cliente. Si no trae la de ese tamaño, se usa la de siempre.
-//
-// La cuarta es la cabecera aérea: no es el mismo mueble medido de otra forma,
-// es otro mueble — sin laterales, sin falda, colgado en la pared y con la
-// altura contada desde el piso. Su ficha no puede ser la del pedestal.
-function normalizarFotoGaleria(item, sizeId, opciones) {
-  if (typeof item === 'string') return { url: item, tintable: false };
-  const fuente = varianteDe(item, opciones) || item;
-  const delTamano = fuente.porTamano?.[sizeId];
-  return {
-    url: delTamano || fuente.url || item.url,
-    tintable: Boolean(item.tintable),
-    sigueAlTamano: Boolean(delTamano),
-  };
-}
-
-// Qué variante de una foto corresponde a lo que el cliente eligió.
-//
-// Las reglas van en LISTA y gana la primera que calce, porque las variantes se
-// solapan: una cabecera aérea es además una cabecera sin laterales, y las dos
-// tienen ficha propia. Poniendo "aérea" antes que "sin laterales", pedir aérea
-// muestra la ficha aérea y no la otra.
-function varianteDe(item, opciones) {
-  const reglas = Array.isArray(item?.segunOpcion) ? item.segunOpcion : [];
-  return reglas.find((r) => opciones?.[r.grupo] === r.valor) || null;
-}
-
-// El aviso que trae la variante elegida, si la hay. El texto vive en el
-// catálogo junto a la ficha, no aquí: así se cambia desde los datos y esta
-// página no tiene que saber qué es "aérea".
-function avisoDeVariante(product, opciones) {
-  const fotos = Array.isArray(product?.gallery) ? product.gallery : [];
-  for (const f of fotos) {
-    const aviso = varianteDe(f, opciones)?.aviso;
-    if (aviso) return aviso;
-  }
-  return null;
-}
 
 // Las especificaciones han llegado a guardarse de TRES formas distintas:
 //  · objeto { Material: 'Madera' }            -> lo que guarda el panel
@@ -215,7 +170,7 @@ export default function ProductDetail() {
     ? [
         { url: img.src, tintable: img.tintable },
         ...(Array.isArray(product.gallery)
-          ? product.gallery.map((item) => normalizarFotoGaleria(item, sizeId, opciones))
+          ? product.gallery.map((item) => fotoDeGaleria(item, sizeId, opciones))
           : []),
       ]
     : [];
