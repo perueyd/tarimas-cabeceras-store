@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCatalog, resolveProductImage } from '../context/CatalogContext.jsx';
+import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fotoChica } from '../lib/fotoChica.js';
@@ -81,14 +82,21 @@ export default function ArmarDormitorio() {
   // Con 2 o más piezas el envío va incluido (lo pidió el dueño).
   const envioIncluido = seleccion.length >= 2;
 
+  // El color con el que se va a fabricar ESTA pieza: el elegido si la pieza lo
+  // tiene, y si no el primero suyo. El colchón no se tiñe, así que va sin color
+  // en vez de heredar uno que no existe. Lo usan la vista previa y el carrito,
+  // a propósito: lo que el cliente ve tiene que ser lo que se le añade.
+  const colorDe = (producto) => {
+    const propios = coloresDe(producto);
+    if (!propios?.length) return null;
+    return propios.includes(colorActual)
+      ? colors.find((c) => c.id === colorActual)
+      : colors.find((c) => c.id === propios[0]);
+  };
+
   function anadirTodo() {
     for (const producto of seleccion) {
-      // El color elegido, si esta pieza lo admite. El colchón no se tiñe, así
-      // que va sin color en vez de heredar uno que no existe.
-      const propios = coloresDe(producto);
-      const color = propios?.includes(colorActual)
-        ? colors.find((c) => c.id === colorActual)
-        : colors.find((c) => c.id === (propios || [])[0]);
+      const color = colorDe(producto);
       const img = resolveProductImage(producto, color?.id, medidaActual);
       const info = getUnitPrice(producto, medidaActual, {});
       const item = {
@@ -239,6 +247,53 @@ export default function ArmarDormitorio() {
               Se muestran los {coloresComunes.length} colores que existen en las dos piezas.
             </p>
           )}
+        </section>
+      )}
+
+      {/* Vista previa. Hasta aquí el cliente elegía sus piezas en los recuadros
+          de arriba, que muestran la foto de fábrica, y el color en la fila de
+          círculos — pero en ningún momento veía su dormitorio en el color que
+          acababa de pedir: abajo solo tenía los nombres y el total en texto.
+          Va justo después del color porque es el resultado de esa elección, y
+          usa la MISMA cuenta de color que el carrito (colorDe), para que lo que
+          ve sea exactamente lo que se le añade. */}
+      {seleccion.length > 0 && (
+        <section className="mt-10">
+          <p className="mb-1 text-sm font-medium text-neutral-700">Así va tu dormitorio</p>
+          <p className="mb-3 text-xs text-neutral-400">
+            {tallaLabel}
+            {colors.find((c) => c.id === colorActual)?.label
+              ? ` · ${colors.find((c) => c.id === colorActual).label}`
+              : ''}
+            {' — '}es lo que se añade al carrito.
+          </p>
+          {/* En el celular de dos en dos: una sola columna dejaba tres
+              cuadrados apilados y había que bajar mucho para verlos. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {seleccion.map((p) => {
+              const color = colorDe(p);
+              const foto = resolveProductImage(p, color?.id, medidaActual);
+              return (
+                <div key={p.id} className="overflow-hidden rounded-xl border border-neutral-200">
+                  <ProductImage
+                    baseImage={foto.src}
+                    colorHex={color?.hex}
+                    alt={p.name}
+                    className="aspect-square w-full bg-neutral-50"
+                    tintable={foto.tintable}
+                    zonasManual={p.zonasFoto?.[foto.src]}
+                  />
+                  <div className="px-3 py-2">
+                    <p className="truncate text-sm font-medium">{p.name}</p>
+                    <p className="text-xs text-neutral-500">
+                      {color ? `${color.label} · ` : ''}
+                      {currencyFormatter.format(precioDe(p))}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 
