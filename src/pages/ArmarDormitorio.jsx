@@ -245,13 +245,22 @@ export default function ArmarDormitorio() {
       {/* Cómo encajan las tres piezas. Va aquí porque es justo la duda que
           abre esta página: son productos independientes y el cliente necesita
           ver que las medidas calzan entre sí antes de comprar los tres. */}
+      {/* La ficha es la de la medida elegida arriba: en Queen dice 155 cm y en
+          King 200, así que tiene que cambiar con ella o contradice a la página. */}
       <section className="mt-12">
-        <p className="mb-3 text-sm font-medium text-neutral-700">Cómo encaja todo</p>
-        <a href="/productos/medidas-conjunto.webp" target="_blank" rel="noreferrer" className="block">
+        <p className="mb-3 text-sm font-medium text-neutral-700">
+          Cómo encaja todo en {tallaLabel}
+        </p>
+        <a
+          href={`/productos/medidas-general-${medidaActual}.webp`}
+          target="_blank"
+          rel="noreferrer"
+          className="block"
+        >
           <img
             loading="lazy"
-            src="/productos/medidas-conjunto-sm.webp"
-            alt="Guía de medidas: cómo encajan la cabecera, la box tarima y el colchón"
+            src={`/productos/medidas-general-${medidaActual}.webp`}
+            alt={`Guía de medidas en ${tallaLabel}: cabecera, box tarima y colchón`}
             className="w-full max-w-3xl rounded-xl border border-neutral-200"
           />
           <span className="mt-2 block text-xs text-neutral-400">Toca para verlo en grande</span>
