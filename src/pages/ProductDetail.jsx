@@ -11,13 +11,13 @@ import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
 
-// Normaliza un elemento de la galería: puede ser una URL simple (fotos viejas,
-// no cambian de color) o un objeto { url, tintable } (fotos nuevas que también
-// pueden pintarse con el color elegido, igual que la foto principal).
-// Una foto de galería puede tener una versión por tamaño (`porTamano`). Es el
-// caso de las fichas de medidas: la de 2 Plazas dice 150 cm y la King dice 200,
-// así que la ficha tiene que seguir al tamaño que el cliente eligió. Si no la
-// tiene, se usa la de siempre.
+// Normaliza un elemento de la galería. Puede venir de tres formas:
+//  · una URL simple (fotos viejas, no cambian de color)
+//  · { url, tintable } — también se pinta con el color elegido
+//  · { url, porTamano } — tiene una versión por cada tamaño
+// La tercera es la de las fichas de medidas: la de 2 Plazas dice 150 cm y la
+// King dice 200, así que la ficha tiene que seguir al tamaño que eligió el
+// cliente. Si no trae la de ese tamaño, se usa la de siempre.
 function normalizarFotoGaleria(item, sizeId) {
   if (typeof item === 'string') return { url: item, tintable: false };
   const delTamano = item.porTamano?.[sizeId];
@@ -393,16 +393,20 @@ export default function ProductDetail() {
             </p>
           )}
 
-          <div className="mt-6">
+          <div className="mt-5">
             <p className="mb-2 text-sm font-medium text-neutral-700">
               <Paso n={numeroDe('tamano')} /> Tamaño
             </p>
-            <div className="flex flex-wrap gap-2">
+            {/* En rejilla y no "en fila que se va cortando": con las medidas
+                dentro, cada botón salía de un ancho (219, 219, 278, 281 px) y
+                quedaban tres filas desiguales, que es lo que hacía ver la
+                página cargada. Todos iguales se leen de un vistazo. */}
+            <div className="grid grid-cols-2 gap-2">
               {availableSizes.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => setSizeId(s.id)}
-                  className={`rounded-lg border px-3 py-2 text-sm transition ${
+                  className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
                     sizeId === s.id
                       ? 'border-ink bg-ink text-white'
                       : 'border-neutral-300 hover:border-neutral-500'
@@ -416,7 +420,7 @@ export default function ProductDetail() {
           </div>
 
           {availableColors.length > 0 && (
-            <div className="mt-6">
+            <div className="mt-5">
               <ColorPicker
                 colors={availableColors}
                 selectedId={colorElegido ? colorId : null}
@@ -429,7 +433,7 @@ export default function ProductDetail() {
 
           {/* Segundo selector: aparece solo si la foto tiene dos telas. */}
           {dosTelas && availableColors2.length > 0 && (
-            <div className="mt-6">
+            <div className="mt-5">
               <ColorPicker
                 colors={availableColors2}
                 selectedId={colorElegido ? colorId2 : null}
@@ -442,11 +446,21 @@ export default function ProductDetail() {
 
           {/* Opciones del producto: brazos, tipo de patas, tipo de botón... */}
           {gruposOpciones.map((g) => (
-            <div key={g.id} className="mt-6">
+            <div key={g.id} className="mt-5">
               <p className="mb-2 text-sm font-medium text-neutral-700">
                 <Paso n={numeroDe(`op:${g.id}`)} /> {g.label}
               </p>
-              <div className="flex flex-wrap gap-2">
+              {/* Las que llevan foto van en rejilla de tres, todas del mismo
+                  tamaño; las de solo texto siguen en fila. Antes las de foto
+                  eran tarjetas sueltas de 112 × 144 px que rompían el ritmo de
+                  la columna. */}
+              <div
+                className={
+                  (g.valores || []).some((v) => v.img)
+                    ? 'grid max-w-sm grid-cols-3 gap-2'
+                    : 'flex flex-wrap gap-2'
+                }
+              >
                 {(g.valores || []).map((v) => {
                   const activo = opciones[g.id] === v.id;
                   const extra = Math.max(Number(v.precioExtra) || 0, 0);
@@ -456,7 +470,9 @@ export default function ProductDetail() {
                       onClick={() => setOpciones((prev) => ({ ...prev, [g.id]: v.id }))}
                       className={`overflow-hidden rounded-lg border text-sm transition ${
                         v.img
-                          ? `w-28 ${activo ? 'border-ink ring-2 ring-ink' : 'border-neutral-300 hover:border-neutral-500'}`
+                          ? activo
+                            ? 'border-ink ring-2 ring-ink'
+                            : 'border-neutral-300 hover:border-neutral-500'
                           : `px-3 py-2 ${activo ? 'border-ink bg-ink text-white' : 'border-neutral-300 hover:border-neutral-500'}`
                       }`}
                     >
@@ -466,10 +482,10 @@ export default function ProductDetail() {
                         <img loading="lazy" decoding="async"
                           src={v.img}
                           alt={v.label}
-                          className="aspect-square w-full object-cover"
+                          className="aspect-square w-full bg-neutral-50 object-contain"
                         />
                       )}
-                      <span className={v.img ? `block px-2 py-1.5 ${activo ? 'bg-ink text-white' : ''}` : 'block'}>
+                      <span className={v.img ? `block px-2 py-1.5 text-xs ${activo ? 'bg-ink text-white' : ''}` : 'block'}>
                         <span className="block font-medium">{v.label}</span>
                         {extra > 0 && (
                           <span className="block text-xs opacity-70">+{currencyFormatter.format(extra)}</span>
@@ -482,7 +498,7 @@ export default function ProductDetail() {
             </div>
           ))}
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-5 flex items-center gap-3">
             <p className="text-sm font-medium text-neutral-700">Cantidad</p>
             <div className="flex items-center rounded-lg border border-neutral-300">
               <button
