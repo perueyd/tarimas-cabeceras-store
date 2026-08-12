@@ -11,21 +11,43 @@ import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
 
-// Normaliza un elemento de la galería. Puede venir de tres formas:
+// Normaliza un elemento de la galería. Puede venir de cuatro formas:
 //  · una URL simple (fotos viejas, no cambian de color)
 //  · { url, tintable } — también se pinta con el color elegido
 //  · { url, porTamano } — tiene una versión por cada tamaño
+//  · { url, porTamano, segunOpcion } — además cambia según lo que elija el
+//    cliente en un grupo de opciones
 // La tercera es la de las fichas de medidas: la de 2 Plazas dice 150 cm y la
 // King dice 200, así que la ficha tiene que seguir al tamaño que eligió el
 // cliente. Si no trae la de ese tamaño, se usa la de siempre.
-function normalizarFotoGaleria(item, sizeId) {
+//
+// La cuarta es la cabecera aérea: no es el mismo mueble medido de otra forma,
+// es otro mueble — sin laterales, sin falda, colgado en la pared y con la
+// altura contada desde el piso. Su ficha no puede ser la del pedestal.
+function normalizarFotoGaleria(item, sizeId, opciones) {
   if (typeof item === 'string') return { url: item, tintable: false };
-  const delTamano = item.porTamano?.[sizeId];
+  const grupo = item.segunOpcion?.grupo;
+  const variante = grupo ? item.segunOpcion.valores?.[opciones?.[grupo]] : null;
+  const fuente = variante || item;
+  const delTamano = fuente.porTamano?.[sizeId];
   return {
-    url: delTamano || item.url,
+    url: delTamano || fuente.url || item.url,
     tintable: Boolean(item.tintable),
     sigueAlTamano: Boolean(delTamano),
   };
+}
+
+// El aviso que trae la variante elegida, si la hay. El texto vive en el
+// catálogo junto a la ficha, no aquí: así se cambia desde los datos y esta
+// página no tiene que saber qué es "aérea".
+function avisoDeVariante(product, opciones) {
+  const fotos = Array.isArray(product?.gallery) ? product.gallery : [];
+  for (const f of fotos) {
+    if (!f || typeof f !== 'object' || !f.segunOpcion) continue;
+    const aviso = f.segunOpcion.valores?.[opciones?.[f.segunOpcion.grupo]]?.aviso;
+    if (aviso) return aviso;
+  }
+  return null;
 }
 
 // Las especificaciones han llegado a guardarse de TRES formas distintas:
@@ -116,13 +138,30 @@ export default function ProductDetail() {
     () => (Array.isArray(product?.opciones) ? product.opciones : []),
     [product]
   );
-  const [opciones, setOpciones] = useState(() =>
+  const [opcionesTocadas, setOpcionesTocadas] = useState(() =>
     Object.fromEntries(
       (Array.isArray(product?.opciones) ? product.opciones : [])
         .filter((g) => g.valores?.length)
         .map((g) => [g.id, g.valores[0].id])
     )
   );
+
+  // Un valor puede IMPONER el de otro grupo. La cabecera aérea no lleva
+  // laterales: son las piezas que la apoyan en el pedestal, así que colgada no
+  // existen. Sin esto se podía pedir "Aérea + Con laterales", que no se
+  // fabrica, y el pedido llegaba con dos cosas que se contradicen.
+  //
+  // La regla vive en el catálogo (valor.fuerza), no aquí: esta página no tiene
+  // por qué saber qué es "aérea", y el día que cambie se cambia en los datos.
+  const { valores: opciones, forzados } = useMemo(() => {
+    const impuestos = {};
+    for (const g of gruposOpciones) {
+      const v = (g.valores || []).find((x) => x.id === opcionesTocadas[g.id]);
+      if (v?.fuerza) Object.assign(impuestos, v.fuerza);
+    }
+    return { valores: { ...opcionesTocadas, ...impuestos }, forzados: impuestos };
+  }, [gruposOpciones, opcionesTocadas]);
+  const setOpciones = setOpcionesTocadas;
 
   // Identifica la lista de colores disponible. Cambia tanto al elegir otro
   // tamaño como cuando el catálogo termina de cargar (llega async), así que
@@ -168,7 +207,7 @@ export default function ProductDetail() {
     ? [
         { url: img.src, tintable: img.tintable },
         ...(Array.isArray(product.gallery)
-          ? product.gallery.map((item) => normalizarFotoGaleria(item, sizeId))
+          ? product.gallery.map((item) => normalizarFotoGaleria(item, sizeId, opciones))
           : []),
       ]
     : [];
@@ -218,6 +257,10 @@ export default function ProductDetail() {
     availableSizes.length > 1 &&
     !product?.colorImages?.[selectedColor?.id] &&
     !product?.sizeImages?.[sizeId];
+  // Aviso de la variante elegida (la cabecera aérea es otro mueble, no el mismo
+  // en otra posición). Se muestra siempre que esté elegida, se esté mirando la
+  // foto que se esté mirando.
+  const avisoVariante = avisoDeVariante(product, opciones);
 
   // Los productos creados desde el panel solo existen en la base de datos, así
   // que en el primer render (antes de que responda /api/catalog) todavía no
@@ -336,12 +379,19 @@ export default function ProductDetail() {
               hay, y el cliente ve que cambia el precio pero no la foto: parece
               que la web no le hizo caso. Esta línea lo dice y lo manda a la
               ficha, que sí es la de su medida. */}
-          {fotoDeOtraMedida && (
-            <p className="mt-2 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-              La foto es <strong className="font-medium text-neutral-600">referencial</strong>: es
-              este mismo modelo, fotografiado en otra medida. Las medidas exactas de{' '}
-              {tamanoElegido?.label} están en la ficha de medidas, aquí abajo.
-            </p>
+          {(fotoDeOtraMedida || avisoVariante) && (
+            <div className="mt-2 space-y-1.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+              {/* El de la variante va primero: cambia QUÉ mueble es, no solo
+                  de qué medida es la foto. */}
+              {avisoVariante && <p>⚠️ {avisoVariante}</p>}
+              {fotoDeOtraMedida && (
+                <p>
+                  La foto es <strong className="font-medium text-neutral-600">referencial</strong>:
+                  es este mismo modelo, fotografiado en otra medida. Las medidas exactas de{' '}
+                  {tamanoElegido?.label} están en la ficha de medidas, aquí abajo.
+                </p>
+              )}
+            </div>
           )}
 
           {/* La duda que frena una compra de mueble es "¿me quedará bien?".
@@ -466,10 +516,26 @@ export default function ProductDetail() {
           )}
 
           {/* Opciones del producto: brazos, tipo de patas, tipo de botón... */}
-          {gruposOpciones.map((g) => (
+          {gruposOpciones.map((g) => {
+            // Grupo impuesto por otra elección (ej. al pedirla aérea, "sin
+            // laterales" deja de ser una decisión). Se muestra igual, pero
+            // bloqueado y diciendo por qué: esconderlo daría la sensación de
+            // que la web se comió una opción.
+            const impuesto = Object.prototype.hasOwnProperty.call(forzados, g.id);
+            const quienLoImpone = impuesto
+              ? gruposOpciones
+                  .flatMap((otro) => (otro.valores || []).map((v) => ({ otro, v })))
+                  .find(({ otro, v }) => v.fuerza?.[g.id] && opciones[otro.id] === v.id)
+              : null;
+            return (
             <div key={g.id} className="mt-5">
               <p className="mb-2 text-sm font-medium text-neutral-700">
                 <Paso n={numeroDe(`op:${g.id}`)} /> {g.label}
+                {impuesto && quienLoImpone && (
+                  <span className="ml-2 font-normal text-neutral-400">
+                    — lo define «{quienLoImpone.v.label}»
+                  </span>
+                )}
               </p>
               {/* Las que llevan foto van en rejilla de tres, todas del mismo
                   tamaño; las de solo texto siguen en fila. Antes las de foto
@@ -488,8 +554,11 @@ export default function ProductDetail() {
                   return (
                     <button
                       key={v.id}
+                      disabled={impuesto}
                       onClick={() => setOpciones((prev) => ({ ...prev, [g.id]: v.id }))}
                       className={`overflow-hidden rounded-lg border text-sm transition ${
+                        impuesto && !activo ? 'cursor-not-allowed opacity-40' : ''
+                      } ${
                         v.img
                           ? activo
                             ? 'border-ink ring-2 ring-ink'
@@ -517,7 +586,8 @@ export default function ProductDetail() {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
 
           <div className="mt-5 flex items-center gap-3">
             <p className="text-sm font-medium text-neutral-700">Cantidad</p>

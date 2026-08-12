@@ -68,11 +68,31 @@ export default function ArmarDormitorio() {
   const opcionesDe = (producto) => {
     const grupos = Array.isArray(producto?.opciones) ? producto.opciones : [];
     const elegidas = opcionesElegidas[producto.id] || {};
-    return Object.fromEntries(
+    const base = Object.fromEntries(
       grupos
         .filter((g) => g.valores?.length)
         .map((g) => [g.id, elegidas[g.id] || g.valores[0].id])
     );
+    // Igual que en la ficha del producto: un valor puede imponer el de otro
+    // grupo (la cabecera aérea no lleva laterales). Si no se aplicara también
+    // aquí, desde el armador se podría pedir una combinación que no se fabrica.
+    const impuestos = {};
+    for (const g of grupos) {
+      const v = (g.valores || []).find((x) => x.id === base[g.id]);
+      if (v?.fuerza) Object.assign(impuestos, v.fuerza);
+    }
+    return { ...base, ...impuestos };
+  };
+
+  // Qué grupos quedaron impuestos por otra elección, para bloquearlos.
+  const forzadosDe = (producto) => {
+    const elegidas = opcionesDe(producto);
+    const impuestos = {};
+    for (const g of producto?.opciones || []) {
+      const v = (g.valores || []).find((x) => x.id === elegidas[g.id]);
+      if (v?.fuerza) Object.assign(impuestos, v.fuerza);
+    }
+    return impuestos;
   };
 
   function precioDe(producto) {
@@ -300,9 +320,13 @@ export default function ArmarDormitorio() {
                 <p className="mb-2 text-xs font-medium text-neutral-500">{pieza.name}</p>
                 {pieza.opciones.map((g) => {
                   const conFoto = (g.valores || []).some((v) => v.img);
+                  const impuesto = Object.prototype.hasOwnProperty.call(forzadosDe(pieza), g.id);
                   return (
                     <div key={g.id} className="mb-3">
-                      <p className="mb-1.5 text-xs text-neutral-500">{g.label}</p>
+                      <p className="mb-1.5 text-xs text-neutral-500">
+                        {g.label}
+                        {impuesto && <span className="ml-1 text-neutral-400">— lo define el montaje</span>}
+                      </p>
                       <div className={conFoto ? 'grid max-w-sm grid-cols-3 gap-2' : 'flex flex-wrap gap-2'}>
                         {(g.valores || []).map((v) => {
                           const activo = opcionesDe(pieza)[g.id] === v.id;
@@ -311,6 +335,7 @@ export default function ArmarDormitorio() {
                             <button
                               key={v.id}
                               type="button"
+                              disabled={impuesto}
                               onClick={() =>
                                 setOpcionesElegidas((prev) => ({
                                   ...prev,
@@ -318,6 +343,8 @@ export default function ArmarDormitorio() {
                                 }))
                               }
                               className={`overflow-hidden rounded-lg border text-sm transition ${
+                                impuesto && !activo ? 'cursor-not-allowed opacity-40' : ''
+                              } ${
                                 v.img
                                   ? activo
                                     ? 'border-ink ring-2 ring-ink'
