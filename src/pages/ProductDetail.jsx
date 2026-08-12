@@ -14,9 +14,18 @@ import { getUnitPrice } from '../lib/pricing.js';
 // Normaliza un elemento de la galería: puede ser una URL simple (fotos viejas,
 // no cambian de color) o un objeto { url, tintable } (fotos nuevas que también
 // pueden pintarse con el color elegido, igual que la foto principal).
-function normalizarFotoGaleria(item) {
+// Una foto de galería puede tener una versión por tamaño (`porTamano`). Es el
+// caso de las fichas de medidas: la de 2 Plazas dice 150 cm y la King dice 200,
+// así que la ficha tiene que seguir al tamaño que el cliente eligió. Si no la
+// tiene, se usa la de siempre.
+function normalizarFotoGaleria(item, sizeId) {
   if (typeof item === 'string') return { url: item, tintable: false };
-  return { url: item.url, tintable: Boolean(item.tintable) };
+  const delTamano = item.porTamano?.[sizeId];
+  return {
+    url: delTamano || item.url,
+    tintable: Boolean(item.tintable),
+    sigueAlTamano: Boolean(delTamano),
+  };
 }
 
 // Las especificaciones han llegado a guardarse de TRES formas distintas:
@@ -158,7 +167,9 @@ export default function ProductDetail() {
   const vistas = product
     ? [
         { url: img.src, tintable: img.tintable },
-        ...(Array.isArray(product.gallery) ? product.gallery.map(normalizarFotoGaleria) : []),
+        ...(Array.isArray(product.gallery)
+          ? product.gallery.map((item) => normalizarFotoGaleria(item, sizeId))
+          : []),
       ]
     : [];
   // Si la foto principal cambia (porque el cliente eligió otro tamaño, o un
@@ -166,10 +177,17 @@ export default function ProductDetail() {
   // mirando una foto de galería seguía viéndola mientras la medida de al lado
   // ya decía otra cosa: la ficha decía "King, llega en 2 piezas" y la foto
   // mostraba una tarima de una sola pieza.
+  // Excepción: las fotos que YA siguen al tamaño (las fichas de medidas) no
+  // hacen saltar de vuelta — al contrario, si el cliente está comparando la
+  // ficha de 2 Plazas con la King, lo que quiere es ver la ficha cambiar.
   const urlPrincipal = img?.src;
   useEffect(() => {
-    setActiveIdx(0);
-  }, [urlPrincipal]);
+    setActiveIdx((idx) => {
+      if (idx === 0) return 0;
+      const foto = product?.gallery?.[idx - 1];
+      return foto && typeof foto === 'object' && foto.porTamano ? idx : 0;
+    });
+  }, [urlPrincipal, product]);
 
   const vistaActiva = vistas[activeIdx] || vistas[0];
   const specs = normalizarSpecs(product?.specs);
