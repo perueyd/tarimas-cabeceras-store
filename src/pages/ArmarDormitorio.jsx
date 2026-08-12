@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCatalog, resolveProductImage } from '../context/CatalogContext.jsx';
 import ProductImage from '../components/ProductImage.jsx';
+import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fotoChica } from '../lib/fotoChica.js';
@@ -46,6 +47,7 @@ export default function ArmarDormitorio() {
   const [elegido, setElegido] = useState({}); // { cabeceras: id, tarimas: id, colchones: id }
   const [colorElegido, setColorElegido] = useState(null);
   const [anadido, setAnadido] = useState(false);
+  const [enMiPared, setEnMiPared] = useState(false);
 
   const medidaActual = medida || medidas[0]?.id;
   const tallaLabel = sizes.find((s) => s.id === medidaActual)?.label || '';
@@ -56,8 +58,25 @@ export default function ArmarDormitorio() {
     );
   }
 
+  // Opciones de cada pieza (modelo de pata, laterales…). Se guardan solo las
+  // que el cliente TOCA; el resto se resuelve al primer valor del grupo. Así no
+  // hace falta un efecto que las rellene cuando cambia la selección, y lo que
+  // se ve, lo que se cobra y lo que se manda al carrito salen siempre de la
+  // misma cuenta.
+  const [opcionesElegidas, setOpcionesElegidas] = useState({}); // { idProducto: { idGrupo: idValor } }
+
+  const opcionesDe = (producto) => {
+    const grupos = Array.isArray(producto?.opciones) ? producto.opciones : [];
+    const elegidas = opcionesElegidas[producto.id] || {};
+    return Object.fromEntries(
+      grupos
+        .filter((g) => g.valores?.length)
+        .map((g) => [g.id, elegidas[g.id] || g.valores[0].id])
+    );
+  };
+
   function precioDe(producto) {
-    return getUnitPrice(producto, medidaActual, {})?.unitPrice ?? 0;
+    return getUnitPrice(producto, medidaActual, opcionesDe(producto))?.unitPrice ?? 0;
   }
 
   const seleccion = PASOS.map((p) => products.find((x) => x.id === elegido[p.cat])).filter(Boolean);
@@ -94,11 +113,24 @@ export default function ArmarDormitorio() {
       : colors.find((c) => c.id === propios[0]);
   };
 
+  // Piezas elegidas que traen algo que decidir además del tamaño y el color.
+  const piezasConOpciones = seleccion.filter(
+    (p) => Array.isArray(p.opciones) && p.opciones.some((g) => g.valores?.length)
+  );
+
+  // La cabecera elegida, aparte: es la única pieza que va contra la pared, y
+  // por eso la única que tiene sentido probar con la cámara.
+  const cabeceraElegida = seleccion.find((p) => p.category === 'cabeceras') || null;
+  const fotoCabecera = cabeceraElegida
+    ? resolveProductImage(cabeceraElegida, colorDe(cabeceraElegida)?.id, medidaActual)
+    : null;
+
   function anadirTodo() {
     for (const producto of seleccion) {
       const color = colorDe(producto);
       const img = resolveProductImage(producto, color?.id, medidaActual);
-      const info = getUnitPrice(producto, medidaActual, {});
+      const elegidas = opcionesDe(producto);
+      const info = getUnitPrice(producto, medidaActual, elegidas);
       const item = {
         productId: producto.id,
         productName: producto.name,
@@ -106,7 +138,7 @@ export default function ArmarDormitorio() {
         tintable: img.tintable,
         sizeId: medidaActual,
         colorId: color?.id,
-        opciones: {},
+        opciones: elegidas,
         opcionesDetalle: info?.detalle || [],
         qty: 1,
         unitPrice: info?.unitPrice ?? 0,
@@ -250,6 +282,78 @@ export default function ArmarDormitorio() {
         </section>
       )}
 
+      {/* Las opciones de cada pieza (el modelo de pata de la tarima, y lo que
+          se agregue después). Faltaban: desde la ficha del producto se elegían
+          y desde aquí no, así que la tarima se pedía sin decir qué pata — y las
+          patas van sí o sí. Al no mandarse, además, un día que una opción tenga
+          recargo el total de aquí no cuadraría con el de la ficha. */}
+      {piezasConOpciones.length > 0 && (
+        <section className="mt-10">
+          <p className="mb-1 text-sm font-medium text-neutral-700">
+            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] text-white">6</span>
+            Detalles
+            <span className="ml-2 font-normal text-neutral-400">acabados de cada pieza</span>
+          </p>
+          <div className="space-y-5 pl-7">
+            {piezasConOpciones.map((pieza) => (
+              <div key={pieza.id}>
+                <p className="mb-2 text-xs font-medium text-neutral-500">{pieza.name}</p>
+                {pieza.opciones.map((g) => {
+                  const conFoto = (g.valores || []).some((v) => v.img);
+                  return (
+                    <div key={g.id} className="mb-3">
+                      <p className="mb-1.5 text-xs text-neutral-500">{g.label}</p>
+                      <div className={conFoto ? 'grid max-w-sm grid-cols-3 gap-2' : 'flex flex-wrap gap-2'}>
+                        {(g.valores || []).map((v) => {
+                          const activo = opcionesDe(pieza)[g.id] === v.id;
+                          const extra = Math.max(Number(v.precioExtra) || 0, 0);
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() =>
+                                setOpcionesElegidas((prev) => ({
+                                  ...prev,
+                                  [pieza.id]: { ...(prev[pieza.id] || {}), [g.id]: v.id },
+                                }))
+                              }
+                              className={`overflow-hidden rounded-lg border text-sm transition ${
+                                v.img
+                                  ? activo
+                                    ? 'border-ink ring-2 ring-ink'
+                                    : 'border-neutral-300 hover:border-neutral-500'
+                                  : `px-3 py-2 ${activo ? 'border-ink bg-ink text-white' : 'border-neutral-300 hover:border-neutral-500'}`
+                              }`}
+                            >
+                              {v.img && (
+                                <img
+                                  loading="lazy"
+                                  src={v.img}
+                                  alt={v.label}
+                                  className="aspect-square w-full bg-neutral-50 object-contain"
+                                />
+                              )}
+                              <span className={v.img ? `block px-2 py-1.5 text-xs ${activo ? 'bg-ink text-white' : ''}` : 'block'}>
+                                <span className="block font-medium">{v.label}</span>
+                                {extra > 0 && (
+                                  <span className="block text-xs opacity-70">
+                                    +{currencyFormatter.format(extra)}
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Vista previa. Hasta aquí el cliente elegía sus piezas en los recuadros
           de arriba, que muestran la foto de fábrica, y el color en la fila de
           círculos — pero en ningún momento veía su dormitorio en el color que
@@ -294,7 +398,33 @@ export default function ArmarDormitorio() {
               );
             })}
           </div>
+
+          {/* La cámara SOLO para la cabecera. Lo que hace es pegar un recorte
+              plano sobre lo que enfoca el celular: una cabecera va contra la
+              pared y calza; una tarima y un colchón van en el piso, en
+              perspectiva, y ahí el truco se nota y estorba más que ayuda. */}
+          {cabeceraElegida && (
+            <button
+              type="button"
+              onClick={() => setEnMiPared(true)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-ink px-4 py-3 text-sm font-semibold transition hover:bg-neutral-50 sm:w-auto"
+            >
+              📷 Ver la cabecera en mi pared
+              <span className="text-xs font-normal text-neutral-500">— con la cámara</span>
+            </button>
+          )}
         </section>
+      )}
+
+      {cabeceraElegida && (
+        <VerEnMiPared
+          abierto={enMiPared}
+          onCerrar={() => setEnMiPared(false)}
+          imagenSrc={fotoCabecera.src}
+          colorHex={colorDe(cabeceraElegida)?.hex}
+          tintable={fotoCabecera.tintable}
+          nombre={cabeceraElegida.name}
+        />
       )}
 
       {/* Cómo encajan las tres piezas. Va aquí porque es justo la duda que

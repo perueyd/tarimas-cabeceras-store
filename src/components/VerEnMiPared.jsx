@@ -274,8 +274,10 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
           <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
             <p className="text-4xl">📷</p>
             <p className="max-w-xs text-sm text-white/90">{error}</p>
+            {/* "Volver" a secas: esta ventana ya no se abre solo desde la
+                ficha del producto, también desde "Arma tu dormitorio". */}
             <button onClick={onCerrar} className="mt-2 rounded-lg bg-white px-5 py-2 text-sm font-medium text-black">
-              Volver al producto
+              Volver
             </button>
           </div>
         ) : captura ? (

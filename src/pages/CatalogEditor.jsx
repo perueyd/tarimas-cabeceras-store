@@ -1937,6 +1937,29 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                     className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                   />
                   <UploadButton adminKey={adminKey} onUploaded={(url) => setSizeImage(s.id, url)} />
+                  {/* Estas fotos también se repintan, así que también hay que
+                      poder corregir qué parte cambia de color. Sin este botón
+                      solo se podía corregir la foto principal y la galería: si
+                      cambiabas la foto de un tamaño, esa se quedaba con lo que
+                      adivinara la web y no había forma de arreglarla. */}
+                  {p.tintable && p.sizeImages?.[s.id] && (
+                    <button
+                      type="button"
+                      onClick={() => setZonaEditando(p.sizeImages[s.id])}
+                      title={
+                        p.zonasFoto?.[p.sizeImages[s.id]]
+                          ? 'Corregido a mano — toca para cambiarlo'
+                          : 'Elegir qué parte de esta foto cambia de color'
+                      }
+                      className={`shrink-0 rounded-lg border px-2 py-1.5 text-xs ${
+                        p.zonasFoto?.[p.sizeImages[s.id]]
+                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                          : 'border-neutral-300 hover:bg-white'
+                      }`}
+                    >
+                      🖌️
+                    </button>
+                  )}
                 </div>
               ))}
           </div>

@@ -210,6 +210,14 @@ export default function ProductDetail() {
   // elegido, o la general del tamaño si no la personalizó.
   const tamanoElegido = availableSizes.find((s) => s.id === sizeId);
   const medidaActual = tamanoElegido ? (product?.sizeDims?.[tamanoElegido.id] || tamanoElegido.dims) : null;
+  // ¿La foto que se está viendo es de OTRA medida? Solo cuenta si el cliente
+  // está mirando la foto principal (en una ficha de medidas o una foto de
+  // ambiente el aviso no viene a cuento) y hay más de una medida donde elegir.
+  const fotoDeOtraMedida =
+    activeIdx === 0 &&
+    availableSizes.length > 1 &&
+    !product?.colorImages?.[selectedColor?.id] &&
+    !product?.sizeImages?.[sizeId];
 
   // Los productos creados desde el panel solo existen en la base de datos, así
   // que en el primer render (antes de que responda /api/catalog) todavía no
@@ -322,6 +330,19 @@ export default function ProductDetail() {
               🔍 Ver en grande
             </span>
           </button>
+
+          {/* No hay foto de cada modelo en cada medida (son 34 modelos por 4
+              medidas). Cuando falta la de la medida elegida se muestra la que
+              hay, y el cliente ve que cambia el precio pero no la foto: parece
+              que la web no le hizo caso. Esta línea lo dice y lo manda a la
+              ficha, que sí es la de su medida. */}
+          {fotoDeOtraMedida && (
+            <p className="mt-2 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+              La foto es <strong className="font-medium text-neutral-600">referencial</strong>: es
+              este mismo modelo, fotografiado en otra medida. Las medidas exactas de{' '}
+              {tamanoElegido?.label} están en la ficha de medidas, aquí abajo.
+            </p>
+          )}
 
           {/* La duda que frena una compra de mueble es "¿me quedará bien?".
               Esto la responde: la cámara del celular con el mueble encima. */}
