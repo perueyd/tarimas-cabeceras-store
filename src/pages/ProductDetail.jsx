@@ -26,9 +26,7 @@ import { getUnitPrice } from '../lib/pricing.js';
 // altura contada desde el piso. Su ficha no puede ser la del pedestal.
 function normalizarFotoGaleria(item, sizeId, opciones) {
   if (typeof item === 'string') return { url: item, tintable: false };
-  const grupo = item.segunOpcion?.grupo;
-  const variante = grupo ? item.segunOpcion.valores?.[opciones?.[grupo]] : null;
-  const fuente = variante || item;
+  const fuente = varianteDe(item, opciones) || item;
   const delTamano = fuente.porTamano?.[sizeId];
   return {
     url: delTamano || fuente.url || item.url,
@@ -37,14 +35,24 @@ function normalizarFotoGaleria(item, sizeId, opciones) {
   };
 }
 
+// Qué variante de una foto corresponde a lo que el cliente eligió.
+//
+// Las reglas van en LISTA y gana la primera que calce, porque las variantes se
+// solapan: una cabecera aérea es además una cabecera sin laterales, y las dos
+// tienen ficha propia. Poniendo "aérea" antes que "sin laterales", pedir aérea
+// muestra la ficha aérea y no la otra.
+function varianteDe(item, opciones) {
+  const reglas = Array.isArray(item?.segunOpcion) ? item.segunOpcion : [];
+  return reglas.find((r) => opciones?.[r.grupo] === r.valor) || null;
+}
+
 // El aviso que trae la variante elegida, si la hay. El texto vive en el
 // catálogo junto a la ficha, no aquí: así se cambia desde los datos y esta
 // página no tiene que saber qué es "aérea".
 function avisoDeVariante(product, opciones) {
   const fotos = Array.isArray(product?.gallery) ? product.gallery : [];
   for (const f of fotos) {
-    if (!f || typeof f !== 'object' || !f.segunOpcion) continue;
-    const aviso = f.segunOpcion.valores?.[opciones?.[f.segunOpcion.grupo]]?.aviso;
+    const aviso = varianteDe(f, opciones)?.aviso;
     if (aviso) return aviso;
   }
   return null;
