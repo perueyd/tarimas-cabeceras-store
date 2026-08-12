@@ -44,6 +44,12 @@ export default function ProductZoomModal({
 
   if (!open) return null;
 
+  // Fotos que NO se repintan: fichas de medidas, planos, fotos reales. Ahí no
+  // hay ningún color que elegir, así que la mitad de la ventana se usaba para
+  // ofrecer 21 círculos que no aplican, y la ficha quedaba encajada en la otra
+  // mitad, ilegible. En ese caso la foto se lleva la ventana entera.
+  const soloFoto = img.tintable === false;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
@@ -53,7 +59,9 @@ export default function ProductZoomModal({
       aria-label={`Vista ampliada de ${productName}`}
     >
       <div
-        className="relative max-h-[92vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white p-4 sm:p-6"
+        className={`relative max-h-[92vh] w-full overflow-auto rounded-2xl bg-white p-4 sm:p-6 ${
+          soloFoto ? 'max-w-6xl' : 'max-w-4xl'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -65,6 +73,16 @@ export default function ProductZoomModal({
           ✕
         </button>
 
+        {soloFoto ? (
+          <div>
+            <p className="mb-3 pr-10 text-lg font-semibold tracking-tight">{productName}</p>
+            <img
+              src={img.src}
+              alt={productName}
+              className="max-h-[78vh] w-full rounded-xl object-contain"
+            />
+          </div>
+        ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Imagen grande del modelo */}
           <ProductImage
@@ -117,6 +135,7 @@ export default function ProductZoomModal({
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
