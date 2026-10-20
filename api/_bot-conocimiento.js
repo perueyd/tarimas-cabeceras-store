@@ -26,7 +26,9 @@ REGLAS QUE SIEMPRE CUMPLES:
 - Si no sabes algo, dilo claramente y pasa el WhatsApp. Es mejor eso que inventar.
 - No prometas descuentos, plazos ni garantías que no aparezcan en estos datos.
 - No pidas ni aceptes datos de tarjeta, contraseñas ni documentos por el chat.
-- Responde siempre en español de Perú. Los precios en soles (S/).`;
+- Responde siempre en español de Perú. Los precios en soles (S/).
+- Si das un precio, da EL DE LA MEDIDA QUE TE PIDEN. La lista de abajo trae el precio de cada medida, no uses un rango si te preguntan por una en concreto.
+- El número de WhatsApp se escribe EXACTAMENTE como aparece abajo, sin cambiarle los espacios ni agrupar los dígitos de otra forma.`;
 
 // Precio REAL de venta de un tamaño: el mismo que ve el cliente en la ficha.
 //
@@ -53,27 +55,31 @@ function precioReal(producto, sizeId) {
   return { final: original, rebajado: false };
 }
 
-function resumirProductos(products) {
+function resumirProductos(products, sizes) {
   const activos = products.filter((p) => !p.oculto);
   if (!activos.length) return 'Todavía no hay productos publicados.';
+
+  // El nombre bonito de cada medida ("Queen"), no su id interno ("queen").
+  const etiqueta = new Map(sizes.map((s) => [s.id, s.label || s.id]));
 
   const porCategoria = {};
   for (const p of activos) {
     const calculados = Object.keys(p.sizePricing || {})
-      .map((sizeId) => precioReal(p, sizeId))
-      .filter((x) => x && x.final > 0);
+      .map((sizeId) => ({ sizeId, ...(precioReal(p, sizeId) || {}) }))
+      .filter((x) => x.final > 0);
 
-    let rango = 'precio a consultar';
-    let hayRebaja = false;
+    // Antes aquí se armaba un RANGO ("S/ 220 a S/ 410") y era lo único que el
+    // bot llegaba a saber. Por eso, cuando un cliente preguntaba "¿cuánto
+    // cuesta la MILÁN en queen?", el bot no podía responder: le daba el rango
+    // entero y lo mandaba a WhatsApp. Tenía el dato delante y no lo recibía.
+    let precios = 'precio a consultar';
     if (calculados.length) {
-      const finales = calculados.map((x) => x.final);
-      hayRebaja = calculados.some((x) => x.rebajado);
-      const min = Math.min(...finales);
-      const max = Math.max(...finales);
-      rango = min === max ? `S/ ${min}` : `S/ ${min} a S/ ${max}`;
+      precios = calculados
+        .map((x) => `${etiqueta.get(x.sizeId) || x.sizeId} S/ ${x.final}${x.rebajado ? ' (rebajado)' : ''}`)
+        .join(' · ');
     }
 
-    const linea = `- ${p.name}: ${rango}${hayRebaja ? ' (ya con descuento aplicado)' : ''}`;
+    const linea = `- ${p.name}: ${precios}`;
     (porCategoria[p.category] ||= []).push(linea);
   }
 
@@ -94,7 +100,14 @@ export async function construirConocimiento() {
   const tamanos = sizes.map((s) => `${s.label}${s.dims ? ` (${s.dims})` : ''}`).join(', ');
   const coloresTxt = colors.map((c) => c.label).join(', ');
   const cats = categories.filter((c) => c.active !== false).map((c) => c.label || c.id).join(', ');
-  const wa = storeConfig.whatsapp || '+51951278010';
+  // El número se guarda en dígitos pegados (51951278010) porque así lo exige
+  // el enlace de WhatsApp. Pero si se le entrega así al modelo, lo reparte a su
+  // gusto al escribirlo: una respuesta real decía "519 512 78010", que no es
+  // el número de nadie. Se le da ya agrupado y se le prohíbe reescribirlo.
+  const digitos = String(storeConfig.whatsapp || '51951278010').replace(/\D/g, '');
+  const wa = digitos.startsWith('51') && digitos.length === 11
+    ? `+51 ${digitos.slice(2, 5)} ${digitos.slice(5, 8)} ${digitos.slice(8)}`
+    : `+${digitos}`;
 
   const faq = Array.isArray(storeConfig.faq)
     ? storeConfig.faq
@@ -113,7 +126,7 @@ Web: https://eydperu.vercel.app
 Categorías: ${cats || 'sin categorías'}
 
 PRODUCTOS Y PRECIOS:
-${resumirProductos(products)}
+${resumirProductos(products, sizes)}
 
 TAMAÑOS DISPONIBLES: ${tamanos || 'consultar'}
 
