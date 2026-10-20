@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { vencida } from '../lib/vencimiento.js';
 
 const TIPOS_OFERTAS = [
   { value: 'codigo', label: '🏷️ Código promocional', desc: 'Cliente ingresa código en checkout' },
@@ -151,7 +152,7 @@ export default function MegaOfertasEditor({ adminKey }) {
 
 function OfertaCard({ oferta, currencyFormatter, onToggle, onEdit, onDelete }) {
   const tipoLabel = TIPOS_OFERTAS.find((t) => t.value === oferta.tipo)?.label || oferta.tipo;
-  const vencido = oferta.vence && new Date(oferta.vence + 'T23:59:59') < new Date();
+  const vencido = oferta.vence && vencida(oferta.vence);
   const estado = !oferta.activo ? 'Desactivado' : vencido ? 'Vencido' : 'Activo';
 
   let resumen = '';

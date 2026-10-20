@@ -5,6 +5,7 @@ import LocationSearch from '../components/LocationSearch.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
+import { vencida } from '../lib/vencimiento.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -114,7 +115,7 @@ export default function Checkout() {
 
         for (const oferta of ofertas) {
           if (!oferta.activo) continue;
-          if (oferta.vence && new Date(oferta.vence + 'T23:59:59') < new Date()) continue;
+          if (oferta.vence && vencida(oferta.vence)) continue;
 
           let aplica = false;
           let razon = '';

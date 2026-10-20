@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { vencida } from '../lib/vencimiento.js';
 
 export default function DescuentosAutoEditor({ adminKey }) {
   const { currencyFormatter, categories } = useCatalog();
@@ -91,7 +92,7 @@ export default function DescuentosAutoEditor({ adminKey }) {
       ) : (
         <div className="space-y-2">
           {descuentos.map((d) => {
-            const vencido = d.vence && new Date(d.vence + 'T23:59:59') < new Date();
+            const vencido = d.vence && vencida(d.vence);
             const etiqueta = d.tipo === 'flashsale' ? '🎉 Flash Sale' : d.tipo === 'cantidad' ? `📦 ${d.cantidadMinima}+ items` : `🏷️ ${d.categoria}`;
             return (
               <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-3">

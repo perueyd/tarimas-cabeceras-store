@@ -1,0 +1,36 @@
+# Revisa la tienda en cada cambio, ANTES de que Vercel lo publique.
+#
+# Por qué: varios de los fallos más caros de este proyecto compilaban
+# perfectamente y llegaron a los clientes — ofertas que morían a las 7 de la
+# tarde, cobros por encima de lo mostrado, despliegues rechazados en silencio
+# por pasar de 12 funciones. Esto los caza antes.
+#
+# Si algo se rompe, GitHub manda un correo. Es gratis.
+
+name: Verificar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` instala exactamente lo del package-lock, sin sorpresas.
+      - run: npm ci
+
+      # Las pruebas primero: tardan 1 segundo y cubren lo que de verdad duele
+      # (dinero, vencimientos, el tope de funciones de Vercel). Si fallan, no
+      # tiene sentido gastar tiempo compilando.
+      - run: npm test
+
+      - run: npm run build

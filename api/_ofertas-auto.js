@@ -13,24 +13,15 @@
 // de pasar callado (ver comprobarMontoEsperado más abajo).
 
 import { hasDB, redisCmd } from './_store.js';
+import { vencida } from '../src/lib/vencimiento.js';
 
 const KEY = 'ofertas:todas';
 
-// Perú va 5 horas por detrás de UTC y no cambia de hora. El servidor de Vercel
-// corre en UTC, así que `new Date('2026-08-01T23:59:59')` se interpretaba como
-// las 23:59 UTC = las 18:59 de Lima: el último día de cada oferta el descuento
-// desaparecía a las 7 de la tarde, mientras el navegador del cliente (en hora
-// de Lima) seguía mostrándolo. Resultado: cinco horas en las que la pantalla
-// enseñaba un precio y el cobro se rechazaba por no cuadrar.
-//
-// Se compara con el final del día EN LIMA, sea cual sea la zona del servidor.
-const OFFSET_LIMA = '-05:00';
-
-export function vencida(fechaISO) {
-  const fin = new Date(`${fechaISO}T23:59:59${OFFSET_LIMA}`);
-  if (Number.isNaN(fin.getTime())) return false; // fecha rara: no se bloquea la oferta
-  return fin.getTime() < Date.now();
-}
+// vencida() vive en src/lib/vencimiento.js porque el navegador necesita la
+// MISMA respuesta: si el servidor y la pantalla no coinciden sobre si una
+// oferta sigue viva, el cobro se rechaza con "el precio cambió".
+// Se re-exporta para no romper a quien ya la importa desde aquí.
+export { vencida } from '../src/lib/vencimiento.js';
 
 async function leerLista(clave) {
   if (!hasDB) return [];

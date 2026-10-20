@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { vencida } from '../lib/vencimiento.js';
 
 const CODIGO_VACIO = { code: '', tipo: 'porcentaje', valor: 10, activo: true, maxUsos: '', vence: '' };
 
@@ -107,7 +108,7 @@ export default function PromoEditor({ adminKey }) {
       ) : (
         <div className="space-y-2">
           {codes.map((c) => {
-            const vencido = c.vence && new Date(c.vence + 'T23:59:59') < new Date();
+            const vencido = c.vence && vencida(c.vence);
             const agotado = c.maxUsos && (c.usados || 0) >= c.maxUsos;
             return (
               <div key={c.code} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-3">
