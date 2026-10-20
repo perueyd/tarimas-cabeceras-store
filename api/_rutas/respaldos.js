@@ -13,7 +13,7 @@
 // POST admin ?action=restaurar&id=xxx -> devuelve el catálogo a esa copia
 
 import { getCatalog, restaurarCatalogo } from '../_catalog.js';
-import { leerRespaldo, listarRespaldos, respaldar } from '../_respaldos.js';
+import { anotarDescarga, leerRespaldo, listarRespaldos, respaldar, ultimaDescarga } from '../_respaldos.js';
 import { checkAdminAuth } from '../_auth.js';
 import { hasDB } from '../_store.js';
 import { s } from '../_pricing.js';
@@ -36,7 +36,11 @@ export default async function handler(req, res) {
         if (!foto) return res.status(404).json({ error: 'Esa copia ya no existe.' });
         return res.status(200).json({ ok: true, id, catalogo: foto });
       }
-      return res.status(200).json({ ok: true, respaldos: await listarRespaldos() });
+      return res.status(200).json({
+        ok: true,
+        respaldos: await listarRespaldos(),
+        ultimaDescarga: await ultimaDescarga(),
+      });
     }
 
     if (req.method === 'POST') {
@@ -50,6 +54,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, respaldo: entrada, respaldos: await listarRespaldos() });
       }
 
+      if (action === 'descargada') {
+        // Lo llama el panel DESPUÉS de bajar el archivo, para poder avisar
+        // cuando lleve mucho sin hacerlo.
+        return res.status(200).json({ ok: true, ultimaDescarga: await anotarDescarga() });
+      }
+
       if (action === 'restaurar') {
         const foto = await leerRespaldo(id);
         if (!foto) return res.status(404).json({ error: 'Esa copia ya no existe.' });
@@ -57,7 +67,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, catalogo, respaldos: await listarRespaldos() });
       }
 
-      return res.status(400).json({ error: 'Acción inválida (crear o restaurar).' });
+      return res.status(400).json({ error: 'Acción inválida (crear, descargada o restaurar).' });
     }
 
     return res.status(405).json({ error: 'Método no permitido' });

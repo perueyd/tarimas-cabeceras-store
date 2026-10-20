@@ -39,6 +39,7 @@ export default function QueHacerHoy({
   reclamos = [],
   carritos = [],
   arco = [],
+  ultimaDescarga,
   currencyFormatter,
   onIr,
 }) {
@@ -128,6 +129,32 @@ export default function QueHacerHoy({
       accion: 'Escribir',
       tab: 'carritos',
     });
+  }
+
+  // 6. La copia del catálogo en SU computadora.
+  //
+  //    Las copias automáticas viven en la misma base de datos que el catálogo.
+  //    Si esa base falla —que es exactamente lo que pasó cuando se perdieron
+  //    los productos y hubo que dictarlos de nuevo uno por uno— las copias se
+  //    van con ella. El archivo en su disco duro es lo único que sobrevive, y
+  //    es justo lo que es fácil no hacer nunca.
+  //
+  //    `undefined` significa que el dato todavía no llegó: no se avisa de algo
+  //    que no se sabe. `null` sí significa "nunca descargó ninguna".
+  if (ultimaDescarga !== undefined) {
+    const DIAS = 1000 * 60 * 60 * 24;
+    const dias = ultimaDescarga ? Math.floor((Date.now() - new Date(ultimaDescarga).getTime()) / DIAS) : null;
+    if (dias === null || dias >= 30) {
+      avisos.push({
+        orden: dias === null ? -3 : 1, // nunca haberla bajado es lo más urgente de todo
+        color: 'ambar',
+        icono: '💾',
+        titulo: dias === null ? 'Nunca descargaste una copia del catálogo' : `Hace ${dias} días que no bajas una copia`,
+        detalle: 'Si la base de datos falla, el archivo en tu PC es lo único que la salva',
+        accion: 'Descargar',
+        tab: 'editar',
+      });
+    }
   }
 
   if (!avisos.length) {

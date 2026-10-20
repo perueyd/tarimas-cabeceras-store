@@ -125,6 +125,8 @@ export default function Orders() {
   const [carritos, setCarritos] = useState([]);
   // Solicitudes de derechos ARCO: tienen plazo legal, por eso salen en el resumen.
   const [arco, setArco] = useState([]);
+  // Cuándo bajó por última vez una copia del catálogo a su computadora.
+  const [ultimaDescarga, setUltimaDescarga] = useState(undefined); // undefined = aún no se sabe
   const [avisoNuevos, setAvisoNuevos] = useState(0); // pedidos nuevos detectados en vivo
   const conocidosRef = useRef(null); // Set de códigos ya vistos (null = sin inicializar)
   const [tab, setTab] = useState('resumen');
@@ -160,6 +162,10 @@ export default function Orders() {
       fetch('/api/reviews?all=1', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setReviews(d.reviews || []))
+        .catch(() => {});
+      fetch('/api/respaldos', { headers: authHeader })
+        .then((r) => r.json())
+        .then((d) => setUltimaDescarga(d.ultimaDescarga || null))
         .catch(() => {});
       fetch('/api/derechos-arco', { headers: authHeader })
         .then((r) => r.json())
@@ -467,6 +473,7 @@ export default function Orders() {
           reclamos={reclamos}
           carritos={carritos}
           arco={arco}
+          ultimaDescarga={ultimaDescarga}
           currencyFormatter={currencyFormatter}
           onIr={setTab}
         />

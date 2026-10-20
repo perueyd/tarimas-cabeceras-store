@@ -21,6 +21,11 @@ import { hasDB, redisCmd } from './_store.js';
 const CLAVE_INDICE = 'catalog:respaldos';
 const PREFIJO_FOTO = 'catalog:respaldo:';
 const CUANTAS_GUARDAR = 7;
+// Cuándo se descargó una copia al disco del dueño por última vez. Importa
+// porque las copias viven en la MISMA base de datos que el catálogo: si esa
+// base falla, no sirven de nada. El archivo en su computadora es lo único que
+// sobrevive, y es justo lo que es fácil olvidar.
+const CLAVE_DESCARGA = 'catalog:respaldos:ultima-descarga';
 
 // Lima va 5 horas por detrás de UTC y Vercel corre en UTC. Sin esto, "el
 // respaldo de hoy" cambiaba de día a las 7 de la noche hora de Perú — el mismo
@@ -118,3 +123,24 @@ export async function respaldar(catalog, { forzar = false } = {}) {
 }
 
 export { PARTES };
+
+export async function anotarDescarga() {
+  if (!hasDB) return null;
+  const ahora = new Date().toISOString();
+  try {
+    await redisCmd(['SET', CLAVE_DESCARGA, ahora]);
+    return ahora;
+  } catch {
+    return null;
+  }
+}
+
+export async function ultimaDescarga() {
+  if (!hasDB) return null;
+  try {
+    const data = await redisCmd(['GET', CLAVE_DESCARGA]);
+    return data?.result || null;
+  } catch {
+    return null;
+  }
+}

@@ -92,6 +92,9 @@ export default function RespaldosTab({ catalog, adminKey, flash }) {
       a.download = `catalogo-eyd-${id}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      // Se anota para poder avisar en "Qué hacer hoy" cuando lleve mucho sin
+      // bajar una copia. Si falla, da igual: la descarga ya ocurrió.
+      pedir('POST', '?action=descargada').catch(() => {});
       flash('Archivo descargado. Guárdalo en un lugar seguro.');
     } catch (err) {
       alert(err.message);
