@@ -14,6 +14,7 @@ import { urlSeguimiento } from '../data/sitio.js';
 import ImpuestosTab from './ImpuestosTab.jsx';
 import { separarIGV } from '../lib/igv.js';
 import { etiquetaComprobante } from '../lib/documento.js';
+import VisitasTab from './VisitasTab.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -438,6 +439,7 @@ export default function Orders() {
               { id: 'pedidos', label: 'Pedidos', aviso: porVerificar.length, urgente: true },
               { id: 'carritos', label: 'Carritos abandonados', aviso: carritos.length },
               { id: 'reclamos', label: 'Reclamos', aviso: reclamosPendientes.length, urgente: true },
+              { id: 'visitas', label: 'Visitas' },
               { id: 'impuestos', label: 'Impuestos y margen' },
             ],
           },
@@ -765,6 +767,8 @@ export default function Orders() {
 
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
+      {tab === 'visitas' && <VisitasTab adminKey={key} />}
+
       {tab === 'impuestos' && <ImpuestosTab adminKey={key} onIr={() => setTab('editar')} />}
 
       {tab === 'editar' && <CatalogEditor adminKey={key} irA={subEditor} />}
@@ -783,7 +787,7 @@ export default function Orders() {
 const SECCIONES_VALIDAS = new Set([
   'resumen', 'pedidos', 'resenas', 'carritos', 'reclamos', 'suscriptores',
   'encuestas', 'ofertas', 'promos', 'descAuto', 'analytics', 'historial', 'editar',
-  'impuestos',
+  'impuestos', 'visitas',
 ]);
 
 // Campo "Referencia (WSP)" de cada pedido.

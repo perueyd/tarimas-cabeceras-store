@@ -190,6 +190,13 @@ export function localRedisCmd(command) {
       mutado = false;
       break;
 
+    // Campos Y valores. Lo usa el contador de visitas, que necesita saber el
+    // nombre de cada campo ("ruta:/producto/milan"), no solo su número.
+    case 'HGETALL':
+      result = entry?.t === 'h' ? { ...entry.v } : {};
+      mutado = false;
+      break;
+
     case 'HDEL': {
       const hash = entry?.t === 'h' ? entry.v : {};
       let borrados = 0;

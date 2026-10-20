@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { initAnalytics, trackPageView } from './lib/analytics.js';
+import { contarVisita } from './lib/visitas.js';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import WhatsAppButton from './components/WhatsAppButton.jsx';
@@ -43,6 +44,10 @@ function AnalyticsTracker() {
 
   useEffect(() => {
     trackPageView(location.pathname);
+    // Contador propio. A diferencia del de arriba, este funciona acepte o no
+    // las cookies, porque no guarda nada de la persona — y es, hoy por hoy, lo
+    // único que le dice al dueño si entra alguien a su tienda.
+    contarVisita(location.pathname);
   }, [location.pathname]);
 
   return null;

@@ -33,6 +33,8 @@ const RUTAS = {
   ofertas: () => import('./_rutas/ofertas.js'),
   promo: () => import('./_rutas/promo.js'),
   reclamos: () => import('./_rutas/reclamos.js'),
+  // Contador de visitas propio: gratis, anónimo y sin terceros.
+  visitas: () => import('./_rutas/visitas.js'),
   // Copias de seguridad del catálogo. Existe porque los productos se perdieron
   // una vez y hubo que dictarlos de nuevo.
   respaldos: () => import('./_rutas/respaldos.js'),
