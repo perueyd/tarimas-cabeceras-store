@@ -105,7 +105,7 @@ export default function ComplaintsBook() {
               </button>
             ))}
           </div>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-neutral-500">
             {form.tipo === 'Reclamo'
               ? 'Disconformidad relacionada a un producto o servicio.'
               : 'Malestar no relacionado al producto o servicio (ej. atención al cliente).'}

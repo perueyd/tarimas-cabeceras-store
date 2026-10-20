@@ -801,14 +801,14 @@ function ReviewsSection({ productId }) {
             <Stars n={Math.round(promedio)} /> {promedio} de 5 · {reviews.length} opinión{reviews.length !== 1 ? 'es' : ''}
           </span>
         ) : (
-          <span className="text-sm text-neutral-400">Sé el primero en opinar</span>
+          <span className="text-sm text-neutral-500">Sé el primero en opinar</span>
         )}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div className="space-y-4">
           {reviews.length === 0 && (
-            <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
+            <p className="rounded-lg border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-500">
               Este producto aún no tiene opiniones.
             </p>
           )}
@@ -824,7 +824,7 @@ function ReviewsSection({ productId }) {
                   <img loading="lazy" decoding="async" src={r.foto} alt="Foto del cliente" className="h-24 w-24 rounded-lg border border-neutral-200 object-cover" />
                 </a>
               )}
-              <p className="mt-2 text-xs text-neutral-400">{new Date(r.fecha).toLocaleDateString('es-PE')}</p>
+              <p className="mt-2 text-xs text-neutral-500">{new Date(r.fecha).toLocaleDateString('es-PE')}</p>
             </div>
           ))}
         </div>

@@ -30,7 +30,7 @@ export default function ColorPicker({ colors, selectedId, onSelect, titulo = 'Co
           />
         ))}
       </div>
-      {aviso && <p className="mt-2 text-xs text-neutral-400">{aviso}</p>}
+      {aviso && <p className="mt-2 text-xs text-neutral-500">{aviso}</p>}
     </div>
   );
 }

@@ -285,7 +285,12 @@ export default function Landing() {
                 ))}
               </div>
             )}
-            <p className="mt-2 text-center text-xs text-neutral-400">
+            {/* neutral-400 sobre blanco da un contraste de 2,5 y la norma de
+                accesibilidad pide 4,5 para texto pequeño: era ilegible para
+                quien no ve bien, y en un móvil a pleno sol para cualquiera.
+                neutral-500 llega a 4,6 y se sigue viendo como texto
+                secundario. */}
+            <p className="mt-2 text-center text-xs text-neutral-500">
               Nuestros muebles — el color se aplica al instante en cada producto.
             </p>
           </div>
