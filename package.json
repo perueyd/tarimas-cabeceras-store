@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "fotos": "node scripts/elegir-fotos.mjs",
     "test": "node --test \"pruebas/*.test.js\"",
-    "verificar": "npm test && npm run build"
+    "verificar": "npm test && npm run build",
+    "revisar-tienda": "node scripts/revisar-tienda.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.6.1",

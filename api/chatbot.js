@@ -10,7 +10,12 @@ const groq = new Groq({
 // la respuesta pasa a ser un error 404/400 aunque la clave sea correcta.
 // Si algún día el chat deja de responder, revisa https://console.groq.com/docs/models
 // y cambia este valor (o define GROQ_MODEL en las variables de Vercel).
-const MODELO = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+// Groq apagó llama-3.3-70b-versatile el 16 de agosto de 2026 para las cuentas
+// gratuitas y de desarrollo. Los dos asistentes llevaban caídos desde entonces
+// devolviendo "no está disponible ahora", y nadie se enteró: el cliente solo
+// veía un bot que no contestaba. Lo cazó 'npm run revisar-tienda'.
+// Este es el reemplazo que recomienda el propio Groq.
+const MODELO = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 // El texto de instrucciones ya no vive aqui: se arma en cada consulta desde
 // el catalogo real (precios, colores, tamanos) y desde lo que el dueno escriba

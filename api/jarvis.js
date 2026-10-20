@@ -8,7 +8,12 @@ const groq = new Groq({
 });
 
 // Ver nota en api/chatbot.js: Groq retira modelos cada cierto tiempo.
-const MODELO = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+// Groq apagó llama-3.3-70b-versatile el 16 de agosto de 2026 para las cuentas
+// gratuitas y de desarrollo. Los dos asistentes llevaban caídos desde entonces
+// devolviendo "no está disponible ahora", y nadie se enteró: el cliente solo
+// veía un bot que no contestaba. Lo cazó 'npm run revisar-tienda'.
+// Este es el reemplazo que recomienda el propio Groq.
+const MODELO = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 const SYSTEM_PROMPT = `Eres JARVIS, el asistente PRO del panel admin de E|D Espacios y Diseño.
 
