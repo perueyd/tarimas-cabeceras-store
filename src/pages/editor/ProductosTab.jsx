@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import EditorZonasColor from '../../components/EditorZonasColor.jsx';
-import { Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
+import { BorrarFoto, Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
 import { separarIGV } from '../../lib/igv.js';
 
 export function ProductosTab({ catalog, api, flash, adminKey }) {
@@ -763,6 +763,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
               className="w-full rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink"
             />
             <UploadButton adminKey={adminKey} onUploaded={(url) => set('baseImage', url)} />
+            <BorrarFoto url={p.baseImage} adminKey={adminKey} onBorrada={() => set('baseImage', '')} />
           </div>
         </label>
       </div>
@@ -1186,6 +1187,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                     className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                   />
                   <UploadButton adminKey={adminKey} onUploaded={(url) => setColorImage(colorId, url)} />
+                  <BorrarFoto url={p.colorImages?.[colorId]} adminKey={adminKey} onBorrada={() => setColorImage(colorId, '')} />
                 </div>
               );
             })}
@@ -1216,6 +1218,7 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                     className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-ink"
                   />
                   <UploadButton adminKey={adminKey} onUploaded={(url) => setSizeImage(s.id, url)} />
+                  <BorrarFoto url={p.sizeImages?.[s.id]} adminKey={adminKey} onBorrada={() => setSizeImage(s.id, '')} />
                   {/* Estas fotos también se repintan, así que también hay que
                       poder corregir qué parte cambia de color. Sin este botón
                       solo se podía corregir la foto principal y la galería: si

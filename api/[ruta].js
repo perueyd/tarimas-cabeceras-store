@@ -24,6 +24,8 @@ const RUTAS = {
   compartir: () => import('./_rutas/compartir.js'),
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
+  // El catálogo en el formato que leen Google, Meta y TikTok para anunciar.
+  feed: () => import('./_rutas/feed.js'),
   historial: () => import('./_rutas/historial.js'),
   // Lo que toca pagarle a la SUNAT y el margen, mes a mes.
   impuestos: () => import('./_rutas/impuestos.js'),

@@ -19,11 +19,52 @@ function sniffImageType(buf) {
 // Sube una foto al almacén de Vercel Blob y devuelve su URL pública.
 // Protegido con la clave de administrador — solo el dueño puede subir.
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
   const auth = await checkAdminAuth(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+
+  // DELETE: quita una foto del almacén.
+  //
+  // Hasta ahora solo se podía subir. Una foto reemplazada o subida por error
+  // se quedaba publicada en internet para siempre, con su dirección accesible
+  // a cualquiera que la tuviera, y gastando cuota — que es justo lo que agotó
+  // el plan gratuito en agosto.
+  if (req.method === 'DELETE') {
+    const url = s(req.query.url, 400);
+    // Solo se borra lo que es de esta tienda. Sin esta comprobación, bastaría
+    // mandar la dirección de otro almacén para que el servidor la borrara.
+    // Se comprueba con la URL ya interpretada en vez de con un patrón de
+    // texto: así no hay forma de colar algo como
+    // "https://malo.com/?x=.public.blob.vercel-storage.com/productos/".
+    let destino;
+    try {
+      destino = new URL(url);
+    } catch {
+      destino = null;
+    }
+    const esNuestra =
+      destino?.protocol === 'https:' &&
+      destino.hostname.endsWith('.public.blob.vercel-storage.com') &&
+      destino.pathname.startsWith('/productos/');
+
+    if (!esNuestra) {
+      return res.status(400).json({ error: 'Esa dirección no es una foto de esta tienda.' });
+    }
+    try {
+      const { del } = await import('@vercel/blob');
+      // Se borra también su versión chica: si se quedara, ocuparía cuota
+      // para siempre sin que nadie la pudiera encontrar ni usar.
+      const chica = url.endsWith('.webp') ? `${url.slice(0, -5)}-sm.webp` : url;
+      await del(url);
+      if (chica !== url) await del(chica).catch(() => {});
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error('No se pudo borrar la foto:', err?.message);
+      return res.status(503).json({ error: 'No se pudo borrar la foto. Intenta de nuevo.' });
+    }
+  }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return res.status(501).json({
       error: 'El almacén de fotos no está conectado. En Vercel: Storage → Create Database → Blob → conectar al proyecto → Redeploy.',

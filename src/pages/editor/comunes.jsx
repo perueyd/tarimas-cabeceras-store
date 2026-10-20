@@ -257,3 +257,59 @@ export function Field({ label, value, onChange, placeholder, type = 'text', disa
     </label>
   );
 }
+
+// Quitar una foto del almacén, no solo del campo.
+//
+// POR QUÉ: borrar la dirección del formulario dejaba la foto publicada en
+// internet para siempre — accesible para cualquiera que tuviera el enlace, y
+// gastando cuota del plan gratuito. Eso es justo lo que agotó el almacén en
+// agosto y dejó las subidas bloqueadas un mes.
+//
+// Solo aparece en las fotos que viven en NUESTRO almacén. Las del repositorio
+// no se pueden borrar desde aquí (hay que quitarlas del proyecto) y las de
+// otros sitios no son nuestras, así que en esos casos no se enseña nada en vez
+// de ofrecer un botón que no haría lo que promete.
+export function BorrarFoto({ url, adminKey, onBorrada }) {
+  const [borrando, setBorrando] = useState(false);
+
+  const esDelAlmacen = (() => {
+    try {
+      const u = new URL(url);
+      return u.hostname.endsWith('.public.blob.vercel-storage.com') && u.pathname.startsWith('/productos/');
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!esDelAlmacen) return null;
+
+  async function borrar() {
+    if (!window.confirm('¿Borrar esta foto del almacén?\n\nDeja de estar publicada en internet y no se puede deshacer.')) return;
+    setBorrando(true);
+    try {
+      const res = await fetch(`/api/upload?url=${encodeURIComponent(url)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminKey}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'No se pudo borrar.');
+      onBorrada?.();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setBorrando(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={borrar}
+      disabled={borrando}
+      title="Borrar del almacén"
+      className="shrink-0 rounded-lg border border-neutral-300 px-2.5 py-2 text-sm text-neutral-500 transition hover:border-red-400 hover:text-red-600 disabled:opacity-50"
+    >
+      {borrando ? '…' : '🗑'}
+    </button>
+  );
+}
