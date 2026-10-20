@@ -10,7 +10,8 @@
     "fotos": "node scripts/elegir-fotos.mjs",
     "test": "node --test \"pruebas/*.test.js\"",
     "verificar": "npm test && npm run build",
-    "revisar-tienda": "node scripts/revisar-tienda.mjs"
+    "revisar-tienda": "node scripts/revisar-tienda.mjs",
+    "estado": "node scripts/estado.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.6.1",

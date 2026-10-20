@@ -102,6 +102,68 @@ Las pestañas reciben un helper `api(method, resource, body)` — **úsalo**. Tr
 de ellas hacían `fetch` con `PUT` (que la API no acepta) y una clave de
 `localStorage` que no existe: guardaban en silencio sin guardar nada.
 
+## Comandos — empieza SIEMPRE por `npm run estado`
+
+```
+npm run estado          cómo está todo ahora: productos, funciones libres,
+                        pruebas, si los bots responden, qué falta.
+                        Léelo al empezar en vez de explorar archivos.
+npm run verificar       pruebas + compilación (20 segundos)
+npm test                solo las pruebas (1 segundo)
+npm run revisar-tienda  entra a la web publicada y comprueba 15 cosas
+npm run dev             tienda local en localhost:5173
+```
+
+Las pruebas viven en `pruebas/` y usan el probador que trae Node: **no añadas
+librerías de pruebas**. Cada una corresponde a un fallo que ya ocurrió de
+verdad; si añades una, explica en un comentario qué fallo evita.
+
+`pruebas/estructura.test.js` vigila las reglas que no se pueden romper (el tope
+de 12 funciones, que toda ruta esté registrada, que `_localdb.js` entienda los
+comandos de Redis que usa el código). Si cambias esas reglas, cambia también la
+prueba — no la borres.
+
+GitHub Actions repite `npm test` y `npm run build` en cada subida
+(`.github/workflows/verificar.yml`).
+
+## Copias de seguridad del catálogo
+
+Los productos se perdieron una vez de Redis y hubo que dictarlos de nuevo uno
+por uno. Ahora, antes de la PRIMERA escritura de cada día, se guarda una foto
+completa del catálogo (`api/_respaldos.js`), y se conservan las últimas 7.
+
+**Para guardar el catálogo usa `getCatalogParaEditar()`**, no
+`getCatalog({ paraEditar: true })`: la primera hace las dos cosas en el orden
+correcto — lee protegido y respalda ANTES del cambio.
+
+Si añades una lista nueva al catálogo, añádela también a `PARTES` en
+`api/_respaldos.js` o las copias quedarán incompletas sin avisar (hay una
+prueba que lo comprueba).
+
+## Vencimientos: `src/lib/vencimiento.js`
+
+`vencida()` vive ahí porque el servidor Y el navegador necesitan la misma
+respuesta. Cuando no coincidían, quien compraba desde el extranjero veía un
+precio en pantalla y el cobro se le rechazaba con "el precio cambió".
+
+## Títulos y datos estructurados: `src/lib/meta.js`
+
+La tienda es una sola página, así que el título lo pone `usarMeta()` en cada
+pantalla. `datosDeProducto()` y `datosDelNegocio()` generan lo que Google lee
+para mostrar precios en los resultados. **La valoración media solo se incluye
+si hay reseñas reales** — inventarla es publicidad engañosa (Ley 29571).
+
+## El editor del catálogo está partido
+
+`src/pages/CatalogEditor.jsx` solo decide qué pestaña mostrar (176 líneas). El
+contenido vive en `src/pages/editor/`: `comunes.jsx` (lo que usan todas),
+`ProductosTab.jsx`, `BasicosTab.jsx`, `TextosTab.jsx`, `PortadaTab.jsx`.
+Antes era un solo archivo de 3.360 líneas.
+
+La navegación del panel usa `PestanasAgrupadas`: cuatro grupos en vez de 30
+pestañas planas. **Lo urgente sube al botón del grupo** (en rojo), así que
+agrupar no esconde un reclamo con plazo legal.
+
 ## Verificar antes de dar algo por hecho
 
 `npm run build` no basta para lo que se ve. Usa el navegador de la vista previa
