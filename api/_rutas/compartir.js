@@ -58,8 +58,26 @@ export default async function handler(req, res) {
   }
 
   const titulo = producto ? `${producto.name} — ${nombreTienda}` : nombreTienda;
-  const descripcion = producto?.shortDescription || 'Tarimas, cabeceras y muebles a medida en Lima. Elige tu tamaño y color.';
+  const descripcionBase = producto?.shortDescription || 'Tarimas, cabeceras y muebles a medida en Lima. Elige tu tamaño y color.';
   const imagen = producto ? imagenParaCompartir(producto.baseImage, respaldo) : respaldo;
+
+  // El precio de entrada. Facebook e Instagram lo enseñan en la vista previa
+  // del enlace, y un enlace que ya dice cuánto cuesta se abre mucho más que
+  // uno que obliga a entrar para averiguarlo.
+  //
+  // Se usa el MÁS BARATO de todas las medidas y se marca como "desde" en el
+  // título, porque anunciar un precio y cobrar otro es publicidad engañosa
+  // (Ley 29571).
+  const precios = Object.values(producto?.sizePricing || {})
+    .map(Number)
+    .filter((n) => n > 0);
+  const desde = precios.length ? Math.min(...precios) : null;
+
+  // El precio va al principio de la descripción: WhatsApp corta el texto a las
+  // pocas palabras, así que lo importante tiene que ir delante o no se lee.
+  const descripcion = desde
+    ? `Desde S/ ${desde}. ${descripcionBase}`
+    : descripcionBase;
 
   // Se guarda en caché un rato: los robots piden lo mismo varias veces.
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -78,6 +96,10 @@ export default async function handler(req, res) {
 <meta property="og:title" content="${escapar(titulo)}">
 <meta property="og:description" content="${escapar(descripcion)}">
 <meta property="og:image" content="${escapar(imagen)}">
+${desde ? `<meta property="product:price:amount" content="${desde.toFixed(2)}">
+<meta property="product:price:currency" content="PEN">
+<meta property="og:price:amount" content="${desde.toFixed(2)}">
+<meta property="og:price:currency" content="PEN">` : ''}
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="${escapar(destino)}">
