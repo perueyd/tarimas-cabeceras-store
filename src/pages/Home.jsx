@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { usarMeta } from '../lib/meta.js';
 
 export default function Home() {
   const { categories, products, storeConfig, sizes } = useCatalog();
@@ -57,6 +58,16 @@ export default function Home() {
     setSearchParams(params);
   }
   const selectTab = (id) => irA({ categoria: id });
+
+  // "Cabeceras a tu medida" en vez del mismo título para todo el catálogo:
+  // alguien que busca "cabeceras Lima" debe encontrar ESTA página, no la
+  // portada genérica.
+  const nombreCategoria = tab === 'todos' ? 'Muebles' : categories.find((c) => c.id === tab)?.label || 'Muebles';
+  const nombreMedida = plaza === 'todas' ? '' : sizes.find((s) => s.id === plaza)?.label || '';
+  usarMeta({
+    titulo: `${nombreCategoria}${nombreMedida ? ` ${nombreMedida}` : ''} a tu medida`,
+    descripcion: `${nombreCategoria} a medida en Perú${nombreMedida ? ` para cama ${nombreMedida}` : ''}. Elige tamaño y color, y visualiza el cambio al instante. Envíos a todo el Perú.`,
+  });
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">

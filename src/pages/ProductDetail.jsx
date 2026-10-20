@@ -8,6 +8,7 @@ import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
+import { datosDeProducto, usarMeta } from '../lib/meta.js';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fotoDeGaleria, avisoDeVariante } from '../lib/variantesFoto.js';
@@ -162,6 +163,42 @@ export default function ProductDetail() {
   // Imagen según color y tamaño: foto propia del color, si no la del tamaño,
   // si no la imagen base teñida (ver resolveProductImage).
   const img = product ? resolveProductImage(product, selectedColor?.id, sizeId) : null;
+
+  // Título, descripción y datos estructurados de ESTA ficha. Sin esto, en
+  // Google y en los marcadores la MILÁN y la VIENA se veían con el mismo
+  // título genérico, y Google no tenía forma de saber que son productos con
+  // precio.
+  // Un producto sin ninguna medida con precio daría Infinity, y el título
+  // acabaría diciendo "desde S/ Infinity". Por eso el 0 de reserva.
+  const preciosDelProducto = product
+    ? availableSizes.map((s) => product.sizePricing[s.id]).filter((n) => n > 0)
+    : [];
+  const precioDesde = preciosDelProducto.length ? Math.min(...preciosDelProducto) : 0;
+
+  const datosProducto = useMemo(
+    () =>
+      product
+        ? datosDeProducto({
+            producto: product,
+            precios: availableSizes.map((s) => ({ precio: product.sizePricing[s.id] })),
+            imagen: img?.src,
+            storeConfig,
+          })
+        : null,
+    [product, availableSizes, img?.src, storeConfig]
+  );
+
+  usarMeta({
+    // "desde" es el precio de la medida MÁS BARATA, no el de la que esté
+    // seleccionada: si no, el título cambiaría al tocar los botones de medida
+    // y en Google aparecería el precio de la King como si fuera el de entrada.
+    titulo: product
+      ? `${product.name}${precioDesde > 0 ? ` — desde S/ ${precioDesde}` : ''}`
+      : undefined,
+    descripcion: product?.shortDescription,
+    imagen: img?.src,
+    datos: datosProducto,
+  });
 
   // Todas las "vistas" del modelo: la principal (cambia de color) + las fotos
   // de galería que el dueño haya subido — algunas pueden también cambiar de
