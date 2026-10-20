@@ -31,6 +31,9 @@ const RUTAS = {
   ofertas: () => import('./_rutas/ofertas.js'),
   promo: () => import('./_rutas/promo.js'),
   reclamos: () => import('./_rutas/reclamos.js'),
+  // Copias de seguridad del catálogo. Existe porque los productos se perdieron
+  // una vez y hubo que dictarlos de nuevo.
+  respaldos: () => import('./_rutas/respaldos.js'),
 };
 
 export default async function handler(req, res) {

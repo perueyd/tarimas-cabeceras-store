@@ -3,6 +3,7 @@
 // Si Redis no tiene datos todavía (o no está conectado), se usa el catálogo
 // estático de src/data/catalog.js como respaldo — la tienda nunca se rompe.
 import { hasDB, redisCmd } from './_store.js';
+import { respaldar } from './_respaldos.js';
 import { categories, colors, products, showcase, sizes, storeConfig } from '../src/data/catalog.js';
 
 const KEYS = {
@@ -87,4 +88,39 @@ export async function saveList(resourceKey, list) {
 
 export async function saveConfig(config) {
   await setJSON(KEYS.config, config);
+}
+
+// Úsalo SIEMPRE antes de guardar, en lugar de getCatalog({ paraEditar: true }).
+// Hace dos cosas en el orden correcto: lee el catálogo (y lanza si la base no
+// respondió, para no guardar encima de nada) y guarda una copia de seguridad de
+// cómo estaba ANTES del cambio. Ese orden importa: si la edición que viene a
+// continuación destruye algo, la copia ya tiene la versión buena.
+export async function getCatalogParaEditar() {
+  const catalog = await getCatalog({ paraEditar: true });
+  await respaldar(catalog);
+  return catalog;
+}
+
+// Devuelve el catálogo a como estaba en una copia de seguridad.
+//
+// Solo escribe las partes que la copia realmente trae: una copia vieja a la que
+// le falte una lista nueva no debe dejar esa lista en blanco. Y si no trae
+// productos, no se restaura nada — sería cambiar una tienda viva por una vacía.
+export async function restaurarCatalogo(foto) {
+  if (!foto || !Array.isArray(foto.products) || foto.products.length === 0) {
+    throw new Error('Esa copia no tiene productos. No se restauró nada.');
+  }
+
+  // Antes de pisar lo que hay, se guarda una copia del estado actual: si el
+  // dueño restaura por error, lo de ahora tampoco se pierde.
+  await respaldar(await getCatalog({ paraEditar: true }), { forzar: true });
+
+  const aLista = { products: 'products', categories: 'categories', colors: 'colors', sizes: 'sizes', showcase: 'showcase' };
+  for (const [parte, listKey] of Object.entries(aLista)) {
+    if (Array.isArray(foto[parte])) await saveList(listKey, foto[parte]);
+  }
+  if (foto.storeConfig && typeof foto.storeConfig === 'object') {
+    await saveConfig(foto.storeConfig);
+  }
+  return getCatalog();
 }

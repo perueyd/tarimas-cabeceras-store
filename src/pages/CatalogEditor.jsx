@@ -9,6 +9,7 @@ import IntegrationsTab from './IntegrationsTab.jsx';
 import SecurityTab from './SecurityTab.jsx';
 import GarantiasTab from './GarantiasTab.jsx';
 import ChatbotTab from './ChatbotTab.jsx';
+import RespaldosTab from './RespaldosTab.jsx';
 import VistaPrevia from '../components/VistaPrevia.jsx';
 import EditorZonasColor from '../components/EditorZonasColor.jsx';
 import { comprimirImagen, formatearPeso } from '../lib/comprimirImagen.js';
@@ -335,6 +336,7 @@ export default function CatalogEditor({ adminKey, irA }) {
           { id: 'faq', label: 'Preguntas' },
           { id: 'legal', label: 'Legal' },
           { id: 'encuesta', label: 'Encuesta' },
+          { id: 'respaldos', label: 'Copias de seguridad' },
         ].map((t) => (
           <button
             key={t.id}
@@ -365,6 +367,7 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'vitrina' && <VitrinaTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'legal' && <LegalTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'encuesta' && <EncuestaTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'respaldos' && <RespaldosTab catalog={catalog} adminKey={adminKey} flash={flash} />}
       </div>
 
       {/* Vista previa pegada al lado: en pantallas grandes se queda fija
