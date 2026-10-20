@@ -200,18 +200,28 @@ export default function Landing() {
               <span className="ml-2 text-sm text-neutral-600 font-medium">{colorSeguro.label}</span>
             </div>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
+            {/* UNA sola llamada a la acción dominante.
+
+                Antes había dos botones del mismo peso — mismo tamaño, misma
+                tipografía, uno negro y otro con borde grueso — y ambos
+                llevaban al catálogo. Dos opciones que valen lo mismo no
+                ayudan a elegir: hacen dudar. Quien duda, no pulsa.
+
+                El atajo a la categoría no se quita, pasa a ser un enlace
+                discreto: sigue ahí para quien ya sabe lo que busca, sin
+                competir con el botón principal. */}
+            <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               <CtaLink
                 to={landing.cta1Url}
-                className="rounded-lg bg-neutral-900 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-black active:scale-95 sm:px-8"
+                className="w-full rounded-lg bg-neutral-900 px-8 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-black active:scale-95 sm:w-auto"
               >
                 {landing.cta1Label}
               </CtaLink>
               <CtaLink
                 to={cta2.url}
-                className="rounded-lg border-2 border-neutral-300 px-6 py-3 text-center text-sm font-semibold text-neutral-900 capitalize transition hover:border-neutral-900 hover:bg-neutral-50 active:scale-95 sm:px-8"
+                className="text-sm font-medium capitalize text-neutral-600 underline-offset-4 transition hover:text-ink hover:underline"
               >
-                {cta2.label}
+                {cta2.label} →
               </CtaLink>
             </div>
           </div>

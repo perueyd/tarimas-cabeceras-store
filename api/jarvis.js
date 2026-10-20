@@ -2,6 +2,7 @@ import Groq from 'groq-sdk';
 import { checkAdminAuth } from './_auth.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { HERRAMIENTAS, INSTRUCCIONES_ACCIONES } from './_jarvis-acciones.js';
+import { conModeloDisponible, listaDeModelos } from './_modelo-ia.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -13,7 +14,8 @@ const groq = new Groq({
 // devolviendo "no está disponible ahora", y nadie se enteró: el cliente solo
 // veía un bot que no contestaba. Lo cazó 'npm run revisar-tienda'.
 // Este es el reemplazo que recomienda el propio Groq.
-const MODELO = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+// La lista de modelos y el reintento viven en api/_modelo-ia.js: si Groq
+// apaga uno, se prueba el siguiente sin que el dueño tenga que enterarse.
 
 const SYSTEM_PROMPT = `Eres JARVIS, el asistente PRO del panel admin de E|D Espacios y Diseño.
 
@@ -164,7 +166,8 @@ export default async function handler(req, res) {
 
   const peticion = {
     messages: [{ role: 'system', content: instrucciones }, ...limpios],
-    model: MODELO,
+    // El modelo NO se fija aquí: lo elige conModeloDisponible() más abajo,
+    // probando la lista hasta dar con uno que Groq no haya apagado.
     // Las herramientas son lo que le permite EJECUTAR de verdad en vez de
     // decir "ya te llevé" sin haber hecho nada.
     tools: HERRAMIENTAS,
@@ -183,7 +186,9 @@ export default async function handler(req, res) {
       // La conexión con Groq se abre ANTES de mandar cabeceras: si falla aquí
       // (clave mala, modelo retirado, límite), todavía se puede responder con
       // un error normal, que es lo que el navegador sabe interpretar.
-      const stream = await groq.chat.completions.create({ ...peticion, stream: true });
+      const { resultado: stream } = await conModeloDisponible((modelo) =>
+        groq.chat.completions.create({ ...peticion, model: modelo, stream: true })
+      );
 
       // El modelo hará UNA de dos cosas: escribir texto, o pedir herramientas
       // (para abrir una sección, consultar ventas...). Hasta saber cuál, no se
@@ -246,7 +251,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ reply: '' });
     }
 
-    const chatCompletion = await groq.chat.completions.create(peticion);
+    const { resultado: chatCompletion } = await conModeloDisponible((modelo) =>
+      groq.chat.completions.create({ ...peticion, model: modelo })
+    );
     const mensaje = chatCompletion.choices[0]?.message || {};
 
     // Si el modelo decidió usar herramientas, se devuelven al navegador para
@@ -276,7 +283,7 @@ export default async function handler(req, res) {
     }
     if (error.status === 404 || error.status === 400) {
       return res.status(503).json({
-        error: `Groq ya no ofrece el modelo "${MODELO}". Actualiza la constante MODELO en api/jarvis.js con uno de https://console.groq.com/docs/models`,
+        error: `Groq ya no ofrece ninguno de estos modelos: ${listaDeModelos().join(", ")}. Elige uno nuevo en https://console.groq.com/docs/models y actualiza api/_modelo-ia.js`,
       });
     }
 

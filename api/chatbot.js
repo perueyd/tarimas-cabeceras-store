@@ -1,6 +1,7 @@
 import Groq from 'groq-sdk';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { construirConocimiento } from './_bot-conocimiento.js';
+import { conModeloDisponible, listaDeModelos } from './_modelo-ia.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -15,7 +16,7 @@ const groq = new Groq({
 // devolviendo "no está disponible ahora", y nadie se enteró: el cliente solo
 // veía un bot que no contestaba. Lo cazó 'npm run revisar-tienda'.
 // Este es el reemplazo que recomienda el propio Groq.
-const MODELO = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+// La lista de modelos y el reintento viven en api/_modelo-ia.js.
 
 // El texto de instrucciones ya no vive aqui: se arma en cada consulta desde
 // el catalogo real (precios, colores, tamanos) y desde lo que el dueno escriba
@@ -66,19 +67,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: await construirConocimiento(),
-        },
-        ...limpios,
-      ],
-      model: MODELO,
-      max_tokens: 512,
-      temperature: 0.6,
-      top_p: 0.9,
-    });
+    const conocimiento = await construirConocimiento();
+    // Si Groq apaga el modelo, se prueba el siguiente de la lista en esta
+    // misma petición: el cliente recibe su respuesta igual y en el log queda
+    // anotado cuál murió. Ver api/_modelo-ia.js.
+    const { resultado: chatCompletion } = await conModeloDisponible((modelo) =>
+      groq.chat.completions.create({
+        messages: [{ role: 'system', content: conocimiento }, ...limpios],
+        model: modelo,
+        max_tokens: 512,
+        temperature: 0.6,
+        top_p: 0.9,
+      })
+    );
 
     const reply = chatCompletion.choices[0]?.message?.content || '';
 
@@ -96,10 +97,11 @@ export default async function handler(req, res) {
         error: 'El asistente no está configurado todavía. Escríbenos por WhatsApp: +51951278010',
       });
     }
-    // 404/400 casi siempre significa que Groq retiró el modelo: hay que
-    // actualizar MODELO arriba. Se avisa en el log para poder diagnosticarlo.
+    // Llegar aquí con un 404/400 significa que se probaron TODOS los modelos
+    // de la lista y Groq los ha retirado todos. Antes bastaba con que cayera
+    // uno; ahora esto es de verdad excepcional, y por eso el log lo nombra.
     if (error.status === 404 || error.status === 400) {
-      console.error(`El modelo "${MODELO}" no está disponible en Groq. Actualízalo en api/chatbot.js.`);
+      console.error(`Ningún modelo de IA respondió. Probados: ${listaDeModelos().join(', ')}.`);
       return res.status(503).json({
         error: 'El asistente no está disponible ahora. Escríbenos por WhatsApp: +51951278010',
       });
