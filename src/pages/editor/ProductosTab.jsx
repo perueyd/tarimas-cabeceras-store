@@ -419,6 +419,23 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
 //   { Material: 'Madera' } · [{label,value}] · { 0:{label,value}, 1:{...} }
 // Sin esto, `p.specs.map` revienta y el panel entero se queda en blanco al
 // abrir ese producto.
+// Al escribir un costo, enseña en el acto qué margen deja ese precio — ya
+// descontado el IGV, que nunca fue del negocio. Sin esto, el dueño teclea un
+// número y no sabe si está ganando o perdiendo.
+function costoAviso(precio, costo) {
+  if (costo == null || costo === '' || !precio) return null;
+  const base = Number(precio) / 1.18; // el precio mostrado incluye IGV
+  const margen = base - Number(costo);
+  const pct = Math.round((margen / base) * 1000) / 10;
+  const malo = margen <= 0;
+  return (
+    <span className={`mt-1 block text-[11px] ${malo ? 'text-red-600' : 'text-neutral-500'}`}>
+      {malo ? '⚠ Pierdes ' : 'Margen '}
+      S/ {Math.abs(Math.round(margen * 100) / 100)} ({pct}%) · sin IGV
+    </span>
+  );
+}
+
 function normalizarSpecsForm(specs) {
   const bruto = Array.isArray(specs) ? specs : specs && typeof specs === 'object' ? Object.entries(specs) : [];
   return bruto
@@ -470,6 +487,17 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
       if (value === '') delete op[sizeId];
       else op[sizeId] = Number(value);
       return { ...prev, offerPricing: op };
+    });
+  }
+  // Lo que al dueño le cuesta FABRICAR esta medida (tela, madera, mano de
+  // obra). No se le muestra nunca al cliente: solo alimenta el margen de la
+  // pestaña "Impuestos y margen".
+  function setCosto(sizeId, value) {
+    setP((prev) => {
+      const c = { ...(prev.costoPorMedida || {}) };
+      if (value === '') delete c[sizeId];
+      else c[sizeId] = Number(value);
+      return { ...prev, costoPorMedida: c };
     });
   }
   function toggleColor(colorId) {
@@ -953,6 +981,20 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                     </span>
                   </p>
                 )}
+                <label className="mt-2 block text-xs">
+                  <span className="mb-1 block text-neutral-500">
+                    Lo que te cuesta hacerla (opcional)
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={p.costoPorMedida?.[s.id] ?? ''}
+                    onChange={(e) => setCosto(s.id, e.target.value)}
+                    placeholder="Solo tú lo ves"
+                    className="w-full rounded-lg border border-neutral-300 px-2 py-1.5 outline-none focus:border-ink"
+                  />
+                  {costoAviso(regular, p.costoPorMedida?.[s.id])}
+                </label>
                 <label className="mt-2 block text-xs">
                   <span className="mb-1 block text-neutral-500">Medida de este mueble (opcional)</span>
                   <input

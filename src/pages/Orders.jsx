@@ -11,6 +11,7 @@ import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
 import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
 import { urlSeguimiento } from '../data/sitio.js';
+import ImpuestosTab from './ImpuestosTab.jsx';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -435,6 +436,7 @@ export default function Orders() {
               { id: 'pedidos', label: 'Pedidos', aviso: porVerificar.length, urgente: true },
               { id: 'carritos', label: 'Carritos abandonados', aviso: carritos.length },
               { id: 'reclamos', label: 'Reclamos', aviso: reclamosPendientes.length, urgente: true },
+              { id: 'impuestos', label: 'Impuestos y margen' },
             ],
           },
           {
@@ -761,6 +763,8 @@ export default function Orders() {
 
       {tab === 'historial' && <HistorialCodigosTab adminKey={key} />}
 
+      {tab === 'impuestos' && <ImpuestosTab adminKey={key} onIr={() => setTab('editar')} />}
+
       {tab === 'editar' && <CatalogEditor adminKey={key} irA={subEditor} />}
 
       {/* JARVIS acompaña TODO el panel, no solo la pestaña de edición. Va aquí
@@ -777,6 +781,7 @@ export default function Orders() {
 const SECCIONES_VALIDAS = new Set([
   'resumen', 'pedidos', 'resenas', 'carritos', 'reclamos', 'suscriptores',
   'encuestas', 'ofertas', 'promos', 'descAuto', 'analytics', 'historial', 'editar',
+  'impuestos',
 ]);
 
 // Campo "Referencia (WSP)" de cada pedido.

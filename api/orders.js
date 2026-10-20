@@ -6,6 +6,7 @@ import { checkAdminAuth } from './_auth.js';
 import { agregarAlHistorial } from './_historial.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
+import { separarIGV } from './_impuestos.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
@@ -71,6 +72,11 @@ export default async function handler(req, res) {
       estado: 'Pago por verificar',
       metodo,
       monto: montoFinal,
+      // El desglose se guarda CON el pedido, no se recalcula al mirarlo.
+      // Si mañana cambia la tasa del IGV, los pedidos viejos deben seguir
+      // mostrando el IGV que de verdad se les cobró, no el de hoy.
+      base: separarIGV(montoFinal).base,
+      igv: separarIGV(montoFinal).igv,
       promoCode,
       promoDescuento,
       nombre,

@@ -25,6 +25,8 @@ const RUTAS = {
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
   historial: () => import('./_rutas/historial.js'),
+  // Lo que toca pagarle a la SUNAT y el margen, mes a mes.
+  impuestos: () => import('./_rutas/impuestos.js'),
   'derechos-arco': () => import('./_rutas/derechos-arco.js'),
   'jarvis-accion': () => import('./_rutas/jarvis-accion.js'),
   newsletter: () => import('./_rutas/newsletter.js'),
