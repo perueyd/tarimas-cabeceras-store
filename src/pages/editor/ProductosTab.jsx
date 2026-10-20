@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import EditorZonasColor from '../../components/EditorZonasColor.jsx';
 import { Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
+import { separarIGV } from '../../lib/igv.js';
 
 export function ProductosTab({ catalog, api, flash, adminKey }) {
   const [editando, setEditando] = useState(null); // producto en edición, o null
@@ -424,7 +425,10 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
 // número y no sabe si está ganando o perdiendo.
 function costoAviso(precio, costo) {
   if (costo == null || costo === '' || !precio) return null;
-  const base = Number(precio) / 1.18; // el precio mostrado incluye IGV
+  // Se usa la MISMA cuenta que la pestaña de impuestos. Antes aquí había un
+  // "/ 1.18" escrito a mano: si la tasa cambiara, el panel enseñaría un margen
+  // y la declaración otro, y nadie sabría cuál creer.
+  const { base } = separarIGV(precio);
   const margen = base - Number(costo);
   const pct = Math.round((margen / base) * 1000) / 10;
   const malo = margen <= 0;

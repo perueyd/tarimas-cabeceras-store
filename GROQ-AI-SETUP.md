@@ -16,7 +16,10 @@ Acabas de desplegar **dos asistentes de IA completamente gratis** en tu tienda:
 
 **Límites gratis:**
 - 25 peticiones por minuto
-- Modelo: `mixtral-8x7b-32768` (muy rápido)
+- Modelo: el que diga `api/_modelo-ia.js` (hoy `openai/gpt-oss-120b`).
+  **No lo escribas aquí**: Groq retira modelos cada cierto tiempo y este
+  documento ya se quedó viejo una vez. El código prueba varios en orden, así
+  que si apagan uno los asistentes siguen funcionando.
 - Costo: **$0** (para siempre en tier gratuito)
 
 ---
@@ -188,7 +191,7 @@ ChatbotWidget.jsx (React component)
     ↓
 POST /api/chatbot (Vercel serverless)
     ↓
-Groq API (mixtral-8x7b-32768)
+Groq API (ver api/_modelo-ia.js)
     ↓
 Respuesta en 50-200ms ⚡
     ↓

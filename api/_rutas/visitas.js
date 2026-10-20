@@ -25,18 +25,14 @@ import { hasDB, redisCmd } from '../_store.js';
 import { checkAdminAuth } from '../_auth.js';
 import { s } from '../_pricing.js';
 import { clientIp, rateLimitRequest } from '../_ratelimit.js';
+import { diaLima } from '../../src/lib/lima.js';
 
 const DIAS_QUE_SE_GUARDAN = 90;
 const SEGUNDOS_90_DIAS = DIAS_QUE_SE_GUARDAN * 24 * 60 * 60;
 
-// Lima va 5 horas por detrás de UTC y Vercel corre en UTC. Sin esto, todo lo
-// que pasara después de las 7 de la tarde contaría como del día siguiente y
-// los números no cuadrarían con lo que el dueño ve en su día.
-const MS_LIMA = -5 * 60 * 60 * 1000;
-
-function diaLima(fecha = new Date()) {
-  return new Date(fecha.getTime() + MS_LIMA).toISOString().slice(0, 10);
-}
+// El día en hora de Lima: sin esto, todo lo que pasara después de las 7 de la
+// tarde contaría como del día siguiente y los números no cuadrarían con lo que
+// el dueño ve en su día. La cuenta vive en src/lib/lima.js.
 
 const claveDia = (dia) => `visitas:${dia}`;
 

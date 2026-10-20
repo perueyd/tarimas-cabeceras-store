@@ -18,6 +18,7 @@ import { listOrders } from '../_store.js';
 import { getCatalog } from '../_catalog.js';
 import { checkAdminAuth } from '../_auth.js';
 import { avisoLimiteRenta, resumenPorMes, TASA_IGV, UIT } from '../_impuestos.js';
+import { anioLima } from '../../src/lib/lima.js';
 
 export default async function handler(req, res) {
   const auth = await checkAdminAuth(req);
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
 
     // Lo acumulado del año corriente, que es lo que decide si el pago a cuenta
     // sigue siendo el 1%.
-    const anio = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 4);
+    const anio = anioLima();
     const baseDelAnio = meses
       .filter((m) => m.mes.startsWith(anio))
       .reduce((suma, m) => suma + m.base, 0);

@@ -19,6 +19,7 @@
 // La cuenta del IGV vive en src/lib/igv.js porque el panel también la
 // necesita; se re-exporta para no romper a quien la importa desde aquí.
 import { separarIGV } from '../src/lib/igv.js';
+import { mesLima } from '../src/lib/lima.js';
 export { agregarIGV, separarIGV, TASA_IGV } from '../src/lib/igv.js';
 
 export const UIT = 5500; // UIT 2026 (D.S. 301-2025-EF)
@@ -45,12 +46,9 @@ export function esVentaConfirmada(pedido) {
 // El mes de un pedido EN HORA DE LIMA. Con la fecha en UTC, todo lo vendido
 // después de las 7 de la tarde del último día del mes se iría al mes
 // siguiente, y la declaración no cuadraría con las ventas reales.
-const MS_LIMA = -5 * 60 * 60 * 1000;
-
+// La cuenta vive en src/lib/lima.js, compartida con el resto del sitio.
 export function mesDeLima(fechaISO) {
-  const f = new Date(fechaISO);
-  if (Number.isNaN(f.getTime())) return null;
-  return new Date(f.getTime() + MS_LIMA).toISOString().slice(0, 7); // AAAA-MM
+  return mesLima(fechaISO);
 }
 
 /**

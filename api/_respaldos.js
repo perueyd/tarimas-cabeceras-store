@@ -17,6 +17,7 @@
 // cada foto completa en su propia clave. Así listar las copias en el panel no
 // descarga 700 KB — solo unas pocas líneas.
 import { hasDB, redisCmd } from './_store.js';
+import { diaLima } from '../src/lib/lima.js';
 
 const CLAVE_INDICE = 'catalog:respaldos';
 const PREFIJO_FOTO = 'catalog:respaldo:';
@@ -27,14 +28,10 @@ const CUANTAS_GUARDAR = 7;
 // sobrevive, y es justo lo que es fácil olvidar.
 const CLAVE_DESCARGA = 'catalog:respaldos:ultima-descarga';
 
-// Lima va 5 horas por detrás de UTC y Vercel corre en UTC. Sin esto, "el
-// respaldo de hoy" cambiaba de día a las 7 de la noche hora de Perú — el mismo
-// error que ya había costado que las ofertas murieran antes de tiempo.
-const MS_LIMA = -5 * 60 * 60 * 1000;
-
-export function diaLima(fecha = new Date()) {
-  return new Date(fecha.getTime() + MS_LIMA).toISOString().slice(0, 10);
-}
+// El día en hora de Lima. Sin esto, "el respaldo de hoy" cambiaba de día a
+// las 7 de la noche hora de Perú — el mismo error que ya había costado que
+// las ofertas murieran antes de tiempo. La cuenta vive en src/lib/lima.js.
+export { diaLima } from '../src/lib/lima.js';
 
 // Las partes del catálogo que se respaldan. Es TODO lo que vive en Redis: si
 // mañana se añade otra lista al catálogo, hay que añadirla aquí también, o la
