@@ -1,13 +1,17 @@
-import { useMemo, useState } from 'react';
+import { Suspense, lazy, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCatalog, resolveProductImage } from '../context/CatalogContext.jsx';
 import ProductImage from '../components/ProductImage.jsx';
-import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fichaDeVariante } from '../lib/variantesFoto.js';
 import { fotoChica } from '../lib/fotoChica.js';
 import { trackAddToCart } from '../lib/analytics.js';
+
+// La cámara de realidad aumentada pesa, y la mayoría de visitas no la abre.
+// Se descarga sola la primera vez que alguien pulsa "Ver en mi pared", en
+// vez de viajar en el paquete que descarga todo el que entra a la tienda.
+const VerEnMiPared = lazy(() => import('../components/VerEnMiPared.jsx'));
 
 // "Arma tu dormitorio": elegir cabecera + tarima + colchón de una sola vez.
 //
@@ -498,15 +502,19 @@ export default function ArmarDormitorio() {
         </section>
       )}
 
-      {cabeceraElegida && (
-        <VerEnMiPared
-          abierto={enMiPared}
-          onCerrar={() => setEnMiPared(false)}
-          imagenSrc={fotoCabecera.src}
-          colorHex={colorDe(cabeceraElegida)?.hex}
-          tintable={fotoCabecera.tintable}
-          nombre={cabeceraElegida.name}
-        />
+      {/* Igual que en la ficha de producto: se monta solo al abrir, para que
+          su código no viaje con la página. */}
+      {cabeceraElegida && enMiPared && (
+        <Suspense fallback={null}>
+          <VerEnMiPared
+            abierto={enMiPared}
+            onCerrar={() => setEnMiPared(false)}
+            imagenSrc={fotoCabecera.src}
+            colorHex={colorDe(cabeceraElegida)?.hex}
+            tintable={fotoCabecera.tintable}
+            nombre={cabeceraElegida.name}
+          />
+        </Suspense>
       )}
 
       {/* Cómo encajan las tres piezas. Va aquí porque es justo la duda que

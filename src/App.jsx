@@ -4,11 +4,9 @@ import { initAnalytics, trackPageView } from './lib/analytics.js';
 import Header from './components/Header.jsx';
 import Footer from './components/Footer.jsx';
 import WhatsAppButton from './components/WhatsAppButton.jsx';
-import ChatbotWidget from './components/ChatbotWidget.jsx';
 import AvisoCookies from './components/AvisoCookies.jsx';
 import Landing from './pages/Landing.jsx';
 import Home from './pages/Home.jsx';
-import ArmarDormitorio from './pages/ArmarDormitorio.jsx';
 import ProductDetail from './pages/ProductDetail.jsx';
 import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
@@ -19,6 +17,13 @@ import ThankYou from './pages/ThankYou.jsx';
 // antes de poder ver la portada. Con datos móviles en Perú eso son segundos de
 // espera por código que un comprador nunca ejecuta.
 const Orders = lazy(() => import('./pages/Orders.jsx'));
+
+// Por la misma razón, estos dos tampoco viajan en el paquete inicial:
+//   · el armador de dormitorio es una página entera que la mayoría no abre;
+//   · el chat aparece abajo a la derecha, pero quien no lo toca no necesita
+//     su código para ver la portada.
+const ArmarDormitorio = lazy(() => import('./pages/ArmarDormitorio.jsx'));
+const ChatbotWidget = lazy(() => import('./components/ChatbotWidget.jsx'));
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
 import LegalPage from './pages/LegalPage.jsx';
@@ -91,7 +96,9 @@ export default function App() {
       </div>
       <Footer />
       <WhatsAppButton />
-      <ChatbotWidget />
+      <Suspense fallback={null}>
+        <ChatbotWidget />
+      </Suspense>
       <AvisoCookies />
     </div>
   );

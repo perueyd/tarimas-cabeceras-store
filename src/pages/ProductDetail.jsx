@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import ProductZoomModal from '../components/ProductZoomModal.jsx';
 import BotonCompartir from '../components/BotonCompartir.jsx';
-import VerEnMiPared from '../components/VerEnMiPared.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
@@ -12,6 +11,11 @@ import { datosDeProducto, usarMeta } from '../lib/meta.js';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fotoDeGaleria, avisoDeVariante } from '../lib/variantesFoto.js';
+
+// La cámara de realidad aumentada pesa, y la mayoría de visitas no la abre.
+// Se descarga sola la primera vez que alguien pulsa "Ver en mi pared", en
+// vez de viajar en el paquete que descarga todo el que entra a la tienda.
+const VerEnMiPared = lazy(() => import('../components/VerEnMiPared.jsx'));
 
 
 // Las especificaciones han llegado a guardarse de TRES formas distintas:
@@ -649,14 +653,21 @@ export default function ProductDetail() {
 
       <ReviewsSection productId={product.id} />
 
-      <VerEnMiPared
-        abierto={enMiPared}
-        onCerrar={() => setEnMiPared(false)}
-        imagenSrc={vistaActiva.url}
-        colorHex={selectedColor?.hex}
-        tintable={vistaActiva.tintable}
-        nombre={product.name}
-      />
+      {/* Solo se monta al abrirla. Si estuviera siempre puesta (aunque sea
+          devolviendo nada), su código se descargaría igualmente al entrar a
+          la ficha, y entonces diferirlo no habría servido de nada. */}
+      {enMiPared && (
+        <Suspense fallback={null}>
+          <VerEnMiPared
+            abierto={enMiPared}
+            onCerrar={() => setEnMiPared(false)}
+            imagenSrc={vistaActiva.url}
+            colorHex={selectedColor?.hex}
+            tintable={vistaActiva.tintable}
+            nombre={product.name}
+          />
+        </Suspense>
+      )}
 
       <ProductZoomModal
         open={zoom}
