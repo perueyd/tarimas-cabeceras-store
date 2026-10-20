@@ -9,6 +9,7 @@ import PromoEditor from './PromoEditor.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
+import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
 import { urlSeguimiento } from '../data/sitio.js';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
@@ -413,33 +414,50 @@ export default function Orders() {
         </button>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        {[
-          { id: 'resumen', label: 'Resumen' },
-          { id: 'pedidos', label: `Pedidos (${orders.length})${porVerificar.length ? ` · 🔴 ${porVerificar.length}` : ''}` },
-          { id: 'resenas', label: `Reseñas (${reviews.length})` },
-          { id: 'carritos', label: `🛒 Carritos${carritos.length ? ` (${carritos.length})` : ''}` },
-          { id: 'reclamos', label: `📋 Reclamos${reclamosPendientes.length ? ` (${reclamosPendientes.length})` : ''}` },
-          { id: 'suscriptores', label: `📧 Suscriptores (${suscriptores.length})` },
-          { id: 'encuestas', label: `📊 Encuestas (${encuestas.length})` },
-          { id: 'ofertas', label: '💰 Ofertas y descuentos' },
-          { id: 'promos', label: '🏷️ Códigos de descuento' },
-          { id: 'descAuto', label: '⚡ Descuentos automáticos' },
-          { id: 'analytics', label: '📈 Analytics' },
-          { id: 'historial', label: '📋 Historial de códigos' },
-          { id: 'editar', label: '✏️ Editar página' },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`rounded-full border px-4 py-1.5 text-sm transition ${
-              tab === t.id ? 'border-ink bg-ink text-white' : 'border-neutral-300 text-neutral-600 hover:border-neutral-500'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Trece pestañas sueltas se convirtieron en cuatro grupos. Lo urgente
+          (pedidos por verificar, reclamos con plazo legal) sube al botón del
+          grupo en rojo, así que agrupar no lo esconde. */}
+      <PestanasAgrupadas
+        activa={tab}
+        onElegir={setTab}
+        grupos={[
+          {
+            id: 'vender',
+            label: 'Vender',
+            items: [
+              { id: 'resumen', label: 'Resumen' },
+              { id: 'pedidos', label: 'Pedidos', aviso: porVerificar.length, urgente: true },
+              { id: 'carritos', label: 'Carritos abandonados', aviso: carritos.length },
+              { id: 'reclamos', label: 'Reclamos', aviso: reclamosPendientes.length, urgente: true },
+            ],
+          },
+          {
+            id: 'clientes',
+            label: 'Clientes',
+            items: [
+              { id: 'resenas', label: 'Reseñas', aviso: reviews.length },
+              { id: 'suscriptores', label: 'Suscriptores', aviso: suscriptores.length },
+              { id: 'encuestas', label: 'Encuestas', aviso: encuestas.length },
+            ],
+          },
+          {
+            id: 'promos',
+            label: 'Promociones',
+            items: [
+              { id: 'ofertas', label: 'Ofertas y descuentos' },
+              { id: 'promos', label: 'Códigos de descuento' },
+              { id: 'descAuto', label: 'Descuentos automáticos' },
+              { id: 'historial', label: 'Historial de códigos' },
+              { id: 'analytics', label: 'Analytics' },
+            ],
+          },
+          {
+            id: 'tienda',
+            label: 'Mi tienda',
+            items: [{ id: 'editar', label: 'Editar página' }],
+          },
+        ]}
+      />
 
       {tab === 'resumen' && (
         <>

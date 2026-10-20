@@ -10,6 +10,7 @@ import SecurityTab from './SecurityTab.jsx';
 import GarantiasTab from './GarantiasTab.jsx';
 import ChatbotTab from './ChatbotTab.jsx';
 import RespaldosTab from './RespaldosTab.jsx';
+import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
 import VistaPrevia from '../components/VistaPrevia.jsx';
 import EditorZonasColor from '../components/EditorZonasColor.jsx';
 import { comprimirImagen, formatearPeso } from '../lib/comprimirImagen.js';
@@ -317,38 +318,56 @@ export default function CatalogEditor({ adminKey, irA }) {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-2 text-sm">
-        {[
-          { id: 'branding', label: '🎨 Branding' },
-          { id: 'productos', label: `Productos (${catalog.products.length})` },
-          { id: 'categorias', label: 'Categorías' },
-          { id: 'colores', label: 'Colores' },
-          { id: 'tamanos', label: 'Tamaños' },
-          { id: 'config', label: 'Datos de la tienda' },
-          { id: 'garantias', label: '✅ Garantías de portada' },
-          { id: 'chatbot', label: '💬 Entrenar chatbot' },
-          { id: 'pagos', label: '💳 Pagos' },
-          { id: 'entrega', label: '🚚 Entrega' },
-          { id: 'integraciones', label: '🔗 Integraciones' },
-          { id: 'security', label: '🔒 Seguridad' },
-          { id: 'portada', label: 'Página principal' },
-          { id: 'vitrina', label: 'Vitrina animada' },
-          { id: 'faq', label: 'Preguntas' },
-          { id: 'legal', label: 'Legal' },
-          { id: 'encuesta', label: 'Encuesta' },
-          { id: 'respaldos', label: 'Copias de seguridad' },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setSub(t.id)}
-            className={`rounded-lg border px-3 py-1.5 transition ${
-              sub === t.id ? 'border-ink bg-neutral-100 font-medium' : 'border-neutral-200 text-neutral-500 hover:border-neutral-400'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Dieciocho pestañas sueltas, agrupadas por la pregunta que responden:
+          qué vendo · cómo se ve · cómo funciona · lo delicado. */}
+      <PestanasAgrupadas
+        activa={sub}
+        onElegir={setSub}
+        grupos={[
+          {
+            id: 'catalogo',
+            label: 'Qué vendo',
+            items: [
+              { id: 'productos', label: 'Productos', aviso: catalog.products.length },
+              { id: 'categorias', label: 'Categorías' },
+              { id: 'colores', label: 'Colores' },
+              { id: 'tamanos', label: 'Tamaños' },
+            ],
+          },
+          {
+            id: 'apariencia',
+            label: 'Cómo se ve',
+            items: [
+              { id: 'branding', label: 'Branding' },
+              { id: 'portada', label: 'Página principal' },
+              { id: 'vitrina', label: 'Vitrina animada' },
+              { id: 'garantias', label: 'Garantías de portada' },
+            ],
+          },
+          {
+            id: 'funciona',
+            label: 'Cómo funciona',
+            items: [
+              { id: 'config', label: 'Datos de la tienda' },
+              { id: 'pagos', label: 'Pagos' },
+              { id: 'entrega', label: 'Entrega' },
+              { id: 'faq', label: 'Preguntas' },
+              { id: 'encuesta', label: 'Encuesta' },
+            ],
+          },
+          {
+            id: 'avanzado',
+            label: 'Ajustes delicados',
+            items: [
+              { id: 'chatbot', label: 'Entrenar chatbot' },
+              { id: 'respaldos', label: 'Copias de seguridad' },
+              { id: 'legal', label: 'Legal' },
+              { id: 'integraciones', label: 'Integraciones' },
+              { id: 'security', label: 'Seguridad' },
+            ],
+          },
+        ]}
+      />
 
       {sub === 'branding' && <BrandingTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
