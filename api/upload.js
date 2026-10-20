@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
+import { comprimir, textoAhorro, versionChica } from './_comprimir.js';
 
 const EXTENSIONES = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
 const MAX_BYTES = 4.4 * 1024 * 1024; // límite práctico de las funciones de Vercel (~4.5 MB)
@@ -62,11 +63,29 @@ export default async function handler(req, res) {
     .replace(/[^a-z0-9.]+/g, '-');
 
   try {
-    const blob = await put(`productos/${Date.now()}-${safe}`, body, {
-      access: 'public',
-      contentType: EXTENSIONES[ext],
+    // SIEMPRE se comprime aquí, aunque el navegador ya lo hubiera hecho.
+    // Comprimir dos veces una foto ya pequeña no la estropea (sharp no la
+    // agranda ni le baja más la calidad de lo pedido), y en cambio garantiza
+    // que NADA entre al almacén sin pasar por la misma medida. Así se agotó la
+    // cuota en agosto: por fiarse de que el navegador lo había hecho.
+    const foto = await comprimir(body);
+    const chica = await versionChica(foto.buffer);
+
+    const base = `productos/${Date.now()}-${safe.replace(/.(jpe?g|png|webp)$/, '')}`;
+    const [blob, blobChica] = await Promise.all([
+      put(`${base}.webp`, foto.buffer, { access: 'public', contentType: 'image/webp' }),
+      // La versión chica es la que carga la rejilla del catálogo: pesa una
+      // quinta parte y ahí se ve igual.
+      put(`${base}-sm.webp`, chica, { access: 'public', contentType: 'image/webp' }),
+    ]);
+
+    return res.status(200).json({
+      ok: true,
+      url: blob.url,
+      urlChica: blobChica.url,
+      medidas: `${foto.ancho}x${foto.alto}`,
+      ahorro: textoAhorro(foto.antes, foto.despues),
     });
-    return res.status(200).json({ ok: true, url: blob.url });
   } catch (err) {
     console.error('Error al subir a Blob:', err?.name, err?.message);
 
