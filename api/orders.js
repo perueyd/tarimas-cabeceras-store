@@ -7,6 +7,7 @@ import { agregarAlHistorial } from './_historial.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
+import { revisarComprobante } from '../src/lib/documento.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
@@ -66,6 +67,17 @@ export default async function handler(req, res) {
     const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
     if (!control.ok) return res.status(409).json({ error: control.error });
 
+    // Datos del comprobante. Se vuelven a revisar aquí porque lo que llega
+    // del navegador no se cree sin comprobar: cualquiera puede saltarse la
+    // validación de la pantalla. Si no cuadran, el pedido NO se bloquea — se
+    // guarda sin ellos y el dueño los pide por WhatsApp. Perder una venta por
+    // un DNI mal tecleado sería peor que el problema que resuelve.
+    const docTipo = s(body.docTipo, 10) === 'factura' ? 'factura' : 'boleta';
+    const docNumero = s(body.docNumero, 15).trim();
+    const razonSocial = s(body.razonSocial, 150).trim();
+    const docOk =
+      docNumero && !revisarComprobante({ tipo: docTipo, numero: docNumero, razonSocial });
+
     const order = {
       code: newOrderCode(),
       fecha: new Date().toISOString(),
@@ -79,6 +91,10 @@ export default async function handler(req, res) {
       igv: separarIGV(montoFinal).igv,
       promoCode,
       promoDescuento,
+      // Lo que hace falta para emitir la boleta o la factura en SUNAT.
+      docTipo: docOk ? docTipo : undefined,
+      docNumero: docOk ? docNumero : undefined,
+      razonSocial: docOk && docTipo === 'factura' ? razonSocial : undefined,
       nombre,
       email: s(body.email, 120),
       telefono,

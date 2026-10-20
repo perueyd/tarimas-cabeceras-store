@@ -16,7 +16,11 @@
 // para poder actualizarlos sin buscar por el código.
 
 // ── Lo que hay que revisar cada año ────────────────────────────────────────
-export const TASA_IGV = 0.18; // 18%, incluye el Impuesto de Promoción Municipal
+// La cuenta del IGV vive en src/lib/igv.js porque el panel también la
+// necesita; se re-exporta para no romper a quien la importa desde aquí.
+import { separarIGV } from '../src/lib/igv.js';
+export { agregarIGV, separarIGV, TASA_IGV } from '../src/lib/igv.js';
+
 export const UIT = 5500; // UIT 2026 (D.S. 301-2025-EF)
 
 // Régimen MYPE Tributario: el pago a cuenta mensual del impuesto a la renta es
@@ -25,27 +29,6 @@ export const UIT = 5500; // UIT 2026 (D.S. 301-2025-EF)
 // no se estima aquí porque depende del resultado del año anterior.
 export const TASA_RENTA_MENSUAL = 0.01;
 export const LIMITE_UIT_1_POR_CIENTO = 300;
-
-/**
- * Separa un importe que YA incluye IGV.
- * Devuelve { base, igv, total } con dos decimales.
- */
-export function separarIGV(totalConIgv) {
-  const total = Math.round((Number(totalConIgv) || 0) * 100) / 100;
-  if (total <= 0) return { base: 0, igv: 0, total: 0 };
-  const base = Math.round((total / (1 + TASA_IGV)) * 100) / 100;
-  // El IGV se saca por diferencia, no calculando el 18% de la base: así los
-  // céntimos del redondeo nunca hacen que base + igv deje de dar el total.
-  const igv = Math.round((total - base) * 100) / 100;
-  return { base, igv, total };
-}
-
-/** El camino contrario: a un precio SIN IGV se le añade. */
-export function agregarIGV(base) {
-  const b = Math.round((Number(base) || 0) * 100) / 100;
-  const igv = Math.round(b * TASA_IGV * 100) / 100;
-  return { base: b, igv, total: Math.round((b + igv) * 100) / 100 };
-}
 
 // Un pedido solo cuenta como venta cuando el dinero entró de verdad. Los que
 // están "por verificar" todavía pueden caerse, y los cancelados ya se cayeron:

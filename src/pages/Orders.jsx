@@ -12,6 +12,8 @@ import QueHacerHoy from '../components/QueHacerHoy.jsx';
 import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
 import { urlSeguimiento } from '../data/sitio.js';
 import ImpuestosTab from './ImpuestosTab.jsx';
+import { separarIGV } from '../lib/igv.js';
+import { etiquetaComprobante } from '../lib/documento.js';
 
 const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
@@ -859,6 +861,12 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
         <p><span className="text-neutral-500">Fecha:</span> {new Date(o.fecha).toLocaleString('es-PE')}</p>
         <p className="sm:col-span-2"><span className="text-neutral-500">Dirección:</span> {o.direccion || '—'} ({o.zona})</p>
       </div>
+
+      {/* Todo lo que hace falta para emitir el comprobante en SUNAT, junto y
+          listo para copiar. Sin esto había que ir sacando los datos de cuatro
+          sitios de la pantalla y calcular el IGV a mano — que es justo donde se
+          cuela el error de sacar el 18% del total en vez de separarlo. */}
+      <BloqueComprobante o={o} currencyFormatter={currencyFormatter} />
       {o.referencia && (
         <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
           <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
@@ -1117,4 +1125,68 @@ function StatCard({ label, value, sub, accent = false }) {
       <p className="text-xs text-neutral-400">{sub}</p>
     </div>
   );
+}// Los datos del pedido tal como hacen falta para emitir la boleta o la
+// factura en el portal de SUNAT: documento del cliente, base, IGV y total.
+//
+// El botón copia las cuatro líneas de una vez. Parece poca cosa, pero es la
+// diferencia entre emitir el comprobante en veinte segundos o ir saltando por
+// la pantalla a buscar cada dato — que es como se cometen los errores.
+function BloqueComprobante({ o, currencyFormatter }) {
+  const [copiado, setCopiado] = useState(false);
+
+  // Los pedidos anteriores a esta función no tienen el desglose guardado, así
+  // que se calcula al vuelo. Los nuevos lo traen hecho desde el servidor.
+  const base = o.base ?? separarIGV(o.monto).base;
+  const igv = o.igv ?? separarIGV(o.monto).igv;
+  const etiqueta = etiquetaComprobante({ tipo: o.docTipo, numero: o.docNumero, razonSocial: o.razonSocial });
+
+  function copiar() {
+    const lineas = [
+      `${o.docTipo === 'factura' ? 'FACTURA' : 'BOLETA'} — pedido ${o.code}`,
+      o.docTipo === 'factura'
+        ? `RUC: ${o.docNumero}
+Razón social: ${o.razonSocial || ''}`
+        : `DNI: ${o.docNumero}
+Nombre: ${o.nombre}`,
+      `Base imponible: S/ ${base.toFixed(2)}`,
+      `IGV (18%): S/ ${igv.toFixed(2)}`,
+      `Total: S/ ${Number(o.monto || 0).toFixed(2)}`,
+    ].join('\n');
+    navigator.clipboard?.writeText(lineas).then(
+      () => { setCopiado(true); setTimeout(() => setCopiado(false), 2500); },
+      () => {}
+    );
+  }
+
+  if (!o.docNumero) {
+    return (
+      <div className="mt-3 rounded-lg border border-dashed border-neutral-300 px-3 py-2">
+        <p className="text-xs text-neutral-500">
+          Este pedido no trae DNI ni RUC: pídeselo al cliente por WhatsApp antes de emitir el
+          comprobante. Los pedidos nuevos ya lo piden solos.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-medium text-neutral-700">Para el comprobante</p>
+        <button
+          onClick={copiar}
+          className="rounded-lg border border-neutral-300 bg-white px-2.5 py-1 text-[11px] font-medium transition hover:border-ink"
+        >
+          {copiado ? '✓ Copiado' : 'Copiar para SUNAT'}
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-neutral-600">{etiqueta}</p>
+      <p className="mt-0.5 text-xs text-neutral-500">
+        Base {currencyFormatter.format(base)} · IGV {currencyFormatter.format(igv)} · Total{' '}
+        {currencyFormatter.format(o.monto)}
+      </p>
+    </div>
+  );
 }
+
+

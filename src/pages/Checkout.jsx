@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
 import { vencida } from '../lib/vencimiento.js';
+import { revisarComprobante } from '../lib/documento.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -56,6 +57,11 @@ export default function Checkout() {
     provincia: '',
     entregaFecha: '',
     entregaHorario: '',
+    // Datos para el comprobante. Sin esto no se puede emitir la boleta ni la
+    // factura, y emitirla es obligatorio al cobrar IGV.
+    docTipo: 'boleta',
+    docNumero: '',
+    razonSocial: '',
   });
   const [ubicacion, setUbicacion] = useState(null); // {lat, lng} del mapa
   const [metodoPago, setMetodoPago] = useState('culqi'); // 'culqi' | 'yape-plin' | 'transferencia'
@@ -302,6 +308,12 @@ export default function Checkout() {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
+  // Solo se queja cuando ya hay algo escrito: señalar en rojo un campo vacío
+  // que el cliente aún no ha tocado es regañarle por adelantado.
+  const errorDoc = form.docNumero
+    ? revisarComprobante({ tipo: form.docTipo, numero: form.docNumero, razonSocial: form.razonSocial })
+    : null;
+
   function isFormValid() {
     return (
       form.nombre &&
@@ -310,7 +322,11 @@ export default function Checkout() {
       form.direccion &&
       form.distrito &&
       form.entregaFecha &&
-      form.entregaHorario
+      form.entregaHorario &&
+      // Sin documento válido no se puede emitir el comprobante, y emitirlo es
+      // obligatorio al cobrar IGV.
+      form.docNumero &&
+      !revisarComprobante({ tipo: form.docTipo, numero: form.docNumero, razonSocial: form.razonSocial })
     );
   }
 
@@ -366,6 +382,9 @@ export default function Checkout() {
           // El servidor recalcula el total por su cuenta; esto solo le sirve
           // para comprobar que coincide con lo que se mostró en pantalla y
           // negarse a cobrar de más si no cuadra.
+          docTipo: form.docTipo,
+          docNumero: form.docNumero,
+          razonSocial: form.razonSocial,
           montoMostrado: totalConDescuento,
         }),
       });
@@ -419,6 +438,9 @@ export default function Checkout() {
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
           promoCode: promo?.code,
+          docTipo: form.docTipo,
+          docNumero: form.docNumero,
+          razonSocial: form.razonSocial,
           montoMostrado: totalConDescuento,
         }),
       });
@@ -532,6 +554,70 @@ export default function Checkout() {
               required={false}
               placeholder="Ej. portón negro, frente al parque"
             />
+
+            {/* Datos para el comprobante.
+
+                Cada campo extra en un checkout hace que alguien abandone, así
+                que esto se queda en UN campo para casi todo el mundo: el DNI.
+                La factura la pide una minoría (quien compra a nombre de su
+                empresa) y va detrás de una casilla, no estorbando a los demás. */}
+            <div className="sm:col-span-2 rounded-lg border border-neutral-200 bg-white p-4">
+              <p className="text-sm font-medium">Datos para tu comprobante</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Lo necesitamos para emitirte la boleta o la factura de tu compra.
+              </p>
+
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {form.docTipo === 'boleta' ? (
+                  <Field
+                    label="DNI"
+                    name="docNumero"
+                    value={form.docNumero}
+                    onChange={handleChange}
+                    placeholder="8 dígitos"
+                  />
+                ) : (
+                  <>
+                    <Field
+                      label="RUC"
+                      name="docNumero"
+                      value={form.docNumero}
+                      onChange={handleChange}
+                      placeholder="11 dígitos"
+                    />
+                    <Field
+                      label="Razón social"
+                      name="razonSocial"
+                      value={form.razonSocial}
+                      onChange={handleChange}
+                      placeholder="Como figura en la SUNAT"
+                    />
+                  </>
+                )}
+              </div>
+
+              <label className="mt-3 flex items-center gap-2 text-sm text-neutral-700">
+                <input
+                  type="checkbox"
+                  checked={form.docTipo === 'factura'}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      docTipo: e.target.checked ? 'factura' : 'boleta',
+                      // El número cambia de significado (DNI vs RUC), así que
+                      // se limpia: dejar ocho dígitos en un campo de RUC solo
+                      // sirve para que el cliente no entienda por qué falla.
+                      docNumero: '',
+                      razonSocial: '',
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-neutral-300"
+                />
+                Necesito factura (compra a nombre de una empresa)
+              </label>
+
+              {errorDoc && <p className="mt-2 text-xs text-red-600">{errorDoc}</p>}
+            </div>
 
             <div className="sm:col-span-2">
               <MapPicker onChange={setUbicacion} onGeoDistrict={handleGeoDistrito} />
