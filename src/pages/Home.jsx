@@ -70,46 +70,28 @@ export default function Home() {
   });
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <section className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:py-10">
+      {/* En móvil este encabezado se comía media pantalla antes del primer
+          mueble, así que va más justo ahí y respira en pantallas grandes. */}
+      <section className="mb-6 sm:mb-10">
+        <h1 className="text-xl font-semibold tracking-tight sm:text-3xl">
           {(tab === 'todos' ? 'Muebles' : categories.find((c) => c.id === tab)?.label || 'Muebles')} a tu medida
         </h1>
-        <p className="mt-2 max-w-2xl text-neutral-500">
+        <p className="mt-1.5 max-w-2xl text-sm text-neutral-500 sm:mt-2 sm:text-base">
           Elige el tamaño y el color, y visualiza el cambio al instante. Envíos a todo el Perú.
         </p>
       </section>
 
-      {/* Atajo al armador. Va arriba del todo porque quien viene a amoblar un
-          dormitorio no sabe que puede llevarse las tres piezas de una vez, y
-          nadie busca lo que no sabe que existe. */}
-      <Link
-        to="/arma-tu-dormitorio"
-        className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-ink/15 bg-neutral-50 px-5 py-4 transition hover:border-ink hover:bg-neutral-100"
-      >
-        <span>
-          <span className="block text-sm font-semibold">🛏️ Arma tu dormitorio completo</span>
-          <span className="block text-xs text-neutral-500">
-            Cabecera, tarima y colchón de tu medida, en un solo paso
-          </span>
-        </span>
-        <span className="shrink-0 text-sm text-neutral-400">→</span>
-      </Link>
+      {/* Antes aquí había SEIS bloques apilados — título, párrafo, banner del
+          armador, buscador, categorías y medidas — y el cliente tenía que
+          pasarlos todos antes de ver un solo mueble. Quien entra a una tienda
+          de muebles quiere ver muebles.
 
-      <div className="mb-5">
-        <div className="relative max-w-md">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔎</span>
-          <input
-            type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar mueble (ej. cabecera, capitoné...)"
-            className="w-full rounded-full border border-neutral-300 py-2 pl-10 pr-4 text-sm outline-none focus:border-ink"
-          />
-        </div>
-      </div>
-
-      <div className="mb-8 flex flex-wrap gap-2">
+          Ahora los filtros son una sola fila discreta, y las medidas solo
+          aparecen cuando el cliente ya eligió una categoría: preguntarle el
+          tamaño de su cama antes de saber si quiere cabecera o tarima es
+          preguntar demasiado pronto. */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -123,34 +105,44 @@ export default function Home() {
             {t.label}
           </button>
         ))}
+
+        <div className="relative ml-auto w-full sm:w-56">
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar..."
+            aria-label="Buscar mueble"
+            className="w-full rounded-full border border-neutral-300 py-1.5 pl-9 pr-3 text-sm outline-none transition focus:border-ink"
+          />
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-400">
+            ⌕
+          </span>
+        </div>
       </div>
 
-      {MEDIDAS.length > 1 && (
-        <div className="mb-8 -mt-4">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
-            ¿De qué medida es tu cama?
-          </p>
-          <div className="flex flex-wrap gap-2">
+      {MEDIDAS.length > 1 && tab !== 'todos' && (
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-neutral-400">Medida:</span>
+          <button
+            onClick={() => irA({ plaza: 'todas' })}
+            className={`rounded-full px-3 py-1 transition ${
+              plaza === 'todas' ? 'bg-neutral-100 font-medium text-ink' : 'text-neutral-500 hover:text-ink'
+            }`}
+          >
+            Todas
+          </button>
+          {MEDIDAS.map((s) => (
             <button
-              onClick={() => irA({ plaza: 'todas' })}
-              className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                plaza === 'todas' ? 'border-ink bg-neutral-100 font-medium' : 'border-neutral-300 text-neutral-600 hover:border-neutral-500'
+              key={s.id}
+              onClick={() => irA({ plaza: s.id })}
+              className={`rounded-full px-3 py-1 transition ${
+                plaza === s.id ? 'bg-neutral-100 font-medium text-ink' : 'text-neutral-500 hover:text-ink'
               }`}
             >
-              Todas
+              {s.label}
             </button>
-            {MEDIDAS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => irA({ plaza: s.id })}
-                className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                  plaza === s.id ? 'border-ink bg-neutral-100 font-medium' : 'border-neutral-300 text-neutral-600 hover:border-neutral-500'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       )}
 
@@ -214,6 +206,28 @@ export default function Home() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* El armador estaba ARRIBA del catálogo, empujando los muebles fuera de
+          la primera pantalla. Pero quien acaba de entrar todavía no sabe qué
+          quiere: ofrecerle el paquete de tres piezas antes de que vea una sola
+          es demasiado pronto.
+
+          Aquí abajo llega justo a quien ya recorrió el catálogo — que es quien
+          de verdad puede querer el dormitorio completo. */}
+      {visibleProducts.length > 0 && (
+        <Link
+          to="/arma-tu-dormitorio"
+          className="mt-12 flex items-center justify-between gap-4 rounded-xl border border-neutral-200 px-5 py-4 transition hover:border-ink"
+        >
+          <span>
+            <span className="block text-sm font-medium">Arma tu dormitorio completo</span>
+            <span className="block text-xs text-neutral-500">
+              Cabecera, tarima y colchón de tu medida, en un solo paso
+            </span>
+          </span>
+          <span className="shrink-0 text-sm text-neutral-400">→</span>
+        </Link>
       )}
     </main>
   );
