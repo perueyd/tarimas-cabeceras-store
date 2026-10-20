@@ -7,6 +7,7 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
 import { vencida } from '../lib/vencimiento.js';
 import { revisarComprobante } from '../lib/documento.js';
+import { usarMeta } from '../lib/meta.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -35,6 +36,8 @@ function minDeliveryDate(deliveryMinDays) {
 }
 
 export default function Checkout() {
+  usarMeta({ titulo: 'Finalizar compra', descripcion: 'Completa tus datos de envío y elige cómo pagar.' });
+
   const { items, totalAmount, clearCart } = useCart();
   const { storeConfig, currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
   // El campo del cupón se puede ocultar desde el panel mientras no haya

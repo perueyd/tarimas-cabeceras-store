@@ -16,6 +16,8 @@ import { useEffect } from 'react';
 // que mantener.
 
 const TITULO_BASE = 'E|D Espacios y Diseño';
+// El de index.html: a lo que se vuelve al salir de una página con título propio.
+const TITULO_POR_DEFECTO = 'Espacios y Diseño — Tarimas, Cabeceras y Muebles';
 const ID_DATOS = 'datos-estructurados';
 
 function ponerMeta(nombre, contenido, porPropiedad = false) {
@@ -87,6 +89,15 @@ export function usarMeta({ titulo, descripcion, imagen, datos } = {}) {
 
     return () => {
       document.getElementById(ID_DATOS)?.remove();
+      // Y se devuelve el título al de la tienda.
+      //
+      // Sin esto, el título de la última página visitada se quedaba pegado a
+      // todas las siguientes: alguien que miraba una cabecera y luego abría el
+      // Libro de Reclamaciones veía "MILÁN — desde S/ 220" en la pestaña, y si
+      // lo guardaba en marcadores se le guardaba con ese nombre. Las páginas
+      // que ponen su propio título lo sobrescriben enseguida, así que esto solo
+      // actúa en las que no lo hacen.
+      if (titulo) document.title = TITULO_POR_DEFECTO;
     };
   }, [titulo, descripcion, imagen, datosTexto]);
 }

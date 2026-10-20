@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { currencyFormatter } from '../data/catalog.js';
+import { usarMeta } from '../lib/meta.js';
 
 // Etapas del pedido -> porcentaje de avance y color del círculo.
 const ETAPAS = {
@@ -11,6 +12,8 @@ const ETAPAS = {
 };
 
 export default function Track() {
+  usarMeta({ titulo: 'Rastrea tu pedido', descripcion: 'Consulta el estado de tu pedido con el código que te dimos al comprar.' });
+
   const [params] = useSearchParams();
   const [code, setCode] = useState(params.get('codigo') || '');
   const [order, setOrder] = useState(null);

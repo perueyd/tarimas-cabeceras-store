@@ -44,15 +44,44 @@ async function setJSON(key, value) {
 // `paraEditar: true` cuando lo que sigue es GUARDAR. En ese caso, si la base
 // no respondió se lanza un error en vez de devolver el catálogo de fábrica:
 // es preferible que el panel diga "no se pudo guardar" a que borre la tienda.
+// Las seis partes del catálogo, en una sola petición a Redis.
+//
+// Antes eran seis GET sueltos, así que CADA visita a la tienda gastaba seis
+// comandos del plan gratuito de Upstash (500.000 al mes). Con MGET es uno:
+// el mismo dato por la sexta parte de cuota, y además una sola ida y vuelta
+// por la red en vez de seis, que se nota en lo que tarda en aparecer el
+// catálogo.
+//
+// No se cachea la respuesta en el CDN a propósito: la misma dirección devuelve
+// el catálogo COMPLETO cuando lleva la clave de administrador, y una caché
+// compartida podría acabar sirviéndole a un cliente la respuesta del panel,
+// con los tokens de integraciones dentro.
+const ORDEN = ['products', 'categories', 'colors', 'sizes', 'showcase', 'config'];
+
+async function leerTodo() {
+  if (!hasDB) return ORDEN.map(() => null);
+  try {
+    const data = await redisCmd(['MGET', ...ORDEN.map((k) => KEYS[k])]);
+    const valores = Array.isArray(data?.result) ? data.result : [];
+    return ORDEN.map((_, i) => {
+      const crudo = valores[i];
+      if (crudo == null) return null;
+      try {
+        return JSON.parse(crudo) ?? null;
+      } catch {
+        return null;
+      }
+    });
+  } catch (err) {
+    console.error('No se pudo leer el catálogo de Redis:', err?.message);
+    // Un fallo de lectura es distinto de "no hay nada": si se confundieran,
+    // la siguiente escritura guardaría el catálogo de fábrica encima del real.
+    return ORDEN.map(() => FALLO);
+  }
+}
+
 export async function getCatalog({ paraEditar = false } = {}) {
-  const leidos = await Promise.all([
-    getJSON(KEYS.products, null),
-    getJSON(KEYS.categories, null),
-    getJSON(KEYS.colors, null),
-    getJSON(KEYS.sizes, null),
-    getJSON(KEYS.showcase, null),
-    getJSON(KEYS.config, null),
-  ]);
+  const leidos = await leerTodo();
 
   if (paraEditar && leidos.some((x) => x === FALLO)) {
     throw new Error(

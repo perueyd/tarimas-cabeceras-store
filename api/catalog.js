@@ -19,13 +19,32 @@ import { checkAdminAuth } from './_auth.js';
 // También se oculta el correo del dueño, que solo servía para recibir spam.
 const PRIVADO = ['integrations', 'ownerEmail'];
 
-function soloPublico(catalog) {
-  const cfg = catalog.storeConfig || {};
+// Campos de cada PRODUCTO que tampoco pueden salir a la web.
+//
+// `costo` y `costoPorMedida` son lo que al dueño le cuesta fabricar cada
+// mueble. Alimentan el margen de la pestaña "Impuestos y margen" y NO son
+// asunto de nadie más: con ese dato cualquier competidor sabría exactamente
+// cuánto gana por pieza y podría ponerle precio justo por debajo.
+//
+// Cuando se añadió el campo, el filtro de abajo solo limpiaba la
+// configuración de la tienda, así que los costos habrían viajado al navegador
+// de cada visitante. No llegó a pasar porque todavía no había ninguno puesto.
+const PRIVADO_PRODUCTO = ['costo', 'costoPorMedida'];
+
+function sinCampos(objeto, campos) {
   const limpio = {};
-  for (const [k, v] of Object.entries(cfg)) {
-    if (!PRIVADO.includes(k)) limpio[k] = v;
+  for (const [k, v] of Object.entries(objeto || {})) {
+    if (!campos.includes(k)) limpio[k] = v;
   }
-  return { ...catalog, storeConfig: limpio };
+  return limpio;
+}
+
+function soloPublico(catalog) {
+  return {
+    ...catalog,
+    storeConfig: sinCampos(catalog.storeConfig, PRIVADO),
+    products: (catalog.products || []).map((p) => sinCampos(p, PRIVADO_PRODUCTO)),
+  };
 }
 
 export default async function handler(req, res) {

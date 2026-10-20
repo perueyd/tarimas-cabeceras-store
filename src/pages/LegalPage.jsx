@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import FormularioARCO from '../components/FormularioARCO.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { usarMeta } from '../lib/meta.js';
 
 // Reemplaza {{proveedor}} y {{whatsapp}} en el texto legal con los datos
 // reales de la tienda, así el dueño no tiene que repetirlos a mano.
@@ -27,6 +28,17 @@ export default function LegalPage({ which }) {
   const activa = which === 'privacidad' ? legal.privacidadActiva : legal.terminosActivo;
   const titulo = which === 'privacidad' ? legal.privacidadTitulo : legal.terminosTitulo;
   const textoRaw = which === 'privacidad' ? legal.privacidadTexto : legal.terminosTexto;
+
+  // Va ANTES del retorno de abajo a propósito: un gancho de React no puede
+  // quedar detrás de un `return`, o la página revienta cuando el texto legal
+  // está desactivado.
+  usarMeta({
+    titulo: titulo || (which === 'privacidad' ? 'Política de Privacidad' : 'Términos y Condiciones'),
+    descripcion:
+      which === 'privacidad'
+        ? 'Cómo tratamos tus datos personales y cómo ejercer tus derechos, conforme a la Ley 29733.'
+        : 'Condiciones de compra, entrega, garantía y devoluciones, conforme a la Ley 29571.',
+  });
 
   if (activa === false || !textoRaw) {
     return (

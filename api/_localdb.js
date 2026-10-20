@@ -71,6 +71,19 @@ export function localRedisCmd(command) {
       mutado = false;
       break;
 
+    // Varias claves de una vez. El catálogo lo usa para leer sus seis partes
+    // con UN solo comando en vez de seis, que en el plan gratuito de Upstash
+    // es la diferencia entre gastar 6 y 1 por visita.
+    case 'MGET': {
+      const claves = [key, ...args];
+      result = claves.map((k) => {
+        const e = vivo(db, k);
+        return e?.t === 's' ? e.v : null;
+      });
+      mutado = false;
+      break;
+    }
+
     case 'SET':
       db[key] = { t: 's', v: String(args[0]) };
       result = 'OK';
