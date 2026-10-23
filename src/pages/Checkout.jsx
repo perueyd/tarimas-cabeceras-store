@@ -7,6 +7,7 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 import { trackBeginCheckout, trackPurchase } from '../lib/analytics.js';
 import { vencida } from '../lib/vencimiento.js';
 import { revisarComprobante } from '../lib/documento.js';
+import { billetera, metodosActivos } from '../lib/metodosPago.js';
 import { usarMeta } from '../lib/meta.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
@@ -67,18 +68,22 @@ export default function Checkout() {
     razonSocial: '',
   });
   const [ubicacion, setUbicacion] = useState(null); // {lat, lng} del mapa
-  const [metodoPago, setMetodoPago] = useState('culqi'); // 'culqi' | 'yape-plin' | 'transferencia'
+  const [metodoPago, setMetodoPago] = useState('culqi'); // 'culqi' | 'yape' | 'plin' | 'transferencia'
   const [status, setStatus] = useState('idle'); // idle | paying | error
 
-  // Métodos de pago activos según lo que configuró el dueño en el panel.
-  // Si el negocio nunca tocó esta opción, storeConfig.paymentMethods viene
-  // vacío -> se asume que los tres están activos (comportamiento de siempre).
-  const pm = storeConfig.paymentMethods || {};
+  // Métodos de pago activos según lo que configuró el dueño en el panel
+  // (ver src/lib/metodosPago.js). Yape y Plin van por separado para que la
+  // boleta diga con cuál se pagó.
+  const pm = metodosActivos(storeConfig.paymentMethods);
   const metodosDisponibles = [
     { key: 'culqi', title: 'Tarjeta o Yape', subtitle: 'Confirmación automática (Culqi)' },
-    { key: 'yape-plin', title: 'Yape / Plin directo', subtitle: 'Envía tu comprobante' },
+    { key: 'yape', title: 'Yape', subtitle: 'Escanea el QR o envía al número' },
+    { key: 'plin', title: 'Plin', subtitle: 'Escanea el QR o envía al número' },
     { key: 'transferencia', title: 'Transferencia', subtitle: 'Cuenta bancaria' },
-  ].filter((m) => pm[m.key === 'yape-plin' ? 'yapePlin' : m.key] ?? true);
+  ].filter((m) => pm[m.key]);
+  // Cómo se registra cada método en el pedido (y luego en la boleta).
+  const METODO_PEDIDO = { yape: 'Yape', plin: 'Plin', transferencia: 'Transferencia bancaria' };
+  const cuentaDirecta = metodoPago === 'yape' || metodoPago === 'plin' ? billetera(storeConfig, metodoPago) : null;
 
   useEffect(() => {
     if (metodosDisponibles.length && !metodosDisponibles.some((m) => m.key === metodoPago)) {
@@ -756,13 +761,23 @@ export default function Checkout() {
             </p>
           )}
 
-          {metodoPago === 'yape-plin' && (
+          {cuentaDirecta && (
             <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-950">
-              <p className="font-medium">Paga con Yape o Plin al número:</p>
-              <p className="mt-2 text-2xl font-bold tracking-wide">{storeConfig.yape}</p>
-              <p className="text-xs text-purple-800">{storeConfig.yapeTitular}</p>
+              <p className="font-medium">Paga con {cuentaDirecta.nombre}:</p>
+              {cuentaDirecta.qr && (
+                <img
+                  src={cuentaDirecta.qr}
+                  alt={`Código QR de ${cuentaDirecta.nombre}`}
+                  className="mt-2 h-44 w-44 rounded-lg border border-purple-200 bg-white object-contain p-1"
+                />
+              )}
+              <p className="mt-2 text-2xl font-bold tracking-wide">{cuentaDirecta.numero}</p>
+              <p className="text-xs text-purple-800">{cuentaDirecta.titular}</p>
               <ol className="mt-3 list-decimal space-y-1 pl-5 text-xs">
-                <li>Abre tu app de Yape o Plin y envía {currencyFormatter.format(totalConDescuento)} a ese número.</li>
+                <li>
+                  Abre tu app de {cuentaDirecta.nombre}, {cuentaDirecta.qr ? 'escanea el QR o ' : ''}envía{' '}
+                  {currencyFormatter.format(totalConDescuento)} a ese número.
+                </li>
                 <li>Guarda la captura de tu pago.</li>
                 <li>Toca el botón de abajo: registramos tu pedido y se abre WhatsApp para que nos envíes tu comprobante.</li>
               </ol>
@@ -816,7 +831,7 @@ export default function Checkout() {
             </>
           ) : metodosDisponibles.length > 0 ? (
             <button
-              onClick={() => registrarPedidoManual(metodoPago === 'yape-plin' ? 'Yape/Plin' : 'Transferencia bancaria')}
+              onClick={() => registrarPedidoManual(METODO_PEDIDO[metodoPago])}
               disabled={status === 'paying'}
               className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
             >

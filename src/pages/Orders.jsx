@@ -259,14 +259,27 @@ export default function Orders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  // El servidor devuelve el pedido completo: al marcarlo "Pagado" trae
+  // también la boleta o factura emitida (o el motivo si no se pudo).
+  const reemplazarPedido = (nuevo) => setOrders((lista) => lista.map((x) => (x.code === nuevo.code ? nuevo : x)));
+
   async function actualizarPedido(o, cambios) {
+    // Al confirmar un Yape, Plin o transferencia se pide el número de
+    // operación: va en la boleta y evita registrar dos veces el mismo pago.
+    if (cambios.estado === 'Pagado' && !o.referencia && !o.chargeId) {
+      const operacion = window.prompt('Número de operación del pago (opcional, va en la boleta):', '');
+      if (operacion === null) return; // canceló: no se cambia nada
+      if (operacion.trim()) cambios = { ...cambios, referencia: operacion.trim().slice(0, 60) };
+    }
     try {
       const res = await fetch('/api/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body: JSON.stringify({ code: o.code, ...cambios }),
       });
-      if (res.ok) setOrders(orders.map((x) => (x.code === o.code ? { ...x, ...cambios } : x)));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) reemplazarPedido(data.order || { ...o, ...cambios });
+      else alert(data.error || 'No se pudo actualizar el pedido.');
     } catch { /* no-op */ }
   }
 
@@ -523,6 +536,8 @@ export default function Orders() {
                 key={o.code}
                 o={o}
                 onUpdate={actualizarPedido}
+                onReemplazar={reemplazarPedido}
+                adminKey={key}
                 onDelete={eliminarPedido}
                 currencyFormatter={currencyFormatter}
                 getColorById={getColorById}
@@ -835,7 +850,7 @@ function CampoReferencia({ o, onUpdate }) {
   );
 }
 
-function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, getSizeById }) {
+function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, currencyFormatter, getColorById, getSizeById }) {
   const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const waMsg = encodeURIComponent(
@@ -871,6 +886,7 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
           sitios de la pantalla y calcular el IGV a mano — que es justo donde se
           cuela el error de sacar el 18% del total en vez de separarlo. */}
       <BloqueComprobante o={o} currencyFormatter={currencyFormatter} />
+      <ComprobanteElectronico o={o} adminKey={adminKey} onReemplazar={onReemplazar} />
       {o.referencia && (
         <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
           <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
@@ -911,9 +927,12 @@ function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, ge
             onChange={(e) => onUpdate(o, { metodo: e.target.value })}
             className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
           >
-            <option>Yape/Plin</option>
+            <option>Yape</option>
+            <option>Plin</option>
             <option>Transferencia bancaria</option>
             <option>Tarjeta/Yape (Culqi)</option>
+            {/* Solo para pedidos antiguos, de cuando Yape y Plin iban juntos. */}
+            {o.metodo === 'Yape/Plin' && <option>Yape/Plin</option>}
           </select>
         </label>
         <label className="flex items-center gap-1.5">
@@ -1129,7 +1148,8 @@ function StatCard({ label, value, sub, accent = false }) {
       <p className="text-xs text-neutral-400">{sub}</p>
     </div>
   );
-}// Los datos del pedido tal como hacen falta para emitir la boleta o la
+}
+// Los datos del pedido tal como hacen falta para emitir la boleta o la
 // factura en el portal de SUNAT: documento del cliente, base, IGV y total.
 //
 // El botón copia las cuatro líneas de una vez. Parece poca cosa, pero es la
@@ -1193,4 +1213,94 @@ Nombre: ${o.nombre}`,
   );
 }
 
+// La boleta o factura electrónica del pedido (facturador propio). Aparece
+// cuando el pedido está cobrado: muestra el número, descarga el PDF y, si algo
+// falló, permite emitirla de nuevo (nunca sale dos veces el mismo pedido).
+// Lo que respondió SUNAT, en palabras del dueño (los códigos vienen del facturador).
+const ESTADO_SUNAT = {
+  ACEPTADO: '✅ aceptada por SUNAT',
+  ACEPTADO_OBS: '✅ aceptada por SUNAT (con observaciones)',
+  PENDIENTE_ENVIO: '⏳ en cola: se envía a SUNAT sola',
+  EMITIDO_LOCAL: '⏳ en cola: se envía a SUNAT sola',
+  RECHAZADO: '❌ rechazada por SUNAT: revísala en el facturador',
+  ANULACION_EN_PROCESO: 'anulación en proceso',
+  ANULADO: 'anulada',
+};
 
+function ComprobanteElectronico({ o, adminKey, onReemplazar }) {
+  const [ocupado, setOcupado] = useState(false);
+  const cobrado = o.estado === 'Pagado' || o.estado === 'Entregado';
+  const c = o.comprobante;
+  if (!cobrado && !c) return null;
+
+  async function emitir() {
+    setOcupado(true);
+    try {
+      const res = await fetch('/api/comprobante', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey}` },
+        body: JSON.stringify({ code: o.code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.order) onReemplazar(data.order);
+      else alert(data.error || 'No se pudo emitir.');
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function verPdf(formato) {
+    // Se descarga con la clave del panel y se abre aquí mismo: la llave del
+    // facturador nunca llega al navegador.
+    const ventana = window.open('', '_blank');
+    const res = await fetch(`/api/comprobante?code=${encodeURIComponent(o.code)}&formato=${formato}`, {
+      headers: { Authorization: `Bearer ${adminKey}` },
+    });
+    if (!res.ok) {
+      ventana?.close();
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || 'No se pudo descargar el PDF.');
+      return;
+    }
+    const url = URL.createObjectURL(await res.blob());
+    if (ventana) ventana.location.href = url;
+    else window.location.href = url;
+  }
+
+  if (c?.numero) {
+    return (
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs">
+        <span className="font-medium text-green-800">
+          🧾 {c.numero.startsWith('F') ? 'Factura' : 'Boleta'} {c.numero}
+        </span>
+        <span className="text-green-700">· {ESTADO_SUNAT[c.estado] || c.estado || '—'}</span>
+        <button onClick={emitir} disabled={ocupado} title="Consultar el estado actual en SUNAT" className="text-green-700 hover:underline disabled:opacity-60">
+          {ocupado ? '...' : '↻ actualizar'}
+        </button>
+        <button onClick={() => verPdf('A4')} className="rounded-lg border border-green-300 bg-white px-2.5 py-1 font-medium hover:border-green-600">
+          PDF A4
+        </button>
+        <button onClick={() => verPdf('TICKET_80')} className="rounded-lg border border-green-300 bg-white px-2.5 py-1 font-medium hover:border-green-600">
+          Ticket
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${c?.error ? 'border-red-200 bg-red-50' : 'border-neutral-200 bg-neutral-50'}`}>
+      {c?.error ? (
+        <p className="text-red-700">🧾 No se emitió el comprobante: {c.error}</p>
+      ) : (
+        <p className="text-neutral-600">🧾 Este pedido aún no tiene boleta ni factura electrónica.</p>
+      )}
+      <button
+        onClick={emitir}
+        disabled={ocupado}
+        className="mt-2 rounded-lg bg-ink px-3 py-1.5 font-medium text-white hover:bg-neutral-800 disabled:opacity-60"
+      >
+        {ocupado ? 'Emitiendo...' : c?.error ? 'Emitir de nuevo' : 'Emitir comprobante'}
+      </button>
+    </div>
+  );
+}

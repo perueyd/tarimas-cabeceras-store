@@ -131,12 +131,6 @@ export function ConfigTab({ catalog, api, flash }) {
   function removeBank(i) {
     setCfg((prev) => ({ ...prev, banks: prev.banks.filter((_, idx) => idx !== i) }));
   }
-  function togglePaymentMethod(key) {
-    setCfg((prev) => ({
-      ...prev,
-      paymentMethods: { ...(prev.paymentMethods || {}), [key]: !(prev.paymentMethods?.[key] ?? true) },
-    }));
-  }
   function setSlot(i, field, value) {
     setCfg((prev) => ({ ...prev, deliverySlots: prev.deliverySlots.map((s, idx) => (idx === i ? { ...s, [field]: value } : s)) }));
   }
@@ -154,14 +148,12 @@ export function ConfigTab({ catalog, api, flash }) {
   }
 
   async function guardar() {
-    const pm = cfg.paymentMethods || {};
-    if (!pm.culqi && !pm.yapePlin && !pm.transferencia) {
-      alert('Deja al menos un método de pago activo — si apagas los tres, nadie podrá pagar.');
-      return;
-    }
     setSaving(true);
     try {
-      await api('POST', 'config', cfg);
+      // Los pagos se guardan solo desde la pestaña Pagos: si esta pestaña los
+      // mandara también, pisaría con datos viejos lo que se cambió allí.
+      const { paymentMethods, yape, yapeTitular, yapeQr, plin, plinTitular, plinQr, ...resto } = cfg;
+      await api('POST', 'config', resto);
       flash('Datos de la tienda guardados.');
     } catch (err) {
       alert(err.message);
@@ -192,8 +184,6 @@ export function ConfigTab({ catalog, api, flash }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="WhatsApp (con 51, sin espacios)" value={cfg.whatsapp} onChange={(v) => set('whatsapp', v)} placeholder="51987654321" />
         <Field label="Tu correo (aviso de pedido nuevo)" value={cfg.ownerEmail ?? ''} onChange={(v) => set('ownerEmail', v)} placeholder="tucorreo@gmail.com" />
-        <Field label="Número de Yape/Plin (como se muestra)" value={cfg.yape} onChange={(v) => set('yape', v)} placeholder="987 654 321" />
-        <Field label="Titular de Yape/Plin" value={cfg.yapeTitular} onChange={(v) => set('yapeTitular', v)} />
         <Field label="Tiempo de fabricación/entrega" value={cfg.leadTime} onChange={(v) => set('leadTime', v)} placeholder="3 a 4 días hábiles" />
         <Field
           label="Días mínimos para entrega"
@@ -219,30 +209,9 @@ export function ConfigTab({ catalog, api, flash }) {
         cuotas de verdad. Ponlo en 0 si no quieres mostrarlo.
       </p>
 
-      <div className="mt-5 rounded-lg bg-neutral-50 p-3">
-        <p className="mb-1 text-sm font-medium text-neutral-700">Métodos de pago en el checkout</p>
-        <p className="mb-3 text-xs text-neutral-500">
-          Apaga el que no uses — el cliente solo verá los que dejes activos. Debes dejar al
-          menos uno activo.
-        </p>
-        <div className="space-y-2">
-          {[
-            { key: 'culqi', label: 'Tarjeta o Yape (Culqi)', sub: 'Confirmación automática al pagar' },
-            { key: 'yapePlin', label: 'Yape / Plin directo', sub: 'El cliente envía y manda su comprobante' },
-            { key: 'transferencia', label: 'Transferencia bancaria', sub: 'El cliente transfiere y manda su constancia' },
-          ].map((m) => (
-            <label key={m.key} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={cfg.paymentMethods?.[m.key] ?? true}
-                onChange={() => togglePaymentMethod(m.key)}
-              />
-              <span className="font-medium">{m.label}</span>
-              <span className="text-xs text-neutral-400">— {m.sub}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+      <p className="mt-5 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-500">
+        Los métodos de pago, los números de Yape y Plin y sus QR se configuran en la pestaña <strong>Pagos</strong>.
+      </p>
 
       <div className="mt-5 rounded-lg bg-neutral-50 p-3">
         <p className="mb-1 text-sm font-medium text-neutral-700">Aviso de color en la página del producto</p>
