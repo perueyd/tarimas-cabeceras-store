@@ -66,3 +66,18 @@ export function etiquetaComprobante({ tipo, numero, razonSocial } = {}) {
     ? `Factura · RUC ${numero}${razonSocial ? ` · ${razonSocial}` : ''}`
     : `Boleta · DNI ${numero}`;
 }
+
+/**
+ * Datos del comprobante tal como llegan del checkout, ya revisados. Lo usan los
+ * dos caminos de compra (pago manual y Culqi): antes solo el manual los
+ * guardaba, así que los pedidos pagados con tarjeta llegaban sin DNI ni RUC.
+ * Si no cuadran, el pedido NO se bloquea: se guarda sin ellos y el dueño los
+ * pide por WhatsApp. Perder una venta por un DNI mal tecleado sería peor.
+ */
+export function leerDatosComprobante(body = {}) {
+  const tipo = String(body.docTipo ?? '').slice(0, 10) === 'factura' ? 'factura' : 'boleta';
+  const numero = String(body.docNumero ?? '').slice(0, 15).trim();
+  const razonSocial = String(body.razonSocial ?? '').slice(0, 150).trim();
+  if (!numero || revisarComprobante({ tipo, numero, razonSocial })) return {};
+  return { docTipo: tipo, docNumero: numero, ...(tipo === 'factura' ? { razonSocial } : {}) };
+}

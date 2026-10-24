@@ -1,4 +1,4 @@
-import { deleteOrder, hasDB, buscarPedido, indexarPedido, listOrders, newOrderCode, notifySheet, redisCmd, reemplazarEnLista, saveOrder } from './_store.js';
+import { actualizarPedido, deleteOrder, hasDB, buscarPedido, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, reservarUso, validatePromo } from './_promo.js';
@@ -7,10 +7,13 @@ import { agregarAlHistorial } from './_historial.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
-import { revisarComprobante } from '../src/lib/documento.js';
+import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
+import { comprobanteParaCliente, emitirComprobante } from './_facturador.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
-const METODOS_VALIDOS = ['Yape/Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)'];
+// 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
+// la boleta debe decir con qué se pagó.
+const METODOS_VALIDOS = ['Yape', 'Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)', 'Yape/Plin'];
 
 // POST   -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
 // GET    -> ?code=  seguimiento público de UN pedido (sin datos sensibles, sin clave).
@@ -67,16 +70,9 @@ export default async function handler(req, res) {
     const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
     if (!control.ok) return res.status(409).json({ error: control.error });
 
-    // Datos del comprobante. Se vuelven a revisar aquí porque lo que llega
-    // del navegador no se cree sin comprobar: cualquiera puede saltarse la
-    // validación de la pantalla. Si no cuadran, el pedido NO se bloquea — se
-    // guarda sin ellos y el dueño los pide por WhatsApp. Perder una venta por
-    // un DNI mal tecleado sería peor que el problema que resuelve.
-    const docTipo = s(body.docTipo, 10) === 'factura' ? 'factura' : 'boleta';
-    const docNumero = s(body.docNumero, 15).trim();
-    const razonSocial = s(body.razonSocial, 150).trim();
-    const docOk =
-      docNumero && !revisarComprobante({ tipo: docTipo, numero: docNumero, razonSocial });
+    // Datos del comprobante, revisados otra vez: lo que llega del navegador no
+    // se cree sin comprobar (ver leerDatosComprobante).
+    const datosComprobante = leerDatosComprobante(body);
 
     const order = {
       code: newOrderCode(),
@@ -92,9 +88,7 @@ export default async function handler(req, res) {
       promoCode,
       promoDescuento,
       // Lo que hace falta para emitir la boleta o la factura en SUNAT.
-      docTipo: docOk ? docTipo : undefined,
-      docNumero: docOk ? docNumero : undefined,
-      razonSocial: docOk && docTipo === 'factura' ? razonSocial : undefined,
+      ...datosComprobante,
       nombre,
       email: s(body.email, 120),
       telefono,
@@ -146,6 +140,8 @@ export default async function handler(req, res) {
           entrega: found.entrega,
           monto: found.monto,
           items: (found.items || []).map((i) => ({ productName: i.productName, qty: i.qty })),
+          // La boleta o factura, para que el cliente la descargue (obligatorio entregársela).
+          comprobante: comprobanteParaCliente(found.comprobante),
         },
       });
     }
@@ -168,17 +164,21 @@ export default async function handler(req, res) {
     }
   }
 
-  // PATCH: el dueño cambia el estado y/o el método de un pedido.
+  // PATCH: el dueño cambia el estado, el método, la referencia (nº de
+  // operación) o los datos del comprobante. Al pasar a "Pagado" se emite la
+  // boleta o factura en el facturador (si está conectado).
   if (req.method === 'PATCH') {
     const auth = await checkAdminAuth(req);
     if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
-    const code = s(req.body?.code, 30);
-    const estado = req.body?.estado != null ? s(req.body.estado, 30) : null;
-    const metodo = req.body?.metodo != null ? s(req.body.metodo, 40) : null;
-    const referencia = req.body?.referencia != null ? s(req.body.referencia, 60) : null;
-    if (!code || (!estado && !metodo && referencia === null)) {
-      return res.status(400).json({ error: 'Datos inválidos (code y estado, metodo o referencia).' });
+    const b = req.body || {};
+    const code = s(b.code, 30);
+    const estado = b.estado != null ? s(b.estado, 30) : null;
+    const metodo = b.metodo != null ? s(b.metodo, 40) : null;
+    const referencia = b.referencia != null ? s(b.referencia, 60) : null;
+    const cambiaDocumento = b.docNumero != null;
+    if (!code || (!estado && !metodo && referencia === null && !cambiaDocumento)) {
+      return res.status(400).json({ error: 'Datos inválidos (code y estado, metodo, referencia o documento).' });
     }
     if (estado && !ESTADOS_VALIDOS.includes(estado)) {
       return res.status(400).json({ error: 'Estado inválido.' });
@@ -186,34 +186,45 @@ export default async function handler(req, res) {
     if (metodo && !METODOS_VALIDOS.includes(metodo)) {
       return res.status(400).json({ error: 'Método inválido.' });
     }
-    const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
-    const list = data.result || [];
-    for (let i = 0; i < list.length; i++) {
-      try {
-        const order = JSON.parse(list[i]);
-        if (order.code === code) {
-          if (estado) order.estado = estado;
-          if (metodo) order.metodo = metodo;
-          if (referencia !== null) order.referencia = referencia;
-          // Por VALOR, no por posición: ver reemplazarEnLista en _store.js.
-          await reemplazarEnLista('pedidos', list[i], JSON.stringify(order));
-          // El indice tambien: si no, el seguimiento publico seguiria
-          // mostrando el estado anterior.
-          await indexarPedido(order);
-          // Agrega una fila nueva a la hoja de Google (historial con fecha de cada
-          // cambio de estado) y avisa al cliente por correo, si hay email.
-          if (estado) {
-            notifySheet({
-              ...order,
-              evento: 'actualizado',
-              fecha: new Date().toISOString(), // fecha de ESTE cambio de estado, no la del pedido original
-            }).catch(() => {});
-          }
-          return res.status(200).json({ ok: true, order });
-        }
-      } catch { /* sigue buscando */ }
+    let documento = {};
+    if (cambiaDocumento) {
+      documento = leerDatosComprobante(b);
+      if (!documento.docNumero) {
+        const tipo = b.docTipo === 'factura' ? 'factura' : 'boleta';
+        return res.status(400).json({ error: revisarComprobante({ tipo, numero: s(b.docNumero, 15).trim(), razonSocial: s(b.razonSocial, 150) }) || 'Documento inválido.' });
+      }
     }
-    return res.status(404).json({ error: 'Pedido no encontrado.' });
+
+    let order = await actualizarPedido(code, (o) => {
+      if (estado) o.estado = estado;
+      if (metodo) o.metodo = metodo;
+      if (referencia !== null) o.referencia = referencia;
+      if (cambiaDocumento) {
+        delete o.razonSocial;
+        Object.assign(o, documento);
+      }
+      return o;
+    });
+    if (!order) return res.status(404).json({ error: 'Pedido no encontrado.' });
+
+    // Pagado y sin comprobante todavía: se emite. Se espera la respuesta
+    // porque en Vercel la función se congela al responder.
+    if (estado === 'Pagado' && !order.comprobante?.numero) {
+      const { sizes } = await getCatalog();
+      const comprobante = await emitirComprobante(order, { sizes });
+      order = (await actualizarPedido(code, (o) => ({ ...o, comprobante }))) || order;
+    }
+
+    // Agrega una fila nueva a la hoja de Google (historial con fecha de cada
+    // cambio de estado) y avisa al cliente por correo, si hay email.
+    if (estado) {
+      notifySheet({
+        ...order,
+        evento: 'actualizado',
+        fecha: new Date().toISOString(), // fecha de ESTE cambio de estado, no la del pedido original
+      }).catch(() => {});
+    }
+    return res.status(200).json({ ok: true, order });
   }
 
   // DELETE: el dueño elimina un pedido del panel (no borra la fila ya escrita en Sheets).

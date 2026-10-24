@@ -22,6 +22,8 @@ const RUTAS = {
   // No la piden los clientes: la piden WhatsApp, Facebook y compañía (ver el
   // rewrite por user-agent en vercel.json).
   compartir: () => import('./_rutas/compartir.js'),
+  // Boletas y facturas de los pedidos (emitir de nuevo y descargar el PDF).
+  comprobante: () => import('./_rutas/comprobante.js'),
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
   // El catálogo en el formato que leen Google, Meta y TikTok para anunciar.
