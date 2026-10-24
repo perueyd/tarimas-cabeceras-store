@@ -8,7 +8,7 @@ import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
 import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
-import { emitirComprobante } from './_facturador.js';
+import { comprobanteParaCliente, emitirComprobante } from './_facturador.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 // 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
@@ -140,6 +140,8 @@ export default async function handler(req, res) {
           entrega: found.entrega,
           monto: found.monto,
           items: (found.items || []).map((i) => ({ productName: i.productName, qty: i.qty })),
+          // La boleta o factura, para que el cliente la descargue (obligatorio entregársela).
+          comprobante: comprobanteParaCliente(found.comprobante),
         },
       });
     }

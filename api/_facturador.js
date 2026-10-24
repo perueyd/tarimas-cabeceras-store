@@ -120,7 +120,7 @@ export async function emitirComprobante(order, { sizes, esperaMs } = {}) {
     const r = await llamar('/v1/comprobantes', { method: 'POST', body: JSON.stringify(armado.solicitud), ...(esperaMs ? { esperaMs } : {}) });
     const datos = await r.json().catch(() => ({}));
     if (r.ok) {
-      return { id: datos.id, numero: datos.numero, estado: datos.estado, total: datos.total, fecha };
+      return { id: datos.id, numero: datos.numero, estado: datos.estado, total: datos.total, ...enlaceDe(datos), fecha };
     }
     const detalles = Array.isArray(datos.error?.detalles) ? ` ${datos.error.detalles.join(' ')}` : '';
     return { error: `${datos.error?.mensaje || `El facturador respondió ${r.status}.`}${detalles}`, fecha };
@@ -135,20 +135,34 @@ export async function emitirComprobante(order, { sizes, esperaMs } = {}) {
   }
 }
 
+// Enlace firmado para que el CLIENTE vea su comprobante sin llave (vence al año;
+// cada consulta al facturador entrega uno nuevo).
+const enlaceDe = (datos) => (typeof datos.enlaces?.cliente === 'string' ? { enlace: datos.enlaces.cliente } : {});
+
 /**
  * Estado actual en SUNAT de un comprobante ya emitido. El facturador lo envía
  * y reintenta por su cuenta, así que lo guardado al emitir ("en cola") puede
- * haber cambiado. Devuelve el estado nuevo, o null si no se pudo consultar.
+ * haber cambiado. Devuelve { estado, enlace } actuales, o null si no se pudo consultar.
  */
 export async function consultarEstado(id) {
   if (!facturadorActivo() || !id) return null;
   try {
     const r = await llamar(`/v1/comprobantes/${encodeURIComponent(id)}`);
     if (!r.ok) return null;
-    return (await r.json()).estado ?? null;
+    const datos = await r.json();
+    return datos.estado ? { estado: datos.estado, ...enlaceDe(datos) } : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Lo que ve el cliente en el seguimiento público: número y enlace al PDF. Nada
+ * si no hay comprobante o si SUNAT lo rechazó (ese no vale como comprobante).
+ */
+export function comprobanteParaCliente(c) {
+  if (!c?.numero || !c.enlace || c.estado === 'RECHAZADO' || c.estado === 'ANULADO') return undefined;
+  return { numero: c.numero, enlace: c.enlace };
 }
 
 /** Descarga el PDF de un comprobante ya emitido (A4 o TICKET_80). */

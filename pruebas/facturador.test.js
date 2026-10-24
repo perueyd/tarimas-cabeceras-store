@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { armarSolicitud, emitirComprobante } from '../api/_facturador.js';
+import { armarSolicitud, comprobanteParaCliente, emitirComprobante } from '../api/_facturador.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { billetera, metodosActivos } from '../src/lib/metodosPago.js';
 
@@ -110,4 +110,14 @@ test('métodos de pago: la configuración antigua sigue valiendo', () => {
   assert.equal(metodosActivos({ yapePlin: true, plin: false }).plin, false, 'lo nuevo manda sobre lo antiguo');
   assert.equal(billetera({ yape: '951', yapeTitular: 'ED' }, 'plin').numero, '951', 'Plin hereda el número de Yape');
   assert.equal(billetera({ yape: '951', plin: '952', plinQr: 'q.png' }, 'plin').qr, 'q.png');
+});
+
+// El seguimiento es público (basta el código del pedido): solo debe mostrar el
+// número y el enlace del comprobante, y nunca uno que SUNAT rechazó.
+test('seguimiento: el cliente ve su comprobante, salvo si no vale', () => {
+  const c = { id: 'x', numero: 'B001-00000015', estado: 'ACEPTADO', enlace: 'https://f/c/x.y.z', total: '10.00' };
+  assert.deepEqual(comprobanteParaCliente(c), { numero: 'B001-00000015', enlace: 'https://f/c/x.y.z' });
+  assert.equal(comprobanteParaCliente({ ...c, estado: 'RECHAZADO' }), undefined);
+  assert.equal(comprobanteParaCliente({ error: 'no se emitió' }), undefined);
+  assert.equal(comprobanteParaCliente(undefined), undefined);
 });

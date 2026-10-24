@@ -30,9 +30,9 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Marca primero el pedido como "Pagado".' });
     }
     if (order.comprobante?.numero) {
-      const estado = await consultarEstado(order.comprobante.id);
-      if (!estado || estado === order.comprobante.estado) return res.status(200).json({ ok: true, order });
-      const nuevo = await actualizarPedido(code, (o) => ({ ...o, comprobante: { ...o.comprobante, estado } }));
+      const actual = await consultarEstado(order.comprobante.id);
+      if (!actual) return res.status(200).json({ ok: true, order });
+      const nuevo = await actualizarPedido(code, (o) => ({ ...o, comprobante: { ...o.comprobante, ...actual } }));
       return res.status(200).json({ ok: true, order: nuevo || order });
     }
     const { sizes } = await getCatalog();
