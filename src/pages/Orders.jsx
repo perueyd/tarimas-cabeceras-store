@@ -292,8 +292,10 @@ export default function Orders() {
         body: JSON.stringify({ code: o.code, ...cambios }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) reemplazarPedido(data.order || { ...o, ...cambios });
-      else alert(data.error || 'No se pudo actualizar el pedido.');
+      if (res.ok) {
+        reemplazarPedido(data.order || { ...o, ...cambios });
+        if (data.aviso) alert(data.aviso);
+      } else alert(data.error || 'No se pudo actualizar el pedido.');
     } catch { /* no-op */ }
   }
 
@@ -305,6 +307,7 @@ export default function Orders() {
         headers: { Authorization: `Bearer ${key}` },
       });
       if (res.ok) setOrders(orders.filter((x) => x.code !== o.code));
+      else alert((await res.json().catch(() => ({}))).error || 'No se pudo eliminar el pedido.');
     } catch { /* no-op */ }
   }
 
@@ -1314,7 +1317,7 @@ const ESTADO_SUNAT = {
   ACEPTADO_OBS: '✅ aceptada por SUNAT (con observaciones)',
   PENDIENTE_ENVIO: '⏳ en cola: se envía a SUNAT sola',
   EMITIDO_LOCAL: '⏳ en cola: se envía a SUNAT sola',
-  RECHAZADO: '❌ rechazada por SUNAT: revísala en el facturador',
+  RECHAZADO: '❌ rechazada por SUNAT',
   ANULACION_EN_PROCESO: 'anulación en proceso',
   ANULADO: 'anulada',
 };
@@ -1357,6 +1360,29 @@ function ComprobanteElectronico({ o, adminKey, onReemplazar }) {
     const url = URL.createObjectURL(await res.blob());
     if (ventana) ventana.location.href = url;
     else window.location.href = url;
+  }
+
+  // Rechazada: no vale. Se muestra por qué y se deja emitir otra (con número
+  // nuevo) después de corregir el DNI o RUC del pedido.
+  if (c?.numero && c.estado === 'RECHAZADO') {
+    return (
+      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs">
+        <p className="text-red-700">
+          🧾 SUNAT rechazó la {c.numero.startsWith('F') ? 'factura' : 'boleta'} {c.numero}
+          {c.motivo ? `: ${c.motivo}` : '.'}
+        </p>
+        <p className="mt-1 text-red-700">
+          No tiene valor. Corrige los datos del cliente si hace falta y emite una nueva (saldrá con otro número).
+        </p>
+        <button
+          onClick={emitir}
+          disabled={ocupado}
+          className="mt-2 rounded-lg bg-ink px-3 py-1.5 font-medium text-white hover:bg-neutral-800 disabled:opacity-60"
+        >
+          {ocupado ? 'Emitiendo...' : 'Emitir una nueva'}
+        </button>
+      </div>
+    );
   }
 
   if (c?.numero) {

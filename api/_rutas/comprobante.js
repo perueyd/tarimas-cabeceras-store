@@ -5,7 +5,8 @@
 // servidor: el PDF se descarga A TRAVÉS de esta ruta.
 //
 // POST admin { code }                         -> emite (o reintenta) el comprobante del pedido;
-//                                                 si ya existe, actualiza su estado en SUNAT
+//                                                 si ya existe, actualiza su estado en SUNAT;
+//                                                 si SUNAT lo rechazó, emite uno nuevo
 // GET  admin ?code=ED-XXX[&formato=TICKET_80] -> PDF del comprobante (A4 por defecto)
 
 import { getCatalog } from '../_catalog.js';
@@ -28,6 +29,18 @@ export default async function handler(req, res) {
     // esta conexión debe impedir.
     if (order.estado !== 'Pagado' && order.estado !== 'Entregado') {
       return res.status(409).json({ error: 'Marca primero el pedido como "Pagado".' });
+    }
+    // Rechazado por SUNAT: no vale como comprobante. Se emite uno nuevo (el
+    // facturador le da el siguiente número) y el rechazado queda anotado.
+    if (order.comprobante?.estado === 'RECHAZADO') {
+      const { sizes } = await getCatalog();
+      const comprobante = await emitirComprobante(order, { sizes });
+      const nuevo = await actualizarPedido(code, (o) => ({
+        ...o,
+        comprobante,
+        rechazados: [...(o.rechazados || []), o.comprobante].slice(-10),
+      }));
+      return res.status(200).json({ ok: true, order: nuevo || { ...order, comprobante } });
     }
     if (order.comprobante?.numero) {
       const actual = await consultarEstado(order.comprobante.id);

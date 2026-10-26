@@ -157,7 +157,7 @@ const enlaceDe = (datos) => (typeof datos.enlaces?.cliente === 'string' ? { enla
 /**
  * Estado actual en SUNAT de un comprobante ya emitido. El facturador lo envía
  * y reintenta por su cuenta, así que lo guardado al emitir ("en cola") puede
- * haber cambiado. Devuelve { estado, enlace } actuales, o null si no se pudo consultar.
+ * haber cambiado. Devuelve { estado, enlace, motivo? } actuales, o null si no se pudo consultar.
  */
 export async function consultarEstado(id) {
   if (!facturadorActivo() || !id) return null;
@@ -165,7 +165,10 @@ export async function consultarEstado(id) {
     const r = await llamar(`/v1/comprobantes/${encodeURIComponent(id)}`);
     if (!r.ok) return null;
     const datos = await r.json();
-    return datos.estado ? { estado: datos.estado, ...enlaceDe(datos) } : null;
+    if (!datos.estado) return null;
+    // Si SUNAT lo rechazó, el motivo: sin él no se sabe qué corregir.
+    const motivo = datos.estado === 'RECHAZADO' && datos.sunat?.mensaje ? { motivo: String(datos.sunat.mensaje).slice(0, 300) } : {};
+    return { estado: datos.estado, ...enlaceDe(datos), ...motivo };
   } catch {
     return null;
   }
@@ -176,8 +179,17 @@ export async function consultarEstado(id) {
  * si no hay comprobante o si SUNAT lo rechazó (ese no vale como comprobante).
  */
 export function comprobanteParaCliente(c) {
-  if (!c?.numero || !c.enlace || c.estado === 'RECHAZADO' || c.estado === 'ANULADO') return undefined;
+  if (!comprobanteVigente(c) || !c.enlace) return undefined;
   return { numero: c.numero, enlace: c.enlace };
+}
+
+/**
+ * ¿El pedido tiene una boleta o factura que vale? Mientras la tenga, el pedido
+ * no se puede borrar ni cambiar de documento o de medio de pago: la boleta ya
+ * dice otra cosa y solo se corrige con nota de crédito.
+ */
+export function comprobanteVigente(c) {
+  return Boolean(c?.numero) && c.estado !== 'RECHAZADO' && c.estado !== 'ANULADO';
 }
 
 /** Descarga el PDF de un comprobante ya emitido (A4 o TICKET_80). */
