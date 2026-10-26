@@ -14,7 +14,20 @@
 // comprobante. Por eso reintentar siempre es seguro.
 
 const URL_FACTURADOR = (process.env.FACTURADOR_URL || '').replace(/\/+$/, '');
-const LLAVE = process.env.FACTURADOR_LLAVE || '';
+const LLAVE = limpiarLlave(process.env.FACTURADOR_LLAVE);
+
+/**
+ * La llave copiada de la ventana negra puede traer espacios delante (el comando
+ * la muestra con sangría) o un salto de línea: con eso el facturador la rechaza
+ * como "inválida". Ninguna llave lleva espacios ni comillas, así que se quitan.
+ */
+export function limpiarLlave(valor) {
+  return String(valor || '').replace(/[\s"']/g, '');
+}
+
+// Formato de las llaves del facturador: fk_ + 12 hexadecimales + _ + 43 caracteres.
+const FORMATO_LLAVE = /^fk_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$/;
+const LLAVE_MAL = 'La llave FACTURADOR_LLAVE de Vercel no coincide con el facturador. Créala de nuevo (npm run llave-api -- crear …), pégala en Vercel y haz Redeploy.';
 
 // Vercel puede cortar la función a los ~10 s en el plan gratuito; si el
 // facturador tarda más, el comprobante queda pendiente y "Emitir de nuevo" lo
@@ -113,6 +126,7 @@ export async function emitirComprobante(order, { sizes, esperaMs } = {}) {
   if (!facturadorActivo()) {
     return { error: 'El facturador aún no está conectado (faltan FACTURADOR_URL y FACTURADOR_LLAVE en Vercel).', fecha };
   }
+  if (!FORMATO_LLAVE.test(LLAVE)) return { error: LLAVE_MAL, fecha };
   const armado = armarSolicitud(order, { sizes });
   if (!armado.ok) return { error: armado.error, fecha };
 
@@ -122,6 +136,7 @@ export async function emitirComprobante(order, { sizes, esperaMs } = {}) {
     if (r.ok) {
       return { id: datos.id, numero: datos.numero, estado: datos.estado, total: datos.total, ...enlaceDe(datos), fecha };
     }
+    if (r.status === 401) return { error: LLAVE_MAL, fecha };
     const detalles = Array.isArray(datos.error?.detalles) ? ` ${datos.error.detalles.join(' ')}` : '';
     return { error: `${datos.error?.mensaje || `El facturador respondió ${r.status}.`}${detalles}`, fecha };
   } catch (err) {
