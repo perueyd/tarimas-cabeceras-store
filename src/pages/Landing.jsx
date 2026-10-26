@@ -4,7 +4,7 @@ import RecentOrdersSection from '../components/RecentOrdersSection.jsx';
 import ProductImage from '../components/ProductImage.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { getEffectivePrice } from '../lib/pricing.js';
-import { datosDelNegocio, usarMeta } from '../lib/meta.js';
+import { datosDelNegocio, useMeta } from '../lib/meta.js';
 
 // Colores que se muestran como chips interactivos en el hero.
 const HERO_COLORS = ['gris', 'beige', 'azul', 'vino', 'negro'];
@@ -57,7 +57,7 @@ export default function Landing() {
   // Los datos del negocio para Google: dirección, teléfono y RUC reales, los
   // mismos que ya están publicados por obligación legal. Es lo que alimenta
   // la ficha lateral del buscador.
-  usarMeta({ datos: datosDelNegocio(storeConfig) });
+  useMeta({ datos: datosDelNegocio(storeConfig) });
   const [heroColor, setHeroColor] = useState(() => colors.find((c) => c.id === 'azul') || colors[0]);
   // El hero avisa si el mueble mostrado combina dos telas, para invitar a
   // entrar al producto y elegirlas (aquí solo se muestra una: ver abajo).

@@ -4,10 +4,10 @@ import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 export default function Cart() {
-  usarMeta({ titulo: 'Tu carrito', descripcion: 'Revisa los muebles que elegiste antes de completar tu compra.' });
+  useMeta({ titulo: 'Tu carrito', descripcion: 'Revisa los muebles que elegiste antes de completar tu compra.' });
 
   const { items, updateQty, removeItem, totalAmount, lineKey } = useCart();
   const { currencyFormatter, getColorById, getSizeById, getProductById: getProductByIdSafe } = useCatalog();

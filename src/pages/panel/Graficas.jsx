@@ -4,6 +4,11 @@
 // horizontales y una columna por día: traer una librería entera para esto
 // costaría más de descarga que todo el resto del panel junto.
 
+// El color de las barras. Una sola serie por gráfica, así que un solo color:
+// una paleta aquí solo serviría para que pareciera que significan cosas
+// distintas.
+const AZUL = '#3b5a70';
+
 import { esVenta } from '../../lib/pedidos.js';
 
 import { useMemo } from 'react';

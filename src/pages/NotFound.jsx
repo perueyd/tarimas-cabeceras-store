@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 // Cualquier dirección que no exista (un enlace viejo compartido por WhatsApp,
 // una dirección mal escrita) llegaba a una página totalmente en blanco, sin
 // mensaje ni forma de volver. Esta pantalla la reemplaza.
 export default function NotFound() {
-  usarMeta({ titulo: 'Página no encontrada', descripcion: 'La página que buscas no existe o cambió de dirección.' });
+  useMeta({ titulo: 'Página no encontrada', descripcion: 'La página que buscas no existe o cambió de dirección.' });
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-20 text-center">

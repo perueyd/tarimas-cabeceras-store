@@ -7,7 +7,7 @@ import { getUnitPrice } from '../lib/pricing.js';
 import { fichaDeVariante } from '../lib/variantesFoto.js';
 import { fotoChica } from '../lib/fotoChica.js';
 import { trackAddToCart } from '../lib/analytics.js';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 // La cámara de realidad aumentada pesa, y la mayoría de visitas no la abre.
 // Se descarga sola la primera vez que alguien pulsa "Ver en mi pared", en
@@ -32,7 +32,7 @@ const PASOS = [
 ];
 
 export default function ArmarDormitorio() {
-  usarMeta({ titulo: 'Arma tu dormitorio completo', descripcion: 'Cabecera, tarima y colchón de tu medida, en un solo paso. Elige las tres piezas y recíbelas juntas.' });
+  useMeta({ titulo: 'Arma tu dormitorio completo', descripcion: 'Cabecera, tarima y colchón de tu medida, en un solo paso. Elige las tres piezas y recíbelas juntas.' });
 
   const { products, categories, sizes, colors, currencyFormatter, storeConfig } = useCatalog();
   const { addItem } = useCart();

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 const CAMPOS_VACIOS = {
   tipo: 'Reclamo',
@@ -17,7 +17,7 @@ const CAMPOS_VACIOS = {
 };
 
 export default function ComplaintsBook() {
-  usarMeta({ titulo: 'Libro de Reclamaciones', descripcion: 'Registra tu queja o reclamo. Recibirás un número de folio y te respondemos en un máximo de 30 días calendario.' });
+  useMeta({ titulo: 'Libro de Reclamaciones', descripcion: 'Registra tu queja o reclamo. Recibirás un número de folio y te respondemos en un máximo de 30 días calendario.' });
 
   const { storeConfig } = useCatalog();
   const [form, setForm] = useState(CAMPOS_VACIOS);

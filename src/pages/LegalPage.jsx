@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import FormularioARCO from '../components/FormularioARCO.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 // Reemplaza {{proveedor}} y {{whatsapp}} en el texto legal con los datos
 // reales de la tienda, así el dueño no tiene que repetirlos a mano.
@@ -32,7 +32,7 @@ export default function LegalPage({ which }) {
   // Va ANTES del retorno de abajo a propósito: un gancho de React no puede
   // quedar detrás de un `return`, o la página revienta cuando el texto legal
   // está desactivado.
-  usarMeta({
+  useMeta({
     titulo: titulo || (which === 'privacidad' ? 'Política de Privacidad' : 'Términos y Condiciones'),
     descripcion:
       which === 'privacidad'

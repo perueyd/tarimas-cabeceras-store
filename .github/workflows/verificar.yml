@@ -28,7 +28,12 @@ jobs:
       # `npm ci` instala exactamente lo del package-lock, sin sorpresas.
       - run: npm ci
 
-      # Las pruebas primero: tardan 1 segundo y cubren lo que de verdad duele
+      # El revisor primero: tarda un segundo y caza los errores que la
+      # compilación NO ve — usar algo que no existe, un gancho de React mal
+      # puesto. Dos veces se publicó código así y el panel se quedó en blanco.
+      - run: npm run revisar
+
+      # Las pruebas después: tardan 1 segundo y cubren lo que de verdad duele
       # (dinero, vencimientos, el tope de funciones de Vercel). Si fallan, no
       # tiene sentido gastar tiempo compilando.
       - run: npm test

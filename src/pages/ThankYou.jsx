@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { currencyFormatter } from '../data/catalog.js';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import PostPurchaseSurvey from '../components/PostPurchaseSurvey.jsx';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 // Evento de calendario pre-llenado para el cliente (día completo de la entrega).
 function buildCalendarUrl(state) {
@@ -18,7 +18,7 @@ function buildCalendarUrl(state) {
 }
 
 export default function ThankYou() {
-  usarMeta({ titulo: '¡Gracias por tu compra!', descripcion: 'Tu pedido quedó registrado. Guarda tu código para seguirlo.' });
+  useMeta({ titulo: '¡Gracias por tu compra!', descripcion: 'Tu pedido quedó registrado. Guarda tu código para seguirlo.' });
 
   const { state } = useLocation();
   const porVerificar = state?.porVerificar;

@@ -381,30 +381,4 @@ export function VitrinaTab({ catalog, api, flash, adminKey }) {
   );
 }
 
-// ============================================================
-// PRODUCTOS
-// ============================================================
-const PRODUCTO_VACIO = {
-  id: '',
-  category: '',
-  name: '',
-  baseImage: '',
-  tintable: true,
-  shortDescription: '',
-  specs: [],
-  sizePricing: {},
-  offerPricing: {},
-  discountPercent: 0,
-  availableColors: [],
-  availableColors2: [],
-  invertirTelas: false,
-  zonasFoto: {},
-  colorImages: {},
-  sizeImages: {},
-  sizeDims: {},
-  colorsBySize: {},
-  opciones: [],
-  oculto: false,
-  gallery: [],
-};
 

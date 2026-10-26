@@ -13,6 +13,36 @@ import EditorZonasColor from '../../components/EditorZonasColor.jsx';
 import { BorrarFoto, Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
 import { separarIGV } from '../../lib/igv.js';
 
+// Un producto recién creado, con todos sus campos vacíos.
+//
+// Vive aquí, junto al único sitio que lo usa. Estaba en PortadaTab.jsx desde
+// que se partió el editor: ProductosTab seguía llamándolo sin tenerlo, así que
+// el botón "+ Agregar producto" reventaba el panel al pulsarlo. Nadie lo notó
+// porque no se creaba un producto desde entonces.
+const PRODUCTO_VACIO = {
+  id: '',
+  category: '',
+  name: '',
+  baseImage: '',
+  tintable: true,
+  shortDescription: '',
+  specs: [],
+  sizePricing: {},
+  offerPricing: {},
+  discountPercent: 0,
+  availableColors: [],
+  availableColors2: [],
+  invertirTelas: false,
+  zonasFoto: {},
+  colorImages: {},
+  sizeImages: {},
+  sizeDims: {},
+  colorsBySize: {},
+  opciones: [],
+  oculto: false,
+  gallery: [],
+};
+
 export function ProductosTab({ catalog, api, flash, adminKey }) {
   const [editando, setEditando] = useState(null); // producto en edición, o null
   const [busqueda, setBusqueda] = useState('');

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
-import { usarMeta } from '../lib/meta.js';
+import { useMeta } from '../lib/meta.js';
 
 export default function Home() {
   const { categories, products, storeConfig, sizes } = useCatalog();
@@ -64,7 +64,7 @@ export default function Home() {
   // portada genérica.
   const nombreCategoria = tab === 'todos' ? 'Muebles' : categories.find((c) => c.id === tab)?.label || 'Muebles';
   const nombreMedida = plaza === 'todas' ? '' : sizes.find((s) => s.id === plaza)?.label || '';
-  usarMeta({
+  useMeta({
     titulo: `${nombreCategoria}${nombreMedida ? ` ${nombreMedida}` : ''} a tu medida`,
     descripcion: `${nombreCategoria} a medida en Perú${nombreMedida ? ` para cama ${nombreMedida}` : ''}. Elige tamaño y color, y visualiza el cambio al instante. Envíos a todo el Perú.`,
   });

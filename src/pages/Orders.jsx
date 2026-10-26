@@ -26,7 +26,6 @@ import { ReclamoCard } from './panel/ReclamoCard.jsx';
 import { CLAVE_STORAGE, guardarClave, leerClaveGuardada } from './panel/sesion.js';
 import { esVenta } from '../lib/pedidos.js';
 
-const AZUL = '#3b5a70'; // color único de las gráficas (una sola serie por gráfica)
 
 export default function Orders() {
   const { currencyFormatter, getColorById, getSizeById, getProductById, storeConfig } = useCatalog();

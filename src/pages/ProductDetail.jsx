@@ -7,7 +7,7 @@ import BotonCompartir from '../components/BotonCompartir.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
-import { datosDeProducto, usarMeta } from '../lib/meta.js';
+import { datosDeProducto, useMeta } from '../lib/meta.js';
 import { trackAddToCart } from '../lib/analytics.js';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fotoDeGaleria, avisoDeVariante } from '../lib/variantesFoto.js';
@@ -192,7 +192,7 @@ export default function ProductDetail() {
     [product, availableSizes, img?.src, storeConfig]
   );
 
-  usarMeta({
+  useMeta({
     // "desde" es el precio de la medida MÁS BARATA, no el de la que esté
     // seleccionada: si no, el título cambiaría al tocar los botones de medida
     // y en Google aparecería el precio de la King como si fuera el de entrada.

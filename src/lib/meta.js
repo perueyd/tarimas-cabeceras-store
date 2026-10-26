@@ -48,7 +48,10 @@ function ponerCanonica(url) {
  * estructurados, para que la ficha de un producto no se quede pegada a la
  * siguiente página que se visite.
  */
-export function usarMeta({ titulo, descripcion, imagen, datos } = {}) {
+// Se llama useMeta y no usarMeta porque React exige que los ganchos empiecen
+// por "use": es como los reconoce su revisor, y el resto del proyecto ya sigue
+// esa convención (useCatalog, useReordenar).
+export function useMeta({ titulo, descripcion, imagen, datos } = {}) {
   // `datos` es un objeto nuevo en cada render, así que compararlo por
   // identidad haría que este efecto se repitiera sin parar. Se compara por
   // contenido.

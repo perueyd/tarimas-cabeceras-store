@@ -55,117 +55,155 @@ export function CampoReferencia({ o, onUpdate }) {
   );
 }
 
+// Colores del estado de un pedido. Fuera del componente para no rehacerlos
+// en cada dibujado, y en un solo sitio para que la línea plegada y la abierta
+// no acaben enseñando colores distintos del mismo estado.
+const COLOR_ESTADO = {
+  Pagado: 'bg-green-100 text-green-800',
+  Entregado: 'bg-sky-100 text-sky-800',
+  Cancelado: 'bg-red-100 text-red-700',
+  'Pago por verificar': 'bg-amber-100 text-amber-800',
+};
+
+const ESTADOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
+
+function fechaCorta(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: 'short',
+    });
+  } catch {
+    return '';
+  }
+}
+
 export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, currencyFormatter, getColorById, getSizeById }) {
+  // Los pedidos que esperan una decisión se abren solos; los ya resueltos
+  // empiezan plegados. Antes TODOS enseñaban sus ocho bloques a la vez, y con
+  // veinte pedidos en pantalla encontrar el que importaba era un ejercicio de
+  // paciencia.
+  const [abierto, setAbierto] = useState(o.estado === 'Pago por verificar');
+
   const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const waMsg = encodeURIComponent(
     `Hola ${o.nombre}, te escribimos de E|D Espacios y Diseño sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: ${urlSeguimiento(o.code)}`
   );
   const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${waMsg}` : null;
-  const badge =
-    o.estado === 'Pagado'
-      ? 'bg-green-100 text-green-800'
-      : o.estado === 'Entregado'
-        ? 'bg-sky-100 text-sky-800'
-        : o.estado === 'Cancelado'
-          ? 'bg-red-100 text-red-700'
-          : 'bg-amber-100 text-amber-800';
-  return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-mono text-sm font-semibold">{o.code}</p>
-        <span className={`rounded-full px-3 py-1 text-xs font-medium ${badge}`}>
-          {o.estado} · {o.metodo}
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-        <p><span className="text-neutral-500">Cliente:</span> {o.nombre} · {o.telefono}</p>
-        <p><span className="text-neutral-500">Monto:</span> {currencyFormatter.format(o.monto)}</p>
-        <p><span className="text-neutral-500">Entrega:</span> {o.entrega || '—'}</p>
-        <p><span className="text-neutral-500">Fecha:</span> {new Date(o.fecha).toLocaleString('es-PE')}</p>
-        <p className="sm:col-span-2"><span className="text-neutral-500">Dirección:</span> {o.direccion || '—'} ({o.zona})</p>
-      </div>
+  const badge = COLOR_ESTADO[o.estado] || 'bg-neutral-100 text-neutral-700';
 
-      {/* Todo lo que hace falta para emitir el comprobante en SUNAT, junto y
-          listo para copiar. Sin esto había que ir sacando los datos de cuatro
-          sitios de la pantalla y calcular el IGV a mano — que es justo donde se
-          cuela el error de sacar el 18% del total en vez de separarlo. */}
-      <BloqueComprobante o={o} currencyFormatter={currencyFormatter} />
-      <ComprobanteElectronico o={o} adminKey={adminKey} onReemplazar={onReemplazar} />
-      {o.referencia && (
-        <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
-          <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
+  return (
+    <div className={`rounded-xl border bg-white transition ${abierto ? 'border-neutral-300' : 'border-neutral-200'}`}>
+      {/* La línea plegada: lo que hace falta para decidir si hay que abrirla.
+          Es un botón entero para poder abrirla tocando en cualquier parte, que
+          en un móvil importa más que en una pantalla grande. */}
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left"
+      >
+        <span className="font-mono text-xs font-semibold text-neutral-500">{o.code}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{o.nombre}</span>
+        <span className="hidden shrink-0 text-xs text-neutral-400 sm:block">{fechaCorta(o.fecha)}</span>
+        <span className="shrink-0 text-sm font-semibold tabular-nums">
+          {currencyFormatter.format(o.monto)}
+        </span>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${badge}`}>
+          {o.estado}
+        </span>
+        <span className={`shrink-0 text-neutral-400 transition ${abierto ? 'rotate-180' : ''}`}>⌄</span>
+      </button>
+
+      {abierto && (
+        <div className="border-t border-neutral-100 px-4 pb-4 pt-3">
+          <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+            <p><span className="text-neutral-500">Teléfono:</span> {o.telefono || '—'}</p>
+            <p><span className="text-neutral-500">Pagó con:</span> {o.metodo}</p>
+            <p><span className="text-neutral-500">Entrega:</span> {o.entrega || '—'}</p>
+            <p><span className="text-neutral-500">Pedido el:</span> {new Date(o.fecha).toLocaleString('es-PE')}</p>
+            <p className="sm:col-span-2"><span className="text-neutral-500">Dirección:</span> {o.direccion || '—'} ({o.zona})</p>
+          </div>
+
+          {o.referencia && (
+            <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+              <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
+            </div>
+          )}
+
+          {o.items?.length > 0 && (
+            <ul className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-xs text-neutral-600">
+              {o.items.map((i, idx) => (
+                <li key={idx}>
+                  • {i.productName} x{i.qty} — {getSizeById(i.sizeId)?.label || i.sizeId},{' '}
+                  {getColorById(i.colorId)?.label || i.colorId}
+                  {i.colorId2 && ` + ${getColorById(i.colorId2)?.label || i.colorId2}`}
+                  {i.opciones?.length > 0 && `, ${i.opciones.map((x) => `${x.label}: ${x.valor}`).join(', ')}`}
+                  {' — '}{currencyFormatter.format(i.unitPrice * i.qty)}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Todo lo que hace falta para emitir el comprobante en SUNAT, junto
+              y listo para copiar. */}
+          <BloqueComprobante o={o} currencyFormatter={currencyFormatter} />
+          <ComprobanteElectronico o={o} adminKey={adminKey} onReemplazar={onReemplazar} />
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-xs">
+            <label className="flex items-center gap-1.5">
+              <span className="text-neutral-500">Estado:</span>
+              <select
+                value={o.estado}
+                onChange={(e) => onUpdate(o, { estado: e.target.value })}
+                className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
+              >
+                {ESTADOS.map((e) => <option key={e}>{e}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-neutral-500">Método:</span>
+              <select
+                value={o.metodo}
+                onChange={(e) => onUpdate(o, { metodo: e.target.value })}
+                className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
+              >
+                <option>Yape</option>
+                <option>Plin</option>
+                <option>Transferencia bancaria</option>
+                <option>Tarjeta/Yape (Culqi)</option>
+                {/* Solo para pedidos antiguos, de cuando Yape y Plin iban juntos. */}
+                {o.metodo === 'Yape/Plin' && <option>Yape/Plin</option>}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-neutral-500">Referencia (WSP):</span>
+              <CampoReferencia o={o} onUpdate={onUpdate} />
+            </label>
+            {wa && (
+              <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">
+                WhatsApp al cliente
+              </a>
+            )}
+            {cal && (
+              <a href={cal} target="_blank" rel="noreferrer" className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:border-ink">
+                Agendar entrega
+              </a>
+            )}
+            {o.ubicacion && (
+              <a href={o.ubicacion} target="_blank" rel="noreferrer" className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:border-ink">
+                Ver mapa
+              </a>
+            )}
+            <button
+              onClick={() => onDelete(o)}
+              className="ml-auto rounded-lg border border-neutral-200 px-3 py-1.5 font-medium text-neutral-500 transition hover:border-red-300 hover:text-red-600"
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
       )}
-      {o.items?.length > 0 && (
-        <ul className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-xs text-neutral-600">
-          {o.items.map((i, idx) => (
-            <li key={idx}>
-              • {i.productName} x{i.qty} — {getSizeById(i.sizeId)?.label || i.sizeId},{' '}
-              {getColorById(i.colorId)?.label || i.colorId}
-              {i.colorId2 && ` + ${getColorById(i.colorId2)?.label || i.colorId2}`}
-              {i.opciones?.length > 0 && `, ${i.opciones.map((o) => `${o.label}: ${o.valor}`).join(', ')}`}
-              {' — '}{currencyFormatter.format(i.unitPrice * i.qty)}
-            </li>
-          ))}
-        </ul>
-      )}
-      {/* Acciones rápidas de productividad */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-xs">
-        <label className="flex items-center gap-1.5">
-          <span className="text-neutral-500">Estado:</span>
-          <select
-            value={o.estado}
-            onChange={(e) => onUpdate(o, { estado: e.target.value })}
-            className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
-          >
-            <option>Pago por verificar</option>
-            <option>Pagado</option>
-            <option>Entregado</option>
-            <option>Cancelado</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-1.5">
-          <span className="text-neutral-500">Método:</span>
-          <select
-            value={o.metodo}
-            onChange={(e) => onUpdate(o, { metodo: e.target.value })}
-            className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 outline-none focus:border-ink"
-          >
-            <option>Yape</option>
-            <option>Plin</option>
-            <option>Transferencia bancaria</option>
-            <option>Tarjeta/Yape (Culqi)</option>
-            {/* Solo para pedidos antiguos, de cuando Yape y Plin iban juntos. */}
-            {o.metodo === 'Yape/Plin' && <option>Yape/Plin</option>}
-          </select>
-        </label>
-        <label className="flex items-center gap-1.5">
-          <span className="text-neutral-500">Referencia (WSP):</span>
-          <CampoReferencia o={o} onUpdate={onUpdate} />
-        </label>
-        {wa && (
-          <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">
-            WhatsApp al cliente
-          </a>
-        )}
-        {cal && (
-          <a href={cal} target="_blank" rel="noreferrer" className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:border-ink">
-            📅 Agendar en Google Calendar
-          </a>
-        )}
-        {o.ubicacion && (
-          <a href={o.ubicacion} target="_blank" rel="noreferrer" className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:border-ink">
-            📍 Mapa
-          </a>
-        )}
-        <button
-          onClick={() => onDelete(o)}
-          className="ml-auto rounded-lg border border-red-200 px-3 py-1.5 font-medium text-red-600 hover:bg-red-50"
-        >
-          🗑️ Eliminar pedido
-        </button>
-      </div>
     </div>
   );
 }
