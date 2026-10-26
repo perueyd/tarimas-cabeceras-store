@@ -14,7 +14,7 @@
 // contiene. Si hay algo urgente dentro, el grupo se ve urgente por fuera,
 // aunque esté cerrado.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * grupos: [{ id, label, items: [{ id, label, aviso?, urgente? }] }]
@@ -37,10 +37,24 @@ export default function PestanasAgrupadas({ grupos, activa, onElegir }) {
 
   const grupoAbierto = grupos.find((g) => g.id === abierto) || grupos[0];
 
+  // Las dos filas se deslizan de lado en el móvil en vez de partirse en
+  // varias líneas, así que lo que está puesto puede quedar fuera de la
+  // pantalla. Pasa sobre todo cuando se llega desde fuera: "Qué hacer hoy"
+  // manda a Reclamos, el grupo cambia solo, y la pestaña abierta queda a la
+  // derecha sin verse. Entonces parecía que el botón no había hecho nada.
+  const filas = [useRef(null), useRef(null)];
+  useEffect(() => {
+    for (const fila of filas) {
+      fila.current
+        ?.querySelector('[data-puesta="si"]')
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [activa, abierto]);
+
   return (
     <div className="mb-6">
       {/* Nivel 1: los grupos */}
-      <div className="flex flex-wrap gap-1 border-b border-neutral-200">
+      <div ref={filas[0]} className="fila-deslizable flex flex-wrap gap-1 border-b border-neutral-200">
         {grupos.map((g) => {
           const avisos = g.items.reduce((n, i) => n + (i.aviso || 0), 0);
           const hayUrgente = g.items.some((i) => i.urgente && i.aviso > 0);
@@ -49,13 +63,14 @@ export default function PestanasAgrupadas({ grupos, activa, onElegir }) {
           return (
             <button
               key={g.id}
+              data-puesta={esteAbierto ? 'si' : undefined}
               onClick={() => {
                 setAbierto(g.id);
                 // Abrir un grupo lleva a su primera pestaña: así un clic hace
                 // algo visible, en vez de solo cambiar la fila de abajo.
                 if (!g.items.some((i) => i.id === activa)) onElegir(g.items[0].id);
               }}
-              className={`relative -mb-px rounded-t-lg border-b-2 px-4 py-2.5 text-sm transition ${
+              className={`relative -mb-px whitespace-nowrap rounded-t-lg border-b-2 px-4 py-2.5 text-sm transition ${
                 esteAbierto
                   ? 'border-ink font-medium text-ink'
                   : 'border-transparent text-neutral-500 hover:text-ink'
@@ -77,12 +92,13 @@ export default function PestanasAgrupadas({ grupos, activa, onElegir }) {
       </div>
 
       {/* Nivel 2: las pestañas del grupo abierto */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div ref={filas[1]} className="fila-deslizable mt-3 flex flex-wrap gap-2">
         {grupoAbierto?.items.map((i) => (
           <button
             key={i.id}
+            data-puesta={activa === i.id ? 'si' : undefined}
             onClick={() => onElegir(i.id)}
-            className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+            className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-sm transition ${
               activa === i.id
                 ? 'border-ink bg-ink text-white'
                 : 'border-neutral-200 text-neutral-600 hover:border-neutral-400'

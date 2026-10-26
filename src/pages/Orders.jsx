@@ -24,7 +24,8 @@ import { GraficaVentasPorDia, GraficaVentasPorProducto } from './panel/Graficas.
 import { PedidoCard } from './panel/PedidoCard.jsx';
 import { ReclamoCard } from './panel/ReclamoCard.jsx';
 import { CLAVE_STORAGE, guardarClave, leerClaveGuardada } from './panel/sesion.js';
-import { esVenta } from '../lib/pedidos.js';
+import FiltroPedidos from './panel/FiltroPedidos.jsx';
+import { esVenta, filtrarPedidos } from '../lib/pedidos.js';
 
 
 export default function Orders() {
@@ -337,14 +338,7 @@ export default function Orders() {
     : '—';
 
   const reclamosPendientes = reclamos.filter((r) => r.estado === 'Pendiente');
-  const cancelados = orders.filter((o) => o.estado === 'Cancelado');
-  const visibles = orders.filter((o) => {
-    if (filtro === 'pendientes') return o.estado === 'Pago por verificar';
-    if (filtro === 'pagados') return o.estado === 'Pagado';
-    if (filtro === 'entregados') return o.estado === 'Entregado';
-    if (filtro === 'cancelados') return o.estado === 'Cancelado';
-    return true;
-  });
+  const visibles = filtrarPedidos(orders, filtro);
 
   return (
     <>
@@ -461,25 +455,7 @@ export default function Orders() {
 
       {tab === 'pedidos' && (
         <>
-          <div className="mb-4 flex flex-wrap gap-2 text-sm">
-            {[
-              { id: 'todos', label: 'Todos' },
-              { id: 'pendientes', label: `Por verificar (${porVerificar.length})` },
-              { id: 'pagados', label: 'Pagados' },
-              { id: 'entregados', label: 'Entregados' },
-              { id: 'cancelados', label: `Cancelados (${cancelados.length})` },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFiltro(f.id)}
-                className={`rounded-lg border px-3 py-1.5 transition ${
-                  filtro === f.id ? 'border-ink bg-neutral-100 font-medium' : 'border-neutral-200 text-neutral-500 hover:border-neutral-400'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <FiltroPedidos pedidos={orders} filtro={filtro} onElegir={setFiltro} />
 
           <div className="space-y-4">
             {visibles.length === 0 && (

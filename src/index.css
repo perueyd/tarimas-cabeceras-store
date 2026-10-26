@@ -85,3 +85,26 @@ html {
 @media (hover: none) and (pointer: coarse) {
   button, a { min-height: 44px; min-width: 44px; }
 }
+
+/* Filas de pestañas que se deslizan de lado en el móvil.
+
+   POR QUÉ: en el teléfono, las dos filas de pestañas del panel se partían en
+   cinco líneas de botones. Antes de ver el primer pedido había que pasar una
+   pantalla entera de menú. Deslizando de lado ocupan una línea cada una.
+
+   SOLO EN EL MÓVIL: en una pantalla grande caben todas, y ahí deslizar sería
+   peor — lo que no cabe queda escondido sin que nada lo indique. Desde 768 px
+   se vuelven a envolver en varias líneas, que es el comportamiento de siempre.
+
+   Se esconde la barra de desplazamiento porque en el móvil no se usa: se
+   arrastra con el dedo. */
+@media (max-width: 767px) {
+  .fila-deslizable {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .fila-deslizable::-webkit-scrollbar { display: none; }
+  .fila-deslizable > * { flex-shrink: 0; }
+}

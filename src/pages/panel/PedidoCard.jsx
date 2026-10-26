@@ -96,21 +96,34 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
 
   return (
     <div className={`rounded-xl border bg-white transition ${abierto ? 'border-neutral-300' : 'border-neutral-200'}`}>
-      {/* La línea plegada: lo que hace falta para decidir si hay que abrirla.
-          Es un botón entero para poder abrirla tocando en cualquier parte, que
-          en un móvil importa más que en una pantalla grande. */}
+      {/* La línea plegada: lo justo para decidir si hay que abrirla.
+          Es un botón entero para poder abrirla tocando en cualquier parte,
+          que en un móvil importa más que en una pantalla grande.
+
+          POR QUÉ SE PARTE EN DOS LÍNEAS EN EL MÓVIL: en una sola, el código,
+          el nombre, el importe y el estado se repartían 343 píxeles y el
+          nombre del cliente acababa en "Clie…". Ahora arriba va lo que se
+          busca de un vistazo (quién y cuánto) y debajo lo que identifica el
+          pedido (código, fecha y estado). En pantalla grande sí hay sitio,
+          así que `sm:contents` deshace las dos líneas y todo vuelve a una. */}
       <button
         onClick={() => setAbierto((v) => !v)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left"
       >
-        <span className="font-mono text-xs font-semibold text-neutral-500">{o.code}</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">{o.nombre}</span>
-        <span className="hidden shrink-0 text-xs text-neutral-400 sm:block">{fechaCorta(o.fecha)}</span>
-        <span className="shrink-0 text-sm font-semibold tabular-nums">
-          {currencyFormatter.format(o.monto)}
-        </span>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ${badge}`}>
-          {o.estado}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+          <span className="flex min-w-0 items-baseline gap-2 sm:contents">
+            <span className="min-w-0 flex-1 truncate text-sm font-medium sm:order-2">{o.nombre}</span>
+            <span className="shrink-0 text-sm font-semibold tabular-nums sm:order-4">
+              {currencyFormatter.format(o.monto)}
+            </span>
+          </span>
+          <span className="flex min-w-0 items-center gap-2 sm:contents">
+            <span className="shrink-0 font-mono text-xs font-semibold text-neutral-500 sm:order-1">{o.code}</span>
+            <span className="shrink-0 text-xs text-neutral-400 sm:order-3">{fechaCorta(o.fecha)}</span>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium sm:order-5 ${badge}`}>
+              {o.estado}
+            </span>
+          </span>
         </span>
         <span className={`shrink-0 text-neutral-400 transition ${abierto ? 'rotate-180' : ''}`}>⌄</span>
       </button>

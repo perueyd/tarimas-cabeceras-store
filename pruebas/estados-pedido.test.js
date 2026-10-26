@@ -52,3 +52,39 @@ test('los estados que NO cuentan son exactamente los que no deben contar', () =>
       'y actualiza ESTADOS_DE_VENTA en src/lib/pedidos.js.'
   );
 });
+
+// Y los filtros del panel tienen que apuntar a estados que existan.
+//
+// POR QUÉ: los cinco botones de la lista de pedidos filtran comparando el
+// estado por su nombre escrito a mano. Una letra de más ("Entregados" en vez
+// de "Entregado") no da ningún error: el botón se pinta, se pulsa, y la lista
+// dice "No hay pedidos en este filtro" teniendo pedidos. Eso ya pasó con otras
+// listas escritas dos veces en este proyecto.
+test('cada filtro del panel apunta a un estado que existe', () => {
+  const validos = listaDe('api/orders.js', 'ESTADOS_VALIDOS');
+  const src = leer('src/lib/pedidos.js');
+  const bloque = src.match(/FILTROS_PEDIDO = \[([\s\S]*?)\n\]/);
+  assert.ok(bloque, 'no encontré FILTROS_PEDIDO en src/lib/pedidos.js');
+
+  const filtrados = [...bloque[1].matchAll(/estado: '([^']+)'/g)].map((m) => m[1]);
+  assert.ok(filtrados.length > 0, 'FILTROS_PEDIDO quedó sin ningún estado');
+
+  for (const estado of filtrados) {
+    assert.ok(
+      validos.includes(estado),
+      `El filtro de pedidos busca el estado "${estado}", que no existe en ` +
+        `api/orders.js. El botón se vería pero no encontraría nada. ` +
+        `Estados reales: ${validos.join(', ')}.`
+    );
+  }
+
+  // Y al revés: un estado sin filtro solo se ve dentro de "Todos", así que el
+  // dueño no puede aislarlo cuando le hace falta.
+  for (const estado of validos) {
+    assert.ok(
+      filtrados.includes(estado),
+      `El estado "${estado}" existe en api/orders.js pero no tiene filtro en ` +
+        `FILTROS_PEDIDO: en el panel no hay forma de ver solo esos pedidos.`
+    );
+  }
+});
