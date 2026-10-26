@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { currencyFormatter } from '../data/catalog.js';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import PostPurchaseSurvey from '../components/PostPurchaseSurvey.jsx';
@@ -10,7 +11,7 @@ function buildCalendarUrl(state) {
   const sig = new Date(`${state.entregaFecha}T12:00:00`);
   sig.setDate(sig.getDate() + 1);
   const fin = sig.toISOString().slice(0, 10).replace(/-/g, '');
-  const text = encodeURIComponent('🚚 Entrega de mi pedido — E|D Espacios y Diseño');
+  const text = encodeURIComponent(`🚚 Entrega de mi pedido — ${NOMBRE_TIENDA}`);
   const details = encodeURIComponent(
     `Pedido: ${state.orderCode || ''}\nHorario: ${state.entregaHorario || 'por confirmar'}\nMonto: ${state.monto != null ? currencyFormatter.format(state.monto) : ''}`
   );

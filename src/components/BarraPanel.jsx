@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { logoEsImagen, NOMBRE_TIENDA } from '../data/sitio.js';
 
 // La cabecera del panel.
 //
@@ -10,17 +11,24 @@ import { Link } from 'react-router-dom';
 // salir. Una herramienta de trabajo se usa muchas horas, así que cuanto menos
 // ocupe la cabecera, más sitio queda para lo que importa.
 export default function BarraPanel({ branding = {}, onSalir }) {
+  // El mismo logotipo que la tienda: si es un dibujo se enseña tal cual, si
+  // son letras van dentro del cuadrado oscuro de siempre.
+  const esDibujo = logoEsImagen(branding.logo);
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink text-xs font-bold text-white">
-            {branding.logo || 'E|D'}
-          </span>
+          {esDibujo ? (
+            <img src={branding.logo} alt="" width="32" height="29" className="h-7 w-auto shrink-0" />
+          ) : (
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink text-xs font-bold text-white">
+              {branding.logo || 'E|D'}
+            </span>
+          )}
           <div className="min-w-0 leading-tight">
             <p className="truncate text-sm font-semibold">Panel del negocio</p>
             <p className="truncate text-[11px] text-neutral-500">
-              {branding.nombre || 'Espacios y Diseño'}
+              {branding.nombre || NOMBRE_TIENDA}
             </p>
           </div>
         </div>

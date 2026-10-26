@@ -173,7 +173,7 @@ export function ConfigTab({ catalog, api, flash }) {
           Déjalos vacíos si aún no los tienes — la página igual funciona.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Razón social" value={cfg.razonSocial} onChange={(v) => set('razonSocial', v)} placeholder="Ej. E|D Espacios y Diseño S.A.C." />
+          <Field label="Razón social" value={cfg.razonSocial} onChange={(v) => set('razonSocial', v)} placeholder="Ej. CORPORACIÓN AGAMENON S.A.C." />
           <Field label="RUC" value={cfg.ruc} onChange={(v) => set('ruc', v)} placeholder="20xxxxxxxxx" />
           <div className="sm:col-span-2">
             <Field label="Domicilio fiscal" value={cfg.direccionFiscal} onChange={(v) => set('direccionFiscal', v)} placeholder="Dirección registrada del negocio" />

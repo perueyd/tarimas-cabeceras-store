@@ -1,21 +1,16 @@
-<!-- El iconito de la pestaña del navegador. Es el logo de la marca: E|D.
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 546 494" role="img" aria-label="Corporación Agamenón">
+  <!-- La marca: dos cumbres superpuestas.
 
-     Va en SVG porque así se ve nítido en cualquier tamaño (la pestaña, el
-     marcador, el acceso directo del móvil) con un solo archivo de 400 bytes,
-     en vez de media docena de .png de distintas medidas.
+       Está dibujada con vectores y no guardada como foto porque la misma
+       imagen se usa a 28 píxeles en la cabecera y a 180 en el icono del
+       teléfono. Un PNG se emborrona al achicarlo y se pixela al agrandarlo;
+       esto se ve nítido a cualquier tamaño y pesa menos de 1 KB.
 
-     Los colores son los de la marca: fondo claro de la tienda y tinta negra. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#faf9f7"/>
-  <g fill="#1c1c1c">
-    <!-- E -->
-    <rect x="14" y="19" width="5" height="26"/>
-    <rect x="14" y="19" width="14" height="5"/>
-    <rect x="14" y="29.5" width="11" height="5"/>
-    <rect x="14" y="40" width="14" height="5"/>
-    <!-- la barra separadora -->
-    <rect x="31" y="17" width="2.5" height="30"/>
-    <!-- D -->
-    <path d="M37 19h8a13 13 0 0 1 0 26h-8V19zm5 5v16h3a8 8 0 0 0 0-16h-3z"/>
-  </g>
+       Las medidas salen de medir el original pixel a pixel: los dos
+       triángulos son idénticos y el segundo corre 129,5 px a la derecha. -->
+  <polygon points="208,0 0,494 416,494" fill="#E2AC37"/>
+  <polygon points="337,0 130,494 545,494" fill="#405767"/>
+  <!-- Donde se cruzan NO va la mezcla automática de ambos colores (daría un
+       verde oliva sucio): es un verde azulado propio, así que va aparte. -->
+  <polygon points="272.7,153.6 416,494 130,494" fill="#3C4B49"/>
 </svg>

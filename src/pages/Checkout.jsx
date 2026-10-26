@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import LocationSearch from '../components/LocationSearch.jsx';
@@ -356,7 +357,7 @@ export default function Checkout() {
 
     window.Culqi.publicKey = CULQI_PUBLIC_KEY;
     window.Culqi.settings({
-      title: 'Espacios y Diseño',
+      title: NOMBRE_TIENDA,
       currency: 'PEN',
       amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
     });

@@ -13,9 +13,9 @@ import { PRIVACIDAD, TERMINOS } from './textosLegales.js';
 export const storeConfig = {
   // ---------- BRANDING (Logo, nombre, identidad) ----------
   branding: {
-    logo: 'E|D',
-    nombre: 'ESPACIOS Y DISEÑO',
-    subtitulo: 'PROYECTOS INMOBILIARIOS',
+    logo: '/logo.svg',
+    nombre: 'CORPORACIÓN AGAMENÓN',
+    subtitulo: '',
   },
 
   // ---------- CONTACTO (Centralizado) ----------
@@ -55,14 +55,14 @@ export const storeConfig = {
 
   // ---------- SEO ----------
   seo: {
-    siteName: 'E|D Espacios y Diseño',
+    siteName: 'Corporación Agamenón',
     siteDesc: 'Tarimas, cabeceras y muebles a medida. Diseña tu espacio con los colores que imaginas.',
     keywords: 'tarimas, cabeceras, muebles, diseño, Perú',
   },
 
   // ---------- FOOTER ----------
   footer: {
-    copyright: '© 2026 E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.',
+    copyright: '© 2026 Corporación Agamenón. Todos los derechos reservados.',
     paymentText: 'Pagos procesados de forma segura con Culqi. Precios en Soles (S/).',
     links: [
       { label: 'Libro de Reclamaciones', url: '/libro-de-reclamaciones' },

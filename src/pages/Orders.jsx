@@ -11,7 +11,7 @@ import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
 import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
-import { urlSeguimiento } from '../data/sitio.js';
+import { NOMBRE_TIENDA, urlSeguimiento } from '../data/sitio.js';
 import ImpuestosTab from './ImpuestosTab.jsx';
 import { separarIGV } from '../lib/igv.js';
 import { etiquetaComprobante } from '../lib/documento.js';
@@ -287,9 +287,7 @@ export default function Orders() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
         <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-          <span className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-sm font-bold text-white">
-            E|D
-          </span>
+          <img src="/logo.svg" alt="" width="48" height="43" className="mx-auto mb-5 h-11 w-auto" />
           <h1 className="text-center text-lg font-semibold tracking-tight">Panel del negocio</h1>
           <p className="mt-1 text-center text-sm text-neutral-500">Acceso privado</p>
           <form
@@ -582,7 +580,7 @@ export default function Orders() {
               const soloDigitos = (c.telefono || '').replace(/\D/g, '');
               const numero = soloDigitos.length === 9 ? `51${soloDigitos}` : soloDigitos;
               const mensaje = encodeURIComponent(
-                `Hola ${c.nombre}, te saludamos de E|D Espacios y Diseño. Vimos que dejaste unos productos en tu carrito y queremos ayudarte a completar tu pedido. ¿Te quedó alguna duda?`
+                `Hola ${c.nombre}, te saludamos de ${NOMBRE_TIENDA}. Vimos que dejaste unos productos en tu carrito y queremos ayudarte a completar tu pedido. ¿Te quedó alguna duda?`
               );
               return (
                 <div key={c.telefono} className="rounded-xl border border-neutral-200 bg-white p-4">

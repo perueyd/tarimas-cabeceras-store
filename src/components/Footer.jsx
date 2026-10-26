@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { Link } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
 
@@ -110,7 +111,7 @@ export default function Footer() {
         )}
 
         <div className="space-y-2 text-xs sm:text-sm text-neutral-600">
-          <p className="font-medium">{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} E|D Espacios y Diseño — Proyectos Inmobiliarios. Todos los derechos reservados.`}</p>
+          <p className="font-medium">{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} ${NOMBRE_TIENDA}. Todos los derechos reservados.`}</p>
           <p>{storeConfig.footer?.paymentText || '🔒 Pagos seguros con Culqi | Precios en Soles (S/)'}</p>
           {/* Quién vende, visible en TODA la web. La Ley 29571 obliga a
               identificar al proveedor; hasta ahora el RUC solo salía dentro del

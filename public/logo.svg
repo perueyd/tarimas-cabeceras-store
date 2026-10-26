@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 546 494" role="img" aria-label="Corporación Agamenón">
+  <!-- La marca: dos cumbres superpuestas.
+
+       Está dibujada con vectores y no guardada como foto porque la misma
+       imagen se usa a 28 píxeles en la cabecera y a 180 en el icono del
+       teléfono. Un PNG se emborrona al achicarlo y se pixela al agrandarlo;
+       esto se ve nítido a cualquier tamaño y pesa menos de 1 KB.
+
+       Las medidas salen de medir el original pixel a pixel: los dos
+       triángulos son idénticos y el segundo corre 129,5 px a la derecha. -->
+  <polygon points="208,0 0,494 416,494" fill="#E2AC37"/>
+  <polygon points="337,0 130,494 545,494" fill="#405767"/>
+  <!-- Donde se cruzan NO va la mezcla automática de ambos colores (daría un
+       verde oliva sucio): es un verde azulado propio, así que va aparte. -->
+  <polygon points="272.7,153.6 416,494 130,494" fill="#3C4B49"/>
+</svg>

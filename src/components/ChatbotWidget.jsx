@@ -178,7 +178,7 @@ function ChatWidgetContent({ onClose, onMinimizar, messages, setMessages, reinic
 
 const SALUDO = {
   role: 'assistant',
-  content: '👋 Hola! Soy CHAT-ED, asistente de E|D Espacios. ¿En qué puedo ayudarte?',
+  content: '👋 Hola! Soy CHAT-ED, asistente de la tienda. ¿En qué puedo ayudarte?',
 };
 
 // La charla se guarda en el navegador para que recargar la página no la borre.

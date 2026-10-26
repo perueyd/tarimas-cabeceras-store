@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { NOMBRE_TIENDA } from '../data/sitio.js';
 
 // Título, descripción y datos estructurados de cada página.
 //
@@ -15,9 +16,12 @@ import { useEffect } from 'react';
 // Se hace a mano, sin librerías: son treinta líneas y una dependencia menos
 // que mantener.
 
-const TITULO_BASE = 'E|D Espacios y Diseño';
+const TITULO_BASE = NOMBRE_TIENDA;
 // El de index.html: a lo que se vuelve al salir de una página con título propio.
-const TITULO_POR_DEFECTO = 'Espacios y Diseño — Tarimas, Cabeceras y Muebles';
+// Tiene que decir LO MISMO que la etiqueta <title> de index.html, o al salir de
+// la ficha de un producto la pestaña cambiaría a un nombre distinto del que el
+// navegador guardó al abrir la web.
+const TITULO_POR_DEFECTO = `${NOMBRE_TIENDA} — Tarimas, Cabeceras y Muebles`;
 const ID_DATOS = 'datos-estructurados';
 
 function ponerMeta(nombre, contenido, porPropiedad = false) {

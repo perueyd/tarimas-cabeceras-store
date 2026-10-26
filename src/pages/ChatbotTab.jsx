@@ -8,7 +8,7 @@ import { useState } from 'react';
 // tamaños) los lee solo del catálogo en cada consulta, así que nunca se quedan
 // desactualizados.
 
-const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de E|D Espacios y Diseño, una tienda peruana de muebles a medida.
+const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de Corporación Agamenón, una tienda peruana de muebles a medida.
 
 Tu trabajo es ayudar a quien entra a la web: resolver dudas sobre productos, medidas, colores, precios y entrega, y acompañar hasta la compra.
 
@@ -21,7 +21,7 @@ const EJEMPLOS = [
   },
   {
     titulo: 'Formal y de usted',
-    texto: `Eres el asistente virtual de E|D Espacios y Diseño, tienda peruana de muebles a medida.
+    texto: `Eres el asistente virtual de Corporación Agamenón, tienda peruana de muebles a medida.
 
 Atiendes consultas sobre productos, medidas, colores, precios y entregas.
 
@@ -29,7 +29,7 @@ TONO: formal y respetuoso, tratando siempre de usted. Respuestas breves y precis
   },
   {
     titulo: 'Enfocado en cerrar la venta',
-    texto: `Eres el asistente de ventas de E|D Espacios y Diseño, tienda peruana de muebles a medida.
+    texto: `Eres el asistente de ventas de Corporación Agamenón, tienda peruana de muebles a medida.
 
 Tu objetivo es que la persona termine comprando o escribiendo por WhatsApp. Resuelve la duda concreta y luego propón el siguiente paso: ver el producto, pedir la medida a medida o cotizar por WhatsApp.
 

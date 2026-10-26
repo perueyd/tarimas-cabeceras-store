@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { Link } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
 
@@ -87,7 +88,7 @@ export default function RecentOrdersSection() {
                 Lo que dicen nuestros clientes
               </h2>
               <p className="text-neutral-600">
-                Opiniones de personas que compraron en E|D Espacios y Diseño
+                Opiniones de personas que compraron en {NOMBRE_TIENDA}
               </p>
             </div>
 

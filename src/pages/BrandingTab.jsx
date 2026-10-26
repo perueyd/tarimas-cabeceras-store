@@ -36,7 +36,7 @@ export default function BrandingTab({ catalog, api, flash }) {
               type="text"
               value={data.branding.logo || ''}
               onChange={(e) => setData({ ...data, branding: { ...data.branding, logo: e.target.value } })}
-              placeholder="E|D"
+              placeholder="/logo.svg o unas letras"
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>
@@ -108,7 +108,7 @@ export default function BrandingTab({ catalog, api, flash }) {
               type="text"
               value={data.footer.copyright || ''}
               onChange={(e) => setData({ ...data, footer: { ...data.footer, copyright: e.target.value } })}
-              placeholder="© 2026 E|D Espacios y Diseño — Todos los derechos reservados."
+              placeholder="© 2026 Corporación Agamenón — Todos los derechos reservados."
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>
@@ -134,7 +134,7 @@ export default function BrandingTab({ catalog, api, flash }) {
               type="text"
               value={data.seo.siteName || ''}
               onChange={(e) => setData({ ...data, seo: { ...data.seo, siteName: e.target.value } })}
-              placeholder="E|D Espacios y Diseño"
+              placeholder="Corporación Agamenón"
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>

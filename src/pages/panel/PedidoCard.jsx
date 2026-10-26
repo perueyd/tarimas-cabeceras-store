@@ -5,7 +5,7 @@
 // tiene su propio archivo en vez de vivir perdida en medio de la página.
 
 import { useEffect, useState } from 'react';
-import { urlSeguimiento } from '../../data/sitio.js';
+import { NOMBRE_TIENDA, urlSeguimiento } from '../../data/sitio.js';
 import { etiquetaComprobante } from '../../lib/documento.js';
 import { separarIGV } from '../../lib/igv.js';
 import { calendarUrl } from './descargas.js';
@@ -89,7 +89,7 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
   const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
   const waMsg = encodeURIComponent(
-    `Hola ${o.nombre}, te escribimos de E|D Espacios y Diseño sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: ${urlSeguimiento(o.code)}`
+    `Hola ${o.nombre}, te escribimos de ${NOMBRE_TIENDA} sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: ${urlSeguimiento(o.code)}`
   );
   const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${waMsg}` : null;
   const badge = COLOR_ESTADO[o.estado] || 'bg-neutral-100 text-neutral-700';
