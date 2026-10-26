@@ -19,6 +19,7 @@
 // La cuenta del IGV vive en src/lib/igv.js porque el panel también la
 // necesita; se re-exporta para no romper a quien la importa desde aquí.
 import { separarIGV } from '../src/lib/igv.js';
+import { ESTADOS_DE_VENTA } from '../src/lib/pedidos.js';
 import { mesLima } from '../src/lib/lima.js';
 export { agregarIGV, separarIGV, TASA_IGV } from '../src/lib/igv.js';
 
@@ -34,10 +35,10 @@ export const LIMITE_UIT_1_POR_CIENTO = 300;
 // Un pedido solo cuenta como venta cuando el dinero entró de verdad. Los que
 // están "por verificar" todavía pueden caerse, y los cancelados ya se cayeron:
 // meterlos en la declaración sería pagar IGV por dinero que no se cobró.
-// Estos son los estados que la tienda usa de verdad (ver ESTADOS_VALIDOS en
-// api/orders.js). Si ahí se añade uno nuevo que signifique "el dinero entró",
-// hay que añadirlo aquí también o esas ventas no se declararían.
-const ESTADOS_QUE_CUENTAN = ['Pagado', 'Entregado'];
+// La lista vive en src/lib/pedidos.js, compartida con el panel: si el panel
+// contara un pedido que la declaración no cuenta, el dueño vería un número en
+// pantalla y otro distinto al pagar impuestos.
+const ESTADOS_QUE_CUENTAN = ESTADOS_DE_VENTA;
 
 export function esVentaConfirmada(pedido) {
   return ESTADOS_QUE_CUENTAN.includes(pedido?.estado);

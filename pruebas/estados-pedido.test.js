@@ -27,12 +27,12 @@ function listaDe(archivo, nombre) {
 
 test('todo estado que cuenta como venta existe en orders.js', () => {
   const validos = listaDe('api/orders.js', 'ESTADOS_VALIDOS');
-  const cuentan = listaDe('api/_impuestos.js', 'ESTADOS_QUE_CUENTAN');
+  const cuentan = listaDe('src/lib/pedidos.js', 'ESTADOS_DE_VENTA');
 
   for (const estado of cuentan) {
     assert.ok(
       validos.includes(estado),
-      `api/_impuestos.js declara ventas en estado "${estado}", pero ese estado no existe ` +
+      `src/lib/pedidos.js declara ventas en estado "${estado}", pero ese estado no existe ` +
         `en api/orders.js. Estados reales: ${validos.join(', ')}.`
     );
   }
@@ -40,7 +40,7 @@ test('todo estado que cuenta como venta existe en orders.js', () => {
 
 test('los estados que NO cuentan son exactamente los que no deben contar', () => {
   const validos = listaDe('api/orders.js', 'ESTADOS_VALIDOS');
-  const cuentan = listaDe('api/_impuestos.js', 'ESTADOS_QUE_CUENTAN');
+  const cuentan = listaDe('src/lib/pedidos.js', 'ESTADOS_DE_VENTA');
   const fuera = validos.filter((e) => !cuentan.includes(e));
 
   // Un pedido por verificar todavía puede caerse; uno cancelado ya se cayó.
@@ -49,6 +49,6 @@ test('los estados que NO cuentan son exactamente los que no deben contar', () =>
     fuera.sort(),
     ['Cancelado', 'Pago por verificar'],
     'Si añadiste un estado nuevo en orders.js, decide si cuenta como venta ' +
-      'y actualiza ESTADOS_QUE_CUENTAN en api/_impuestos.js.'
+      'y actualiza ESTADOS_DE_VENTA en src/lib/pedidos.js.'
   );
 });
