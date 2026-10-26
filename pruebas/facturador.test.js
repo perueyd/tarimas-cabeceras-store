@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { armarSolicitud, comprobanteParaCliente, emitirComprobante, limpiarLlave } from '../api/_facturador.js';
+import { armarSolicitud, comprobanteParaCliente, comprobanteVigente, emitirComprobante, limpiarLlave } from '../api/_facturador.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { billetera, metodosActivos } from '../src/lib/metodosPago.js';
 
@@ -129,4 +129,16 @@ test('llave del facturador: se quitan espacios, saltos de línea y comillas', ()
   assert.equal(limpiarLlave(`  ${llave}\r\n`), llave);
   assert.equal(limpiarLlave(`"${llave}"`), llave);
   assert.equal(limpiarLlave(undefined), '');
+});
+
+// Fallos que evita: se podía borrar del panel un pedido con boleta ya emitida
+// (perdiendo el enlace a un comprobante que SUNAT sí tiene) o cambiarle el DNI
+// después de emitir. Un rechazado, en cambio, no vale y debe poder corregirse.
+test('comprobante vigente: solo cuenta si tiene número y SUNAT no lo rechazó ni anuló', () => {
+  assert.equal(comprobanteVigente({ numero: 'B001-00000001', estado: 'ACEPTADO' }), true);
+  assert.equal(comprobanteVigente({ numero: 'B001-00000001', estado: 'PENDIENTE_ENVIO' }), true);
+  assert.equal(comprobanteVigente({ numero: 'B001-00000001', estado: 'RECHAZADO' }), false);
+  assert.equal(comprobanteVigente({ numero: 'B001-00000001', estado: 'ANULADO' }), false);
+  assert.equal(comprobanteVigente({ error: 'Llave de API inválida' }), false);
+  assert.equal(comprobanteVigente(undefined), false);
 });
