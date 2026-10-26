@@ -148,7 +148,7 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'garantias' && <GarantiasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'chatbot' && <ChatbotTab catalog={catalog} api={api} flash={flash} />}
-      {sub === 'pagos' && <PagosTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'pagos' && <PagosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'entrega' && <EntregaTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'integraciones' && <IntegrationsTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'security' && <SecurityTab catalog={catalog} api={api} flash={flash} />}

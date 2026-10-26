@@ -147,6 +147,27 @@ export async function reemplazarEnLista(clave, valorViejo, valorNuevo) {
   return true;
 }
 
+// Cambia un pedido por su código: `cambiar` recibe el pedido y devuelve la
+// versión nueva. Hace lo mismo que antes hacía el PATCH a mano (buscar en la
+// lista, reemplazar POR VALOR y actualizar el índice), para que el panel y el
+// facturador no repitan ese código ni se olviden del índice.
+// Devuelve el pedido actualizado, o null si no existe.
+export async function actualizarPedido(code, cambiar) {
+  if (!hasDB || !code) return null;
+  const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
+  for (const raw of data.result || []) {
+    let order;
+    try { order = JSON.parse(raw); } catch { continue; }
+    if (order.code !== code) continue;
+    const nuevo = cambiar({ ...order });
+    await reemplazarEnLista('pedidos', raw, JSON.stringify(nuevo));
+    // El índice también: si no, el seguimiento público mostraría lo anterior.
+    await indexarPedido(nuevo);
+    return nuevo;
+  }
+  return null;
+}
+
 export async function deleteOrder(code) {
   if (!hasDB) return false;
   const data = await redisCmd(['LRANGE', 'pedidos', '0', '499']);
