@@ -202,8 +202,10 @@ export default function Orders() {
         body: JSON.stringify({ code: o.code, ...cambios }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) reemplazarPedido(data.order || { ...o, ...cambios });
-      else alert(data.error || 'No se pudo actualizar el pedido.');
+      if (res.ok) {
+        reemplazarPedido(data.order || { ...o, ...cambios });
+        if (data.aviso) alert(data.aviso);
+      } else alert(data.error || 'No se pudo actualizar el pedido.');
     } catch { /* no-op */ }
   }
 
@@ -215,6 +217,7 @@ export default function Orders() {
         headers: { Authorization: `Bearer ${key}` },
       });
       if (res.ok) setOrders(orders.filter((x) => x.code !== o.code));
+      else alert((await res.json().catch(() => ({}))).error || 'No se pudo eliminar el pedido.');
     } catch { /* no-op */ }
   }
 

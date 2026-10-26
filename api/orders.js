@@ -8,7 +8,7 @@ import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
 import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
-import { comprobanteParaCliente, emitirComprobante } from './_facturador.js';
+import { comprobanteParaCliente, comprobanteVigente, emitirComprobante } from './_facturador.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 // 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
@@ -195,6 +195,15 @@ export default async function handler(req, res) {
       }
     }
 
+    // Con la boleta ya emitida, cambiar el documento o el medio de pago dejaría el
+    // pedido diciendo una cosa y la boleta otra.
+    const previo = await buscarPedido(code);
+    if (!previo) return res.status(404).json({ error: 'Pedido no encontrado.' });
+    const emitido = comprobanteVigente(previo.comprobante) ? previo.comprobante.numero : null;
+    if (emitido && (cambiaDocumento || (metodo && metodo !== previo.metodo))) {
+      return res.status(409).json({ error: `Este pedido ya tiene el comprobante ${emitido}: el documento y el medio de pago ya no se cambian. Si están mal, hay que emitir una nota de crédito.` });
+    }
+
     let order = await actualizarPedido(code, (o) => {
       if (estado) o.estado = estado;
       if (metodo) o.metodo = metodo;
@@ -207,9 +216,10 @@ export default async function handler(req, res) {
     });
     if (!order) return res.status(404).json({ error: 'Pedido no encontrado.' });
 
-    // Pagado y sin comprobante todavía: se emite. Se espera la respuesta
-    // porque en Vercel la función se congela al responder.
-    if (estado === 'Pagado' && !order.comprobante?.numero) {
+    // Cobrado y sin comprobante todavía: se emite. También al pasar directo a
+    // "Entregado" (antes ese pedido se quedaba sin boleta). Se espera la
+    // respuesta porque en Vercel la función se congela al responder.
+    if ((estado === 'Pagado' || estado === 'Entregado') && !order.comprobante?.numero) {
       const { sizes } = await getCatalog();
       const comprobante = await emitirComprobante(order, { sizes });
       order = (await actualizarPedido(code, (o) => ({ ...o, comprobante }))) || order;
@@ -224,7 +234,12 @@ export default async function handler(req, res) {
         fecha: new Date().toISOString(), // fecha de ESTE cambio de estado, no la del pedido original
       }).catch(() => {});
     }
-    return res.status(200).json({ ok: true, order });
+    // Cancelar el pedido NO anula la boleta en SUNAT: se avisa para que no se
+    // dé por anulada una venta que sigue declarada.
+    const aviso = emitido && (estado === 'Cancelado' || estado === 'Pago por verificar')
+      ? `Ojo: el comprobante ${emitido} sigue vigente en SUNAT. Cambiar el estado del pedido no lo anula; para eso hay que emitir una nota de crédito.`
+      : undefined;
+    return res.status(200).json({ ok: true, order, ...(aviso ? { aviso } : {}) });
   }
 
   // DELETE: el dueño elimina un pedido del panel (no borra la fila ya escrita en Sheets).
@@ -234,6 +249,12 @@ export default async function handler(req, res) {
     if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
     const code = s(req.query.code, 30);
     if (!code) return res.status(400).json({ error: 'Falta el código del pedido.' });
+    // Nunca se borra un pedido con boleta o factura vigente: se perdería en el
+    // panel el único enlace a un comprobante que SUNAT sí tiene.
+    const pedido = await buscarPedido(code);
+    if (comprobanteVigente(pedido?.comprobante)) {
+      return res.status(409).json({ error: `No se puede eliminar: tiene el comprobante ${pedido.comprobante.numero}. Márcalo como "Cancelado" si hace falta.` });
+    }
     const ok = await deleteOrder(code);
     if (!ok) return res.status(404).json({ error: 'Pedido no encontrado.' });
     return res.status(200).json({ ok: true });

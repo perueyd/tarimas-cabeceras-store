@@ -14,7 +14,20 @@
 // comprobante. Por eso reintentar siempre es seguro.
 
 const URL_FACTURADOR = (process.env.FACTURADOR_URL || '').replace(/\/+$/, '');
-const LLAVE = process.env.FACTURADOR_LLAVE || '';
+const LLAVE = limpiarLlave(process.env.FACTURADOR_LLAVE);
+
+/**
+ * La llave copiada de la ventana negra puede traer espacios delante (el comando
+ * la muestra con sangría) o un salto de línea: con eso el facturador la rechaza
+ * como "inválida". Ninguna llave lleva espacios ni comillas, así que se quitan.
+ */
+export function limpiarLlave(valor) {
+  return String(valor || '').replace(/[\s"']/g, '');
+}
+
+// Formato de las llaves del facturador: fk_ + 12 hexadecimales + _ + 43 caracteres.
+const FORMATO_LLAVE = /^fk_[0-9a-f]{12}_[A-Za-z0-9_-]{43}$/;
+const LLAVE_MAL = 'La llave FACTURADOR_LLAVE de Vercel no coincide con el facturador. Créala de nuevo (npm run llave-api -- crear …), pégala en Vercel y haz Redeploy.';
 
 // Vercel puede cortar la función a los ~10 s en el plan gratuito; si el
 // facturador tarda más, el comprobante queda pendiente y "Emitir de nuevo" lo
@@ -113,6 +126,7 @@ export async function emitirComprobante(order, { sizes, esperaMs } = {}) {
   if (!facturadorActivo()) {
     return { error: 'El facturador aún no está conectado (faltan FACTURADOR_URL y FACTURADOR_LLAVE en Vercel).', fecha };
   }
+  if (!FORMATO_LLAVE.test(LLAVE)) return { error: LLAVE_MAL, fecha };
   const armado = armarSolicitud(order, { sizes });
   if (!armado.ok) return { error: armado.error, fecha };
 
@@ -122,6 +136,7 @@ export async function emitirComprobante(order, { sizes, esperaMs } = {}) {
     if (r.ok) {
       return { id: datos.id, numero: datos.numero, estado: datos.estado, total: datos.total, ...enlaceDe(datos), fecha };
     }
+    if (r.status === 401) return { error: LLAVE_MAL, fecha };
     const detalles = Array.isArray(datos.error?.detalles) ? ` ${datos.error.detalles.join(' ')}` : '';
     return { error: `${datos.error?.mensaje || `El facturador respondió ${r.status}.`}${detalles}`, fecha };
   } catch (err) {
@@ -142,7 +157,7 @@ const enlaceDe = (datos) => (typeof datos.enlaces?.cliente === 'string' ? { enla
 /**
  * Estado actual en SUNAT de un comprobante ya emitido. El facturador lo envía
  * y reintenta por su cuenta, así que lo guardado al emitir ("en cola") puede
- * haber cambiado. Devuelve { estado, enlace } actuales, o null si no se pudo consultar.
+ * haber cambiado. Devuelve { estado, enlace, motivo? } actuales, o null si no se pudo consultar.
  */
 export async function consultarEstado(id) {
   if (!facturadorActivo() || !id) return null;
@@ -150,7 +165,10 @@ export async function consultarEstado(id) {
     const r = await llamar(`/v1/comprobantes/${encodeURIComponent(id)}`);
     if (!r.ok) return null;
     const datos = await r.json();
-    return datos.estado ? { estado: datos.estado, ...enlaceDe(datos) } : null;
+    if (!datos.estado) return null;
+    // Si SUNAT lo rechazó, el motivo: sin él no se sabe qué corregir.
+    const motivo = datos.estado === 'RECHAZADO' && datos.sunat?.mensaje ? { motivo: String(datos.sunat.mensaje).slice(0, 300) } : {};
+    return { estado: datos.estado, ...enlaceDe(datos), ...motivo };
   } catch {
     return null;
   }
@@ -161,8 +179,17 @@ export async function consultarEstado(id) {
  * si no hay comprobante o si SUNAT lo rechazó (ese no vale como comprobante).
  */
 export function comprobanteParaCliente(c) {
-  if (!c?.numero || !c.enlace || c.estado === 'RECHAZADO' || c.estado === 'ANULADO') return undefined;
+  if (!comprobanteVigente(c) || !c.enlace) return undefined;
   return { numero: c.numero, enlace: c.enlace };
+}
+
+/**
+ * ¿El pedido tiene una boleta o factura que vale? Mientras la tenga, el pedido
+ * no se puede borrar ni cambiar de documento o de medio de pago: la boleta ya
+ * dice otra cosa y solo se corrige con nota de crédito.
+ */
+export function comprobanteVigente(c) {
+  return Boolean(c?.numero) && c.estado !== 'RECHAZADO' && c.estado !== 'ANULADO';
 }
 
 /** Descarga el PDF de un comprobante ya emitido (A4 o TICKET_80). */
