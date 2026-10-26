@@ -184,7 +184,7 @@ export function datosDelNegocio(storeConfig = {}) {
     legalName: storeConfig.razonSocial || undefined,
     taxID: storeConfig.ruc || undefined,
     url: window.location.origin,
-    image: window.location.origin + '/og-image.png',
+    image: window.location.origin + '/og-agamenon.png',
     telephone: telefono ? `+${telefono}` : undefined,
     address: storeConfig.direccionFiscal
       ? {
