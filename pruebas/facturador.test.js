@@ -142,3 +142,20 @@ test('comprobante vigente: solo cuenta si tiene número y SUNAT no lo rechazó n
   assert.equal(comprobanteVigente({ error: 'Llave de API inválida' }), false);
   assert.equal(comprobanteVigente(undefined), false);
 });
+
+// Fallo que evita: la única forma de saber si la llave de Vercel era la buena
+// era hacer un pedido de prueba. "Probar conexión" no debe emitir nada.
+test('probar conexión sin configurar: lo explica y no llama a nadie', async () => {
+  const { probarConexion } = await import('../api/_facturador.js');
+  const original = globalThis.fetch;
+  let llamado = false;
+  globalThis.fetch = async () => { llamado = true; return new Response('{}'); };
+  try {
+    const r = await probarConexion();
+    assert.equal(r.ok, false);
+    assert.match(r.mensaje, /FACTURADOR_URL/);
+    assert.equal(llamado, false);
+  } finally {
+    globalThis.fetch = original;
+  }
+});

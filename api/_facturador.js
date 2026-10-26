@@ -192,6 +192,37 @@ export function comprobanteVigente(c) {
   return Boolean(c?.numero) && c.estado !== 'RECHAZADO' && c.estado !== 'ANULADO';
 }
 
+/**
+ * Comprueba la conexión y la llave sin emitir nada: pide un pedido que no
+ * existe. 404 = la llave vale (el facturador la aceptó y buscó); 401 = no vale.
+ * Devuelve también el prefijo PÚBLICO de la llave (fk_ + 12 caracteres), para
+ * compararlo con `npm run llave-api -- listar` sin mostrar la parte secreta.
+ */
+export async function probarConexion() {
+  if (!URL_FACTURADOR || !LLAVE) {
+    return { ok: false, mensaje: 'Faltan FACTURADOR_URL o FACTURADOR_LLAVE en Vercel.' };
+  }
+  const prefijo = /^fk_[0-9a-f]{12}/.exec(LLAVE)?.[0];
+  if (!FORMATO_LLAVE.test(LLAVE)) {
+    return { ok: false, prefijo, mensaje: `La llave de Vercel no tiene el formato correcto (tiene ${LLAVE.length} caracteres; deben ser 59). Seguramente se copió incompleta: créala de nuevo.` };
+  }
+  try {
+    const r = await llamar('/v1/comprobantes?pedido=__prueba-de-conexion__');
+    if (r.status === 404) return { ok: true, prefijo, mensaje: 'Conectado: el facturador responde y la llave es válida.' };
+    if (r.status === 401) return { ok: false, prefijo, mensaje: `El facturador no reconoce la llave ${prefijo}… Compara con "npm run llave-api -- listar" o créala de nuevo.` };
+    if (r.status === 403) return { ok: false, prefijo, mensaje: 'La llave existe pero no tiene permiso "consultar". Créala con --permisos emitir,consultar,cobrar.' };
+    return { ok: false, prefijo, mensaje: `El facturador respondió ${r.status}. Prueba de nuevo en un minuto.` };
+  } catch (err) {
+    return {
+      ok: false,
+      prefijo,
+      mensaje: err?.name === 'TimeoutError'
+        ? 'El facturador está despertando (plan gratis de Render). Prueba de nuevo en un minuto.'
+        : 'No se pudo conectar con el facturador. Revisa FACTURADOR_URL en Vercel.',
+    };
+  }
+}
+
 /** Descarga el PDF de un comprobante ya emitido (A4 o TICKET_80). */
 export async function descargarPdf(id, formato) {
   const q = formato === 'TICKET_80' || formato === 'A4' ? `?formato=${formato}` : '';
