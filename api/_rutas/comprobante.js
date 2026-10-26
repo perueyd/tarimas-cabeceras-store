@@ -8,16 +8,18 @@
 //                                                 si ya existe, actualiza su estado en SUNAT;
 //                                                 si SUNAT lo rechazó, emite uno nuevo
 // GET  admin ?code=ED-XXX[&formato=TICKET_80] -> PDF del comprobante (A4 por defecto)
+// GET  admin ?probar=1                        -> prueba la conexión y la llave, sin emitir
 
 import { getCatalog } from '../_catalog.js';
 import { checkAdminAuth } from '../_auth.js';
-import { consultarEstado, descargarPdf, emitirComprobante } from '../_facturador.js';
+import { consultarEstado, descargarPdf, emitirComprobante, probarConexion } from '../_facturador.js';
 import { s } from '../_pricing.js';
 import { actualizarPedido, buscarPedido, hasDB } from '../_store.js';
 
 export default async function handler(req, res) {
   const auth = await checkAdminAuth(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+  if (req.method === 'GET' && req.query.probar) return res.status(200).json(await probarConexion());
   if (!hasDB) return res.status(501).json({ error: 'Base de datos no conectada.' });
 
   const code = s(req.method === 'POST' ? req.body?.code : req.query.code, 30);

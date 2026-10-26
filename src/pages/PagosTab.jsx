@@ -49,6 +49,44 @@ function Billetera({ nombre, campo, data, setData, adminKey }) {
   );
 }
 
+// Boletas electrónicas: comprueba que la tienda llega al facturador y que la
+// llave de Vercel es la correcta, sin tener que hacer un pedido de prueba.
+function ConexionFacturador({ adminKey }) {
+  const [estado, setEstado] = useState(null);
+  const [probando, setProbando] = useState(false);
+  async function probar() {
+    setProbando(true);
+    try {
+      const res = await fetch('/api/comprobante?probar=1', { headers: { Authorization: `Bearer ${adminKey}` } });
+      const data = await res.json().catch(() => ({}));
+      setEstado(res.ok ? data : { ok: false, mensaje: data.error || 'No se pudo probar.' });
+    } catch {
+      setEstado({ ok: false, mensaje: 'Sin conexión. Revisa tu internet.' });
+    } finally {
+      setProbando(false);
+    }
+  }
+  return (
+    <section>
+      <h3 className="mb-2 text-lg font-semibold">Boletas y facturas electrónicas</h3>
+      <button
+        onClick={probar}
+        disabled={probando}
+        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium hover:border-ink disabled:opacity-60"
+      >
+        {probando ? 'Probando...' : 'Probar conexión con el facturador'}
+      </button>
+      {estado && (
+        <p className={`mt-2 text-sm ${estado.ok ? 'text-green-700' : 'text-red-700'}`}>
+          {estado.ok ? '✅ ' : '❌ '}
+          {estado.mensaje}
+          {estado.prefijo && <span className="block text-xs text-neutral-500">Llave en uso: {estado.prefijo}…</span>}
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function PagosTab({ catalog, api, flash, adminKey }) {
   const cfg = catalog.storeConfig || {};
   const [data, setData] = useState({
@@ -139,6 +177,8 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
       >
         {saving ? 'Guardando...' : 'Guardar cambios'}
       </button>
+
+      <ConexionFacturador adminKey={adminKey} />
     </div>
   );
 }
