@@ -23,6 +23,17 @@ function useUbigeo() {
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 
+// Lo máximo que Yape deja pagar de una vez, según la documentación de Culqi
+// (pagos online con Yape: solo en soles y hasta S/ 2000).
+//
+// POR QUÉ IMPORTA AQUÍ: dos unidades del mueble más caro del catálogo
+// (S/ 1200) ya pasan ese tope, y la página "Armar dormitorio" invita justo a
+// llevarse tarima, cabecera y colchón juntos. Sin esto, a esos clientes
+// —los que más gastan— la ventana de Culqi les ofrecería pagar con Yape y el
+// cobro se caería sin explicación. Por encima del tope se ofrece solo tarjeta,
+// que no tiene ese límite, y se dice por qué.
+const MAX_YAPE = 2000;
+
 // Respaldo si el negocio aún no guardó su propia fila de confianza (o si
 // guardó una configuración de portada de antes de que existiera este campo).
 const CONFIANZA_DEFAULT = [
@@ -364,7 +375,7 @@ export default function Checkout() {
     window.Culqi.options({
       lang: 'es',
       installments: false,
-      paymentMethods: { tarjeta: true, yape: true, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
+      paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
     });
     window.Culqi.open();
   }
@@ -750,7 +761,13 @@ export default function Checkout() {
                   key={m.key}
                   active={metodoPago === m.key}
                   onClick={() => setMetodoPago(m.key)}
-                  title={m.title}
+                  /* Por encima del tope de Yape esta opción solo puede cobrar con
+                     tarjeta, así que prometer Yape aquí llevaría al cliente a una
+                     ventana donde esa opción ya no está. Se decide al DIBUJAR y no al
+                     armar la lista de arriba: allí el total todavía no está calculado,
+                     y usarlo ahí no da error al compilar — revienta la página entera
+                     al abrir el checkout. */
+                  title={m.key === 'culqi' && totalConDescuento > MAX_YAPE ? 'Tarjeta' : m.title}
                   subtitle={m.subtitle}
                 />
               ))}
@@ -824,8 +841,18 @@ export default function Checkout() {
                 disabled={status === 'paying'}
                 className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
               >
-                {status === 'paying' ? 'Procesando pago...' : 'Pagar con tarjeta o Yape'}
+                {status === 'paying'
+                  ? 'Procesando pago...'
+                  : totalConDescuento <= MAX_YAPE
+                    ? 'Pagar con tarjeta o Yape'
+                    : 'Pagar con tarjeta'}
               </button>
+              {totalConDescuento > MAX_YAPE && (
+                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-800">
+                  Yape permite pagar hasta S/ 2,000 de una vez y tu pedido pasa ese monto,
+                  así que este pago va con tarjeta. También puedes pagarlo por transferencia.
+                </p>
+              )}
               <p className="mt-3 text-center text-xs text-neutral-400">
                 Pago seguro procesado por Culqi. No almacenamos los datos de tu tarjeta.
               </p>
