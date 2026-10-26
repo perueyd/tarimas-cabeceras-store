@@ -86,13 +86,10 @@ export default function VisitasTab({ adminKey }) {
   const media = datos.total / datos.dias;
   const promedio = media >= 1 ? Math.round(media) : Math.round(media * 10) / 10;
 
+  // El título y la descripción los pone la cabecera del panel
+  // (TITULOS en Orders.jsx): tenerlos aquí también los enseñaba dos veces.
   return (
     <section>
-      <h2 className="text-lg font-semibold">Visitas</h2>
-      <p className="mt-1 max-w-2xl text-sm text-neutral-500">
-        Cuánta gente entra a tu tienda y qué mira. Se cuenta en tu propia base de datos: no
-        interviene Google ni nadie más.
-      </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {[7, 30, 90].map((d) => (

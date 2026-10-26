@@ -68,11 +68,20 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  // El panel es una herramienta de trabajo, no una página más de la tienda.
+  //
+  // Antes el dueño veía encima de su panel la cabecera del cliente (con
+  // carrito incluido), el botón de WhatsApp, el chat público y su propio
+  // aviso de cookies. Cuatro cosas pensadas para vender, tapando aquello con
+  // lo que gestiona el negocio — y el chat y el WhatsApp además se ponían
+  // literalmente encima de las fichas de pedido.
+  const enElPanel = useLocation().pathname.startsWith('/pedidos');
+
   return (
     <div className="flex min-h-screen flex-col">
       <AnalyticsTracker />
       <ScrollToTop />
-      <Header />
+      {!enElPanel && <Header />}
       <div className="flex-1">
         <Suspense
           fallback={
@@ -99,12 +108,16 @@ export default function App() {
         </Routes>
         </Suspense>
       </div>
-      <Footer />
-      <WhatsAppButton />
-      <Suspense fallback={null}>
-        <ChatbotWidget />
-      </Suspense>
-      <AvisoCookies />
+      {!enElPanel && (
+        <>
+          <Footer />
+          <WhatsAppButton />
+          <Suspense fallback={null}>
+            <ChatbotWidget />
+          </Suspense>
+          <AvisoCookies />
+        </>
+      )}
     </div>
   );
 }

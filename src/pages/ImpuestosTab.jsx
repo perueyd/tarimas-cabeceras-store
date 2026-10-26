@@ -55,12 +55,10 @@ export default function ImpuestosTab({ adminKey, onIr }) {
   const mesActual = meses.find((m) => m.mes === abierto) || meses[0];
   const faltanCostos = datos.productosConCosto < datos.productosTotales;
 
+  // El título y la descripción los pone la cabecera del panel
+  // (TITULOS en Orders.jsx): tenerlos aquí también los enseñaba dos veces.
   return (
     <section>
-      <h2 className="text-lg font-semibold">Impuestos y margen</h2>
-      <p className="mt-1 max-w-2xl text-sm text-neutral-500">
-        Tus precios incluyen IGV, así que parte de cada venta no es tuya. Aquí se separa.
-      </p>
 
       {/* Esto no puede faltar: son estimaciones, no la declaración. */}
       <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">

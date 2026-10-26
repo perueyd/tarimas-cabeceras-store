@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import BarraPanel, { TituloSeccion } from '../components/BarraPanel.jsx';
 import { Stars } from './ProductDetail.jsx';
 import CatalogEditor from './CatalogEditor.jsx';
 import MegaOfertasEditor from './MegaOfertasEditor.jsx';
@@ -118,9 +119,22 @@ function guardarClave(key) {
 }
 
 export default function Orders() {
-  const { currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
+  const { currencyFormatter, getColorById, getSizeById, getProductById, storeConfig } = useCatalog();
   const [key, setKey] = useState(leerClaveGuardada);
   const [input, setInput] = useState('');
+
+  // Cerrar sesión. Antes no existía: para salir había que cerrar la pestaña o
+  // esperar las 8 horas de caducidad, y en una computadora compartida eso deja
+  // el negocio abierto a quien se siente después.
+  function salir() {
+    try {
+      sessionStorage.removeItem(CLAVE_STORAGE);
+    } catch {
+      // Almacenamiento bloqueado: igualmente se limpia la clave en memoria.
+    }
+    setKey('');
+    setInput('');
+  }
   const [orders, setOrders] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reclamos, setReclamos] = useState([]);
@@ -340,30 +354,48 @@ export default function Orders() {
     else alert(data?.error || 'No se pudo guardar la respuesta.');
   }
 
+  // Pantalla de acceso centrada, sin nada alrededor. Antes era un título
+  // suelto en la esquina de una página de tienda, con el carrito al lado.
+  // Entrar a administrar un negocio tiene que parecer eso.
   if (!orders) {
     return (
-      <main className="mx-auto max-w-md px-4 py-16">
-        <h1 className="text-2xl font-semibold tracking-tight">Panel del negocio</h1>
-        <p className="mt-2 text-sm text-neutral-500">Acceso privado. Ingresa tu clave de administrador.</p>
-        <form
-          className="mt-6 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (input) cargar(input);
-          }}
-        >
-          <input
-            type="password"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Clave de administrador"
-            className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-ink"
-          />
-          <button className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800">
-            {loading ? 'Cargando...' : 'Entrar'}
-          </button>
-        </form>
-        {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
+          <span className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-sm font-bold text-white">
+            E|D
+          </span>
+          <h1 className="text-center text-lg font-semibold tracking-tight">Panel del negocio</h1>
+          <p className="mt-1 text-center text-sm text-neutral-500">Acceso privado</p>
+          <form
+            className="mt-6 space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (input) cargar(input);
+            }}
+          >
+            <input
+              type="password"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Clave de administrador"
+              autoFocus
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none transition focus:border-ink"
+            />
+            <button
+              disabled={loading}
+              className="w-full rounded-lg bg-ink py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
+            >
+              {loading ? 'Entrando…' : 'Entrar'}
+            </button>
+          </form>
+          {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+          <a
+            href="/"
+            className="mt-6 block text-center text-xs text-neutral-400 transition hover:text-neutral-600"
+          >
+            ← Volver a la tienda
+          </a>
+        </div>
       </main>
     );
   }
@@ -390,26 +422,38 @@ export default function Orders() {
   });
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Panel del negocio</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => descargarHoja(orders)}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-ink"
-            title="Descarga todos los pedidos como hoja de cálculo (se abre en Excel o Google Sheets)"
-          >
-            ⬇️ Descargar hoja de cálculo
-          </button>
-          <button onClick={() => cargar(key)} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-ink">
-            {loading ? 'Actualizando...' : '↻ Actualizar'}
-          </button>
-        </div>
-      </div>
+    <>
+      {/* La cabecera del panel sustituye a la de la tienda, que aquí solo
+          estorbaba: llevaba carrito de compras y enlaces de catálogo. */}
+      <BarraPanel branding={storeConfig?.branding} onSalir={salir} />
 
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <main className="mx-auto max-w-7xl px-4 py-6">
+      {/* El título sigue a la pestaña abierta. Antes decía siempre "Resumen
+          del negocio", así que estando en Pedidos o en Reclamos la pantalla
+          afirmaba estar en otro sitio. */}
+      <TituloSeccion
+        titulo={TITULOS[tab]?.titulo || 'Panel del negocio'}
+        descripcion={TITULOS[tab]?.descripcion || fechaDeHoy()}
+      >
+        <button
+          onClick={() => descargarHoja(orders)}
+          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm transition hover:border-ink"
+          title="Descarga todos los pedidos como hoja de cálculo (se abre en Excel o Google Sheets)"
+        >
+          Descargar hoja
+        </button>
+        <button
+          onClick={() => cargar(key)}
+          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm transition hover:border-ink disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? 'Actualizando…' : 'Actualizar'}
+        </button>
+      </TituloSeccion>
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Ventas confirmadas" value={currencyFormatter.format(totalVentas)} sub={`${ventas.length} pedido${ventas.length !== 1 ? 's' : ''}`} />
-        <StatCard label="Por verificar" value={currencyFormatter.format(totalPorVerificar)} sub={`${porVerificar.length} pedido${porVerificar.length !== 1 ? 's' : ''}`} accent />
+        <StatCard label="Por verificar" value={currencyFormatter.format(totalPorVerificar)} sub={`${porVerificar.length} pedido${porVerificar.length !== 1 ? 's' : ''}`} accent={porVerificar.length > 0} />
         <StatCard label="Ventas de hoy" value={currencyFormatter.format(ventasHoy)} sub={new Date().toLocaleDateString('es-PE')} />
         <StatCard label="Calificación" value={`★ ${promedioEstrellas}`} sub={`${reviews.length} reseña${reviews.length !== 1 ? 's' : ''}`} />
       </div>
@@ -778,8 +822,45 @@ export default function Orders() {
       {/* onNavegar es lo que permite que JARVIS ABRA de verdad una sección
           cuando se lo piden, en vez de decir "te estoy llevando" sin moverse. */}
       <JarvisVoice adminKey={key} onNavegar={abrirSeccion} />
-    </main>
+      </main>
+    </>
   );
+}
+
+// Qué dice la cabecera en cada pestaña. En un solo sitio para que al añadir
+// una sección no se olvide su título y la pantalla afirme estar en otra.
+//
+// Las descripciones explican PARA QUÉ sirve cada sección, no qué es. El dueño
+// no es programador: "Confirma los pagos y marca las entregas" le dice qué
+// hacer ahí; "Gestión de pedidos" no le dice nada.
+const TITULOS = {
+  resumen: { titulo: 'Resumen del negocio' },
+  pedidos: { titulo: 'Pedidos', descripcion: 'Confirma los pagos y marca las entregas' },
+  carritos: { titulo: 'Carritos abandonados', descripcion: 'Llegaron hasta el final y no pagaron: tienes su WhatsApp' },
+  reclamos: { titulo: 'Reclamos', descripcion: 'Tienes 30 días calendario para responder cada uno (Ley 29571)' },
+  visitas: { titulo: 'Visitas', descripcion: 'Cuánta gente entra a tu tienda y qué mira' },
+  impuestos: { titulo: 'Impuestos y margen', descripcion: 'Cuánto de lo que cobras es tuyo y cuánto del Estado' },
+  resenas: { titulo: 'Reseñas', descripcion: 'No se publican en la tienda hasta que las apruebes' },
+  suscriptores: { titulo: 'Suscriptores', descripcion: 'Quienes pidieron recibir tus novedades' },
+  encuestas: { titulo: 'Encuestas', descripcion: 'Lo que contestaron tus clientes después de comprar' },
+  ofertas: { titulo: 'Ofertas y descuentos', descripcion: 'Rebajas que se aplican solas, sin código' },
+  promos: { titulo: 'Códigos de descuento', descripcion: 'Cupones que el cliente escribe al pagar' },
+  descAuto: { titulo: 'Descuentos automáticos', descripcion: 'Por cantidad, por categoría o por tiempo limitado' },
+  historial: { titulo: 'Historial de códigos', descripcion: 'Quién usó cada cupón y cuánto se descontó' },
+  analytics: { titulo: 'Analytics de ofertas', descripcion: 'Qué descuentos traen ventas de verdad' },
+  editar: { titulo: 'Editar página', descripcion: 'Productos, textos y configuración de la tienda' },
+};
+
+// La fecha de hoy escrita como se dice, para la cabecera del resumen.
+function fechaDeHoy() {
+  return new Date()
+    .toLocaleDateString('es-PE', {
+      timeZone: 'America/Lima',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    })
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
 
 // Secciones que JARVIS puede abrir. Se valida contra esta lista para que no
@@ -1121,12 +1202,23 @@ function GraficaVentasPorProducto({ orders, currencyFormatter }) {
   );
 }
 
+// Una cifra del negocio.
+//
+// El número es lo único que se mira de un vistazo, así que manda: la etiqueta
+// deja de ir en MAYÚSCULAS diminutas (que obligan a detenerse a leerlas) y el
+// número crece. `accent` marca la única tarjeta que pide acción — dinero
+// esperando a que lo confirmes — y solo se tiñe cuando hay algo, porque un
+// aviso permanente deja de avisar.
 function StatCard({ label, value, sub, accent = false }) {
   return (
-    <div className={`rounded-xl border p-4 ${accent ? 'border-amber-200 bg-amber-50' : 'border-neutral-200 bg-white'}`}>
-      <p className="text-xs uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-      <p className="text-xs text-neutral-400">{sub}</p>
+    <div
+      className={`rounded-xl border p-4 transition ${
+        accent ? 'border-amber-300 bg-amber-50' : 'border-neutral-200 bg-white'
+      }`}
+    >
+      <p className={`text-xs font-medium ${accent ? 'text-amber-800' : 'text-neutral-500'}`}>{label}</p>
+      <p className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+      <p className="mt-0.5 text-xs text-neutral-500">{sub}</p>
     </div>
   );
 }// Los datos del pedido tal como hacen falta para emitir la boleta o la
