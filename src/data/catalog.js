@@ -35,7 +35,11 @@ export const storeConfig = {
   // ---------- MÉTODOS DE PAGO ----------
   paymentMethods: { culqi: true, yapePlin: true, transferencia: true },
   yape: '951 278 010',
-  yapeTitular: 'E|D Espacios y Diseño',
+  // El titular del Yape NO es la empresa: es la persona a cuyo nombre está la
+  // cuenta. Tiene que coincidir letra por letra con lo que le sale al cliente
+  // en su propia pantalla al yapear; si no cuadra, parece una estafa y no
+  // paga. Lo mismo vale para el titular de la cuenta bancaria.
+  yapeTitular: 'Enmanuel Andry Baca Carrasco',
   banks: [],
 
   // ---------- AVISO DE COLOR ----------

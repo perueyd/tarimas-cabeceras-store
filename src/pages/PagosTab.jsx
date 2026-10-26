@@ -25,7 +25,7 @@ function Billetera({ nombre, campo, data, setData, adminKey }) {
             type="text"
             value={data[`${campo}Titular`]}
             onChange={(e) => setData({ ...data, [`${campo}Titular`]: e.target.value })}
-            placeholder="Corporación Agamenón"
+            placeholder="Nombre tal como le sale al cliente al yapear"
             className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
           />
         </label>
