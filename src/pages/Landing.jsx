@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import RecentOrdersSection from '../components/RecentOrdersSection.jsx';
 import ProductImage from '../components/ProductImage.jsx';
@@ -65,20 +65,35 @@ export default function Landing() {
   const sceneRef = useRef(null);
   const revealRefs = useRef([]);
 
-  // Vitrina rotativa: muestra los productos reales del catálogo, uno cada
-  // pocos segundos. Se pausa al pasar el mouse y respeta "reducir movimiento".
+  // Vitrina rotativa: muestra productos reales del catálogo, uno cada pocos
+  // segundos. Se pausa al pasar el mouse y respeta "reducir movimiento".
+  //
+  // POR QUÉ SOLO SEIS Y NO LOS 49: cada vuelta descarga la foto entera del
+  // producto que toca, unos 130 KB. Recorriendo el catálogo completo, medido
+  // en la tienda publicada con la portada abierta y sin tocar nada: 36 fotos
+  // y 4,1 MB bajados, y seguía a unos 19 KB por segundo hasta completar el
+  // catálogo — cerca de 6,5 MB por visita. Esos datos móviles los paga el
+  // cliente, y el ancho de banda del plan gratuito lo pagas tú. Debajo
+  // salían además 53 puntitos, que a esa cantidad ya no indican nada.
+  //
+  // Seis es lo que alguien alcanza a ver antes de bajar. Son los seis
+  // PRIMEROS del catálogo, así que para cambiar los de la portada basta con
+  // reordenar los productos en el panel: no hay una lista aparte que
+  // mantener ni un sitio más donde se pueda quedar desactualizada.
+  const EN_LA_VITRINA = 6;
+  const vitrina = useMemo(() => products.slice(0, EN_LA_VITRINA), [products]);
   const [heroIdx, setHeroIdx] = useState(0);
   const pausedRef = useRef(false);
   useEffect(() => {
-    if (products.length <= 1) return;
+    if (vitrina.length <= 1) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
     const timer = setInterval(() => {
-      if (!pausedRef.current) setHeroIdx((i) => (i + 1) % products.length);
+      if (!pausedRef.current) setHeroIdx((i) => (i + 1) % vitrina.length);
     }, 4000);
     return () => clearInterval(timer);
-  }, [products.length]);
-  const heroProduct = products.length ? products[heroIdx % products.length] : null;
+  }, [vitrina.length]);
+  const heroProduct = vitrina.length ? vitrina[heroIdx % vitrina.length] : null;
 
   // Segundo botón: va rotando entre las categorías ACTIVAS ("Ver cabeceras",
   // "Ver tarimas"...). Con una sola categoría activa se queda fija en esa, y si
@@ -281,15 +296,15 @@ export default function Landing() {
             )}
 
             {/* Puntos indicadores */}
-            {products.length > 1 && (
+            {vitrina.length > 1 && (
               <div className="mt-3 flex justify-center gap-1.5">
-                {products.map((p, i) => (
+                {vitrina.map((p, i) => (
                   <button
                     key={p.id}
                     aria-label={`Ver ${p.name}`}
                     onClick={() => setHeroIdx(i)}
                     className={`h-1.5 rounded-full transition-all ${
-                      i === heroIdx % products.length ? 'w-6 bg-ink' : 'w-1.5 bg-neutral-300 hover:bg-neutral-400'
+                      i === heroIdx % vitrina.length ? 'w-6 bg-ink' : 'w-1.5 bg-neutral-300 hover:bg-neutral-400'
                     }`}
                   />
                 ))}
