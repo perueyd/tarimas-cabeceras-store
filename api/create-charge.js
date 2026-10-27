@@ -8,6 +8,7 @@ import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_of
 import { separarIGV } from './_impuestos.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { emitirComprobante, facturadorActivo } from './_facturador.js';
+import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -89,7 +90,10 @@ export default async function handler(req, res) {
         currency_code: 'PEN',
         email,
         source_id: token,
-        description: `Pedido Espacios y Diseño - ${nombre || ''}`.trim(),
+        // Esto es lo que el cliente ve en el estado de cuenta de su tarjeta.
+        // Si ahí aparece un nombre que no reconoce, desconoce el cargo y el
+        // banco le devuelve el dinero: un contracargo que la tienda paga.
+        description: `Pedido ${NOMBRE_TIENDA} - ${nombre || ''}`.trim(),
         metadata: { nombre, telefono, zona, direccion, ubicacion, entrega, items: JSON.stringify(items || []) },
       }),
     });

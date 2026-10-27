@@ -16,6 +16,7 @@
 // contra el límite de 12 funciones del plan gratuito.
 
 import { getCatalog } from '../_catalog.js';
+import { NOMBRE_TIENDA } from '../../src/data/sitio.js';
 
 const SITIO = 'https://eydperu.vercel.app';
 
@@ -45,12 +46,16 @@ export default async function handler(req, res) {
   const destino = `${SITIO}/producto/${encodeURIComponent(id)}`;
 
   let producto = null;
-  let nombreTienda = 'E|D Espacios y Diseño';
-  let respaldo = `${SITIO}/og-image.png`;
+  // El nombre sale de src/data/sitio.js, el mismo que usa toda la tienda.
+  let nombreTienda = NOMBRE_TIENDA;
+  let respaldo = `${SITIO}/og-agamenon.png`;
   try {
     const catalog = await getCatalog();
     producto = (catalog.products || []).find((p) => p.id === id) || null;
-    if (catalog.storeConfig?.siteName) nombreTienda = catalog.storeConfig.siteName;
+    // OJO: el nombre guardado vive en seo.siteName, NO en siteName suelto.
+    // Estaba leyéndose del sitio equivocado, así que esta línea nunca hacía
+    // nada y la tarjeta se quedaba siempre con el nombre de aquí arriba.
+    if (catalog.storeConfig?.seo?.siteName) nombreTienda = catalog.storeConfig.seo.siteName;
     if (catalog.storeConfig?.ogImage) respaldo = catalog.storeConfig.ogImage;
   } catch {
     // Sin catálogo se responde igual con los datos genéricos: es preferible una

@@ -3,6 +3,7 @@ import { checkAdminAuth } from './_auth.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { HERRAMIENTAS, INSTRUCCIONES_ACCIONES } from './_jarvis-acciones.js';
 import { conModeloDisponible, listaDeModelos } from './_modelo-ia.js';
+import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -17,7 +18,7 @@ const groq = new Groq({
 // La lista de modelos y el reintento viven en api/_modelo-ia.js: si Groq
 // apaga uno, se prueba el siguiente sin que el dueño tenga que enterarse.
 
-const SYSTEM_PROMPT = `Eres JARVIS, el asistente PRO del panel admin de E|D Espacios y Diseño.
+const SYSTEM_PROMPT = `Eres JARVIS, el asistente PRO del panel admin de ${NOMBRE_TIENDA}.
 
 🏢 CONTEXTO:
 - Tienda: Muebles personalizados (tarimas, cabeceras, sofás cama)

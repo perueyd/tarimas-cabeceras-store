@@ -18,6 +18,7 @@
 
 import { getCatalog } from '../_catalog.js';
 import { getEffectivePrice } from '../../src/lib/pricing.js';
+import { NOMBRE_TIENDA } from '../../src/data/sitio.js';
 
 const SITIO = 'https://eydperu.vercel.app';
 const MONEDA = 'PEN';
@@ -36,7 +37,10 @@ function escaparXML(texto) {
 function filas(catalog) {
   const { products = [], sizes = [], storeConfig = {} } = catalog;
   const nombreMedida = new Map(sizes.map((s) => [s.id, s.label || s.id]));
-  const marca = storeConfig.razonSocial || 'E|D Espacios y Diseño';
+  // La marca que ve el comprador en el anuncio es el nombre COMERCIAL, no la
+  // razón social: nadie busca "S.A.C." ni la reconoce. La razón social es un
+  // dato legal y va en el pie de la tienda, no en la ficha de un anuncio.
+  const marca = NOMBRE_TIENDA;
   const lista = [];
 
   for (const p of products) {
@@ -101,7 +105,7 @@ ${f.fotosExtra.map((u) => `      <g:additional_image_link>${escaparXML(u)}</g:ad
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>E|D Espacios y Diseño — Catálogo</title>
+    <title>${NOMBRE_TIENDA} — Catálogo</title>
     <link>${SITIO}</link>
     <description>Tarimas, cabeceras y muebles a medida en Perú.</description>
 ${items}

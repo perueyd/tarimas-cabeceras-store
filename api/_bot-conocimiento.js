@@ -10,9 +10,10 @@
 // tocar código.
 
 import { getCatalog } from './_catalog.js';
+import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 
 // Personalidad por defecto. El dueño puede reemplazarla desde el panel.
-export const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de E|D Espacios y Diseño, una tienda peruana de muebles a medida.
+export const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de ${NOMBRE_TIENDA}, una tienda peruana de muebles a medida.
 
 Tu trabajo es ayudar a quien entra a la web: resolver dudas sobre productos, medidas, colores, precios y entrega, y acompañar hasta la compra.
 

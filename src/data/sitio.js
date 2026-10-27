@@ -17,8 +17,8 @@ export function urlSeguimiento(codigo) {
 //
 // POR QUÉ: estaba escrito a mano en el título de cada página, en la etiqueta
 // que lee Google, en el vendedor de los datos estructurados y en index.html.
-// Al cambiar de "E|D Espacios y Diseño" a este, cualquiera de esas copias que
-// se olvidara seguiría enseñando el nombre viejo en los resultados de Google
+// Al cambiar de nombre la tienda, cualquiera de esas copias que se
+// olvidara seguiría enseñando el nombre viejo en los resultados de Google
 // durante meses, que es justo donde menos se mira y más se nota.
 //
 // El nombre LEGAL es otra cosa y no se toca aquí: la razón social y el RUC que

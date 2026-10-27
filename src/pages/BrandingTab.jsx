@@ -46,7 +46,7 @@ export default function BrandingTab({ catalog, api, flash }) {
               type="text"
               value={data.branding.nombre || ''}
               onChange={(e) => setData({ ...data, branding: { ...data.branding, nombre: e.target.value } })}
-              placeholder="ESPACIOS Y DISEÑO"
+              placeholder="CORPORACIÓN AGAMENÓN"
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>
