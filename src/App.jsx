@@ -60,10 +60,14 @@ function AnalyticsTracker() {
 // cambios de "?categoria=" dentro de la misma página, para no interrumpir al
 // cliente mientras filtra la tienda).
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { hash, pathname } = useLocation();
   useEffect(() => {
+    // Si la dirección pide un trozo concreto (#opiniones, por ejemplo), subir
+    // arriba del todo es justo lo contrario de lo que pidió quien entró. Pasa
+    // con el enlace que se le manda al cliente para que deje su opinión.
+    if (hash) return;
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, hash]);
   return null;
 }
 

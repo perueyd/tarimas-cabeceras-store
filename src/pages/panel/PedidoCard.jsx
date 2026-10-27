@@ -5,7 +5,7 @@
 // tiene su propio archivo en vez de vivir perdida en medio de la página.
 
 import { useEffect, useState } from 'react';
-import { NOMBRE_TIENDA, urlSeguimiento } from '../../data/sitio.js';
+import { NOMBRE_TIENDA, urlOpinion, urlSeguimiento } from '../../data/sitio.js';
 import { etiquetaComprobante } from '../../lib/documento.js';
 import { separarIGV } from '../../lib/igv.js';
 import { calendarUrl } from './descargas.js';
@@ -92,6 +92,33 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
     `Hola ${o.nombre}, te escribimos de ${NOMBRE_TIENDA} sobre tu pedido *${o.code}*.\nEstado actual: ${o.estado}.\nPuedes rastrearlo aquí: ${urlSeguimiento(o.code)}`
   );
   const wa = tel ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${waMsg}` : null;
+
+  // Pedir la opinión del cliente, una vez que ya tiene su mueble en casa.
+  //
+  // POR QUÉ EXISTE: los 49 productos estaban con cero opiniones y no había
+  // forma de pedirlas. Comprar un mueble de mil soles por internet a una
+  // tienda sin una sola opinión es pedirle mucho a un desconocido, y las
+  // opiniones no llegan solas: hay que pedirlas, y hay que pedirlas pronto.
+  //
+  // SOLO cuando el pedido está ENTREGADO. Pedir opinión de algo que todavía
+  // no ha llegado molesta al cliente y además no puede opinar de nada.
+  //
+  // El enlace va a la ficha del primer producto y cae directo en el formulario
+  // (#opiniones): cada opinión cuenta para SU producto, que es donde la va a
+  // leer el siguiente comprador.
+  const primero = o.items?.[0];
+  const opinionMsg = primero
+    ? encodeURIComponent(
+        `Hola ${o.nombre}, te escribimos de ${NOMBRE_TIENDA} 👋\n\n` +
+          `¿Qué tal te fue con tu ${primero.productName}?\n\n` +
+          `Si quedaste contento, ¿nos dejas tu opinión? Son 30 segundos y le sirve muchísimo a quien está dudando si comprar:\n${urlOpinion(primero.productId)}\n\n` +
+          `¡Gracias!`
+      )
+    : null;
+  const waOpinion =
+    tel && opinionMsg && o.estado === 'Entregado'
+      ? `https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${opinionMsg}`
+      : null;
   const badge = COLOR_ESTADO[o.estado] || 'bg-neutral-100 text-neutral-700';
 
   return (
@@ -196,6 +223,17 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
             {wa && (
               <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">
                 WhatsApp al cliente
+              </a>
+            )}
+            {waOpinion && (
+              <a
+                href={waOpinion}
+                target="_blank"
+                rel="noreferrer"
+                title="Abre WhatsApp con el mensaje escrito y el enlace directo al formulario de opinión"
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 font-medium text-amber-900 hover:border-amber-500"
+              >
+                ⭐ Pedir opinión
               </a>
             )}
             {cal && (

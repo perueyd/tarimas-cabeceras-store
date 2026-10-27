@@ -716,6 +716,31 @@ export function Stars({ n, size = 'text-base' }) {
 
 // Reseñas del producto: promedio, lista de comentarios y formulario con estrellas.
 function ReviewsSection({ productId }) {
+  // Si se llegó con "#opiniones", bajar hasta aquí.
+  //
+  // POR QUÉ HACE FALTA ESCRIBIRLO: normalmente el navegador salta solo al
+  // trozo que dice la dirección, pero esta tienda arma la página DESPUÉS de
+  // cargarse, así que cuando el navegador busca "#opiniones" todavía no
+  // existe, no encuentra nada y se queda arriba del todo.
+  //
+  // Importa porque esa dirección es justo la que el dueño le manda por
+  // WhatsApp a quien ya recibió su mueble: si cae arriba, tiene que pasar las
+  // fotos, el configurador y las especificaciones para encontrar dónde opinar,
+  // y por el camino se pierde la mitad.
+  useEffect(() => {
+    if (window.location.hash !== '#opiniones') return;
+    // Un respiro para que termine de dibujarse lo de arriba; si no, se calcula
+    // la posición con media página montada y el salto se queda corto.
+    const t = setTimeout(() => {
+      // 'instant' a propósito y no el suave de la hoja de estilos: quien llega
+      // por este enlace quiere el formulario, no un paseo de dos segundos por
+      // toda la ficha. Además el suave no se ejecuta si la pestaña está en
+      // segundo plano, que es justo como se abre un enlace desde WhatsApp.
+      document.getElementById('opiniones')?.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }, 300);
+    return () => clearTimeout(t);
+  }, []);
+
   const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({ nombre: '', estrellas: 5, comentario: '', foto: '' });
   const [msg, setMsg] = useState('');
@@ -793,8 +818,12 @@ function ReviewsSection({ productId }) {
   }
 
   return (
-    <section className="mt-16 border-t border-neutral-200 pt-10">
+    <section id="opiniones" className="mt-16 scroll-mt-24 border-t border-neutral-200 pt-10">
       <div className="flex flex-wrap items-center gap-4">
+        {/* El id de arriba es el destino del enlace que el dueño manda por
+            WhatsApp a quien ya recibió su pedido (urlOpinion en sitio.js), y
+            scroll-mt-24 deja hueco para la cabecera pegajosa: sin eso el
+            título llega tapado. */}
         <h2 className="text-xl font-semibold tracking-tight">Opiniones</h2>
         {promedio ? (
           <span className="flex items-center gap-2 text-sm text-neutral-600">

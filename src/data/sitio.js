@@ -13,6 +13,18 @@ export function urlSeguimiento(codigo) {
   return `${SITIO_URL}/seguimiento?codigo=${encodeURIComponent(codigo)}`;
 }
 
+/**
+ * La ficha de un producto, abierta ya en su formulario de opinión.
+ *
+ * Es para pedírsela al cliente por WhatsApp cuando recibió su mueble. Lleva
+ * ancla (#opiniones) a propósito: si cae arriba del todo, tiene que pasar las
+ * fotos, el configurador y las especificaciones antes de encontrar dónde
+ * opinar, y por el camino la mitad se va.
+ */
+export function urlOpinion(productId) {
+  return `${SITIO_URL}/producto/${encodeURIComponent(productId)}#opiniones`;
+}
+
 // El nombre de la marca, en UN solo sitio.
 //
 // POR QUÉ: estaba escrito a mano en el título de cada página, en la etiqueta

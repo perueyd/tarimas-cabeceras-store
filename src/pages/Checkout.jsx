@@ -374,6 +374,16 @@ export default function Checkout() {
     });
     window.Culqi.options({
       lang: 'es',
+      // Las cuotas y Cuotéalo BCP siguen APAGADOS, y encenderlos NO es cambiar
+      // este false por true. Cuotéalo no cobra aquí: manda al cliente a la web
+      // del BCP y el pago se confirma después. Eso llega por el otro camino de
+      // Culqi (window.Culqi.order, ver más arriba), y ese camino no está hecho:
+      // api/create-charge.js solo sabe cobrar con un token de tarjeta o Yape.
+      // Falta crear la orden en el servidor y atender el aviso de Culqi cuando
+      // el cliente termina de pagar en el BCP.
+      //
+      // Si alguien pone true aquí sin eso, el cliente llega hasta el final y el
+      // cobro se cae: se manda a crear el cargo con el token vacío.
       installments: false,
       paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
     });
