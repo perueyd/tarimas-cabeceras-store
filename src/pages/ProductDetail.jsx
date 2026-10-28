@@ -233,7 +233,25 @@ export default function ProductDetail() {
   }, [urlPrincipal, product]);
 
   const vistaActiva = vistas[activeIdx] || vistas[0];
-  const specs = normalizarSpecs(product?.specs);
+  // Las especificaciones, con las líneas que dependen de lo que el cliente
+  // acaba de elegir ya sustituidas.
+  //
+  // POR QUÉ: la ficha decía "Sin instalación: se sobrepone a la pared", que es
+  // verdad de la versión CON PEDESTAL. La aérea va fijada a la pared y esa
+  // instalación la tienda no la hace, así que quien elegía "Aérea" leía que no
+  // tenía que instalar nada y recibía una cabecera que no podía colgar.
+  //
+  // El texto de recambio va en la propia opción (valor.specs), se escribe desde
+  // el panel y vale para cualquier línea de la ficha, no solo Instalación.
+  const specs = useMemo(() => {
+    const base = normalizarSpecs(product?.specs);
+    const cambios = {};
+    for (const g of gruposOpciones) {
+      const v = (g.valores || []).find((x) => x.id === opciones[g.id]);
+      if (v?.specs) Object.assign(cambios, v.specs);
+    }
+    return base.map((s) => (cambios[s.label] ? { ...s, value: cambios[s.label] } : s));
+  }, [product, gruposOpciones, opciones]);
 
   // Las decisiones del cliente, numeradas. Con tamaño, 21 colores, un segundo
   // color y las opciones de tela y laterales, la ficha era una lista larga sin
@@ -590,26 +608,6 @@ export default function ProductDetail() {
                 })}
               </div>
 
-              {/* Lo que el cliente tiene que saber ANTES de elegir esta opción.
-
-                  Nació de un caso concreto: la cabecera aérea se fija a la
-                  pared y la tienda NO hace esa instalación, pero la ficha
-                  seguía diciendo "sin instalación: se sobrepone a la pared",
-                  que es verdad solo de la versión con pedestal. El cliente la
-                  compraba creyendo que llegaba y se colgaba sola.
-
-                  Va justo debajo de los botones, no en la tabla de abajo: es
-                  donde se toma la decisión. Un aviso que hay que ir a buscar
-                  no es un aviso. El texto lo escribe el dueño en el panel. */}
-              {(() => {
-                const elegido = (g.valores || []).find((v) => v.id === opciones[g.id]);
-                if (!elegido?.aviso) return null;
-                return (
-                  <p className="mt-2 max-w-sm rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
-                    {elegido.aviso}
-                  </p>
-                );
-              })()}
             </div>
             );
           })}

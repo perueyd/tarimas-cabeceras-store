@@ -1421,22 +1421,23 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                         </button>
                       )}
                     </div>
-                    {/* Aviso OPCIONAL: sale en la ficha, en un recuadro ámbar,
-                        justo debajo de los botones y solo cuando el cliente
-                        elige ESTA opción.
+                    {/* Cuando el cliente elige ESTA opción, esta línea de la
+                        ficha de abajo cambia por lo que se escriba aquí.
 
-                        Para lo que el cliente tiene que saber antes de decidir
-                        y no después. El caso que lo motivó: la cabecera aérea
-                        se fija a la pared y esa instalación no la hacemos, pero
-                        la ficha decía "sin instalación" porque eso vale para la
+                        El caso que lo motivó: la cabecera aérea se fija a la
+                        pared y esa instalación no la hacemos, pero la ficha
+                        decía "sin instalación" — que es verdad solo de la
                         versión con pedestal. */}
-                    <div className="mt-2 pl-1">
+                    <div className="mt-2 flex items-center gap-2 pl-1">
+                      <span className="shrink-0 text-[11px] text-neutral-500">Si eligen esto, «Instalación» dice:</span>
                       <input
-                        value={v.aviso || ''}
-                        onChange={(e) => setValor(gi, vi, 'aviso', e.target.value)}
+                        value={v.specs?.['Instalación'] || ''}
+                        onChange={(e) =>
+                          setValor(gi, vi, 'specs', e.target.value.trim() ? { ...(v.specs || {}), 'Instalación': e.target.value } : undefined)
+                        }
                         maxLength="200"
-                        placeholder="Aviso al elegir esta opción (opcional) — ej. requiere instalación que no hacemos"
-                        className="w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-xs outline-none focus:border-ink"
+                        placeholder="(opcional) — se deja vacío y la ficha no cambia"
+                        className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs outline-none focus:border-ink"
                       />
                     </div>
                   </div>
