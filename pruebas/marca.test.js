@@ -66,6 +66,11 @@ test('no queda ningún nombre viejo de la marca en el código', () => {
 });
 
 test('las imágenes que se prometen al compartir existen de verdad', () => {
+  // El dominio se lee de donde vive. Escribirlo aquí a mano significaba que,
+  // al mudarse de dominio, esta prueba dejaba de encontrar las direcciones de
+  // index.html y pasaba en verde sin comprobar nada — una prueba que miente
+  // es peor que ninguna.
+  const SITIO = leer('src/data/sitio.js').match(/SITIO_URL = '([^\']+)'/)[1];
   // De dónde se sacan: index.html las declara para la portada, y
   // api/_rutas/compartir.js la usa de respaldo para un producto sin foto.
   const fuentes = ['index.html', 'api/_rutas/compartir.js', 'src/lib/meta.js'];
@@ -73,11 +78,11 @@ test('las imágenes que se prometen al compartir existen de verdad', () => {
 
   for (const rel of fuentes) {
     // Se quita el dominio primero, así da igual que la dirección esté escrita
-    // entera ("https://eydperu.vercel.app/og-agamenon.png", como en las
+    // entera ("https://<dominio>/og-agamenon.png", como en las
     // etiquetas que lee Facebook) o como ruta suelta ("/favicon.svg").
     const texto = fs
       .readFileSync(path.join(RAIZ, rel), 'utf8')
-      .replaceAll('https://eydperu.vercel.app', '');
+      .replaceAll(SITIO, '');
 
     // Solo rutas de verdad: tienen que empezar por "/" y venir justo después
     // de una comilla, un igual o el cierre de un ${...}. Sin esa exigencia,

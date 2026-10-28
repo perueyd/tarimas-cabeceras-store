@@ -7,7 +7,7 @@
 //
 // Si algún día contratas un dominio propio (p. ej. eydperu.com), cambia solo
 // esta línea — y la de <index.html>, que es HTML estático y no puede leer esto.
-export const SITIO_URL = 'https://eydperu.vercel.app';
+export const SITIO_URL = 'https://corporacionagamenon.vercel.app';
 
 export function urlSeguimiento(codigo) {
   return `${SITIO_URL}/seguimiento?codigo=${encodeURIComponent(codigo)}`;
