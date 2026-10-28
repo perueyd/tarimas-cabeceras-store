@@ -186,6 +186,45 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
 
   // ---- captura ----
 
+  // Pinta el mueble del color elegido sobre un lienzo aparte.
+  //
+  // POR QUÉ HAY QUE REHACERLO AQUÍ: en pantalla el color lo pone el navegador
+  // con una capa encima en modo "multiply" recortada por la silueta del
+  // mueble. Eso es un efecto de la página, no de la imagen: al dibujar la foto
+  // en el lienzo para guardarla, esa capa NO viaja. El resultado era que en
+  // vivo la cabecera se veía morada y la foto guardada salía blanca.
+  //
+  // Se repiten aquí los mismos tres pasos que hace el navegador:
+  //   1. quitarle el color a la foto (queda en grises),
+  //   2. multiplicar por el color elegido,
+  //   3. recortar al contorno del mueble, para que el color no manche el
+  //      fondo transparente de alrededor.
+  function tenido(img, ancho, alto) {
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(ancho));
+    cv.height = Math.max(1, Math.round(alto));
+    const c = cv.getContext('2d');
+
+    // 1. En grises. Si el navegador no sabe de filtros (alguno antiguo), se
+    //    salta este paso: el color sale un poco menos fiel, pero sale.
+    if ('filter' in c) c.filter = 'grayscale(1)';
+    c.drawImage(img, 0, 0, cv.width, cv.height);
+    if ('filter' in c) c.filter = 'none';
+
+    // 2. El color encima, multiplicando igual que mix-blend-multiply.
+    c.globalCompositeOperation = 'multiply';
+    c.fillStyle = colorHex;
+    c.fillRect(0, 0, cv.width, cv.height);
+
+    // 3. Recortar a la silueta: el relleno de arriba pintó el rectángulo
+    //    entero, y esto deja solo lo que el mueble ocupa de verdad.
+    c.globalCompositeOperation = 'destination-in';
+    c.drawImage(img, 0, 0, cv.width, cv.height);
+    c.globalCompositeOperation = 'source-over';
+
+    return cv;
+  }
+
   async function tomarFoto() {
     const video = videoRef.current;
     const caja = contenedorRef.current?.getBoundingClientRect();
@@ -209,8 +248,11 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
       img.onload = () => {
         const ancho = lienzo.width * 0.6 * pos.escala;
         const alto = (img.height / img.width) * ancho;
+        // Teñido solo si el mueble admite color y hay uno elegido: los
+        // colchones, por ejemplo, van tal cual (tintable: false).
+        const dibujo = tintable && colorHex ? tenido(img, ancho, alto) : img;
         ctx.drawImage(
-          img,
+          dibujo,
           (pos.x / 100) * lienzo.width - ancho / 2,
           (pos.y / 100) * lienzo.height - alto / 2,
           ancho,
