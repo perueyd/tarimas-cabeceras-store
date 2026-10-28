@@ -1421,6 +1421,24 @@ function ProductForm({ catalog, initial, onCancel, onSave, adminKey, api }) {
                         </button>
                       )}
                     </div>
+                    {/* Aviso OPCIONAL: sale en la ficha, en un recuadro ámbar,
+                        justo debajo de los botones y solo cuando el cliente
+                        elige ESTA opción.
+
+                        Para lo que el cliente tiene que saber antes de decidir
+                        y no después. El caso que lo motivó: la cabecera aérea
+                        se fija a la pared y esa instalación no la hacemos, pero
+                        la ficha decía "sin instalación" porque eso vale para la
+                        versión con pedestal. */}
+                    <div className="mt-2 pl-1">
+                      <input
+                        value={v.aviso || ''}
+                        onChange={(e) => setValor(gi, vi, 'aviso', e.target.value)}
+                        maxLength="200"
+                        placeholder="Aviso al elegir esta opción (opcional) — ej. requiere instalación que no hacemos"
+                        className="w-full rounded-lg border border-neutral-300 px-3 py-1.5 text-xs outline-none focus:border-ink"
+                      />
+                    </div>
                   </div>
                   );
                 })}

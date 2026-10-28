@@ -589,6 +589,27 @@ export default function ProductDetail() {
                   );
                 })}
               </div>
+
+              {/* Lo que el cliente tiene que saber ANTES de elegir esta opción.
+
+                  Nació de un caso concreto: la cabecera aérea se fija a la
+                  pared y la tienda NO hace esa instalación, pero la ficha
+                  seguía diciendo "sin instalación: se sobrepone a la pared",
+                  que es verdad solo de la versión con pedestal. El cliente la
+                  compraba creyendo que llegaba y se colgaba sola.
+
+                  Va justo debajo de los botones, no en la tabla de abajo: es
+                  donde se toma la decisión. Un aviso que hay que ir a buscar
+                  no es un aviso. El texto lo escribe el dueño en el panel. */}
+              {(() => {
+                const elegido = (g.valores || []).find((v) => v.id === opciones[g.id]);
+                if (!elegido?.aviso) return null;
+                return (
+                  <p className="mt-2 max-w-sm rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+                    {elegido.aviso}
+                  </p>
+                );
+              })()}
             </div>
             );
           })}
