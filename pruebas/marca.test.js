@@ -21,6 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const leer = (rel) => fs.readFileSync(path.join(RAIZ, rel), 'utf8');
 
 // Nombres que la tienda YA NO usa. Si algún día vuelve a cambiar de nombre,
 // añade el anterior aquí: es lo que convierte este descuido en un fallo
@@ -94,4 +95,31 @@ test('las imágenes que se prometen al compartir existen de verdad', () => {
   }
 
   assert.deepEqual(faltan, [], faltan.join('\n  '));
+});
+
+// Y index.html tiene que decir la MISMA dirección que el resto del proyecto.
+//
+// POR QUÉ: la dirección de la tienda estaba escrita a mano en siete archivos.
+// Ahora vive en uno solo (SITIO_URL en src/data/sitio.js) y todos la leen de
+// ahí — todos menos index.html, que es HTML estático y no puede importar nada.
+//
+// Ese archivo es justo el que leen Facebook y WhatsApp para la vista previa de
+// la portada. Si al cambiar de dominio se queda con el viejo, la tienda sigue
+// funcionando, nadie ve un error, y las tarjetas al compartir apuntan a una
+// web que ya no existe. Esta prueba es lo único que lo caza.
+test('index.html apunta a la misma dirección que el resto del proyecto', () => {
+  const sitio = leer('src/data/sitio.js').match(/SITIO_URL = '([^']+)'/);
+  assert.ok(sitio, 'no encontré SITIO_URL en src/data/sitio.js');
+  const esperada = sitio[1];
+
+  const html = leer('index.html');
+  const direcciones = [...html.matchAll(/content="(https?:\/\/[^"/]+)/g)].map((m) => m[1]);
+  const ajenas = [...new Set(direcciones)].filter((d) => d !== esperada);
+
+  assert.deepEqual(
+    ajenas,
+    [],
+    `index.html nombra ${ajenas.join(', ')} pero la tienda vive en ${esperada}. ` +
+      `Cámbialo en index.html (og:image, og:url y twitter:image).`
+  );
 });

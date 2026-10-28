@@ -20,7 +20,7 @@ import { getCatalog } from '../_catalog.js';
 import { getEffectivePrice } from '../../src/lib/pricing.js';
 import { NOMBRE_TIENDA } from '../../src/data/sitio.js';
 
-const SITIO = 'https://eydperu.vercel.app';
+import { SITIO } from '../_sitio.js';
 const MONEDA = 'PEN';
 
 function escaparXML(texto) {

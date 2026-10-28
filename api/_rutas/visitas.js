@@ -26,6 +26,7 @@ import { checkAdminAuth } from '../_auth.js';
 import { s } from '../_pricing.js';
 import { clientIp, rateLimitRequest } from '../_ratelimit.js';
 import { diaLima } from '../../src/lib/lima.js';
+import { SITIO } from '../_sitio.js';
 
 const DIAS_QUE_SE_GUARDAN = 90;
 const SEGUNDOS_90_DIAS = DIAS_QUE_SE_GUARDAN * 24 * 60 * 60;
@@ -80,7 +81,7 @@ export default async function handler(req, res) {
     const ruta = rutaLimpia(req.body?.ruta);
     if (!ruta) return res.status(200).json({ ok: false });
 
-    const origen = origenDe(s(req.body?.desde, 300), 'eydperu.vercel.app');
+    const origen = origenDe(s(req.body?.desde, 300), new URL(SITIO).host);
     const clave = claveDia(diaLima());
 
     try {

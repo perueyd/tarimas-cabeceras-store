@@ -18,7 +18,7 @@
 import { getCatalog } from '../_catalog.js';
 import { NOMBRE_TIENDA } from '../../src/data/sitio.js';
 
-const SITIO = 'https://eydperu.vercel.app';
+import { SITIO } from '../_sitio.js';
 
 // Todo lo que sale del catálogo lo escribe el dueño desde el panel, así que
 // puede traer comillas o signos que romperían el HTML.

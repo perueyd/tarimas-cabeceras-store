@@ -11,6 +11,7 @@
 
 import { getCatalog } from './_catalog.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
+import { SITIO } from './_sitio.js';
 
 // Personalidad por defecto. El dueño puede reemplazarla desde el panel.
 export const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de ${NOMBRE_TIENDA}, una tienda peruana de muebles a medida.
@@ -123,7 +124,7 @@ ${REGLAS_FIJAS}
 ═══ DATOS REALES DE LA TIENDA (actualizados hoy) ═══
 
 WhatsApp para cotizar y consultar medidas: ${wa}
-Web: https://eydperu.vercel.app
+Web: ${SITIO}
 Categorías: ${cats || 'sin categorías'}
 
 PRODUCTOS Y PRECIOS:
