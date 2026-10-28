@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     if (hasDB) {
       try {
         await redisCmd(['LPUSH', 'reclamos', JSON.stringify(reclamo)]);
-      } catch (err) {
+      } catch {
         console.log('RECLAMO (error Redis, respaldo en logs):', JSON.stringify(reclamo));
       }
     } else {

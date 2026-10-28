@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import BarraPanel, { TituloSeccion } from '../components/BarraPanel.jsx';
 import { Stars } from './ProductDetail.jsx';
@@ -11,10 +11,8 @@ import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
 import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
-import { NOMBRE_TIENDA, urlSeguimiento } from '../data/sitio.js';
+import { NOMBRE_TIENDA } from '../data/sitio.js';
 import ImpuestosTab from './ImpuestosTab.jsx';
-import { separarIGV } from '../lib/igv.js';
-import { etiquetaComprobante } from '../lib/documento.js';
 import VisitasTab from './VisitasTab.jsx';
 // Las piezas del panel viven en src/pages/panel/: la ficha de pedido, la de
 // reclamo, las gráficas, las descargas y la sesión. Orders.jsx se queda solo
@@ -125,6 +123,8 @@ export default function Orders() {
 
   useEffect(() => {
     if (key) cargar(key);
+    // Solo al entrar, a propósito: volver a cargar cada vez que cambia la
+    // clave o la función no aporta nada y repetiría la petición.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -180,7 +180,6 @@ export default function Orders() {
       } catch { /* reintenta en el siguiente ciclo */ }
     }, 60000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   // El servidor devuelve el pedido completo: al marcarlo "Pagado" trae

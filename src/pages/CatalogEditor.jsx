@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import BrandingTab from './BrandingTab.jsx';
 import PagosTab from './PagosTab.jsx';

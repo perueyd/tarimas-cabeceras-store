@@ -7,8 +7,8 @@
 // código del proyecto en un solo archivo. Cada cambio pequeño obligaba a
 // abrirlo entero.
 
-import { useEffect, useRef, useState } from 'react';
-import { Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
+import { useState } from 'react';
+import { Field, UploadButton, useReordenarScopes } from './comunes.jsx';
 
 // ============================================================
 // PÁGINA PRINCIPAL (textos, vínculos y palabra de la animación)

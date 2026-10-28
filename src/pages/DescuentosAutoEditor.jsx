@@ -3,7 +3,7 @@ import { useCatalog } from '../context/CatalogContext.jsx';
 import { vencida } from '../lib/vencimiento.js';
 
 export default function DescuentosAutoEditor({ adminKey }) {
-  const { currencyFormatter, categories } = useCatalog();
+  const { currencyFormatter } = useCatalog();
   const [descuentos, setDescuentos] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,6 @@ export default function DescuentosAutoEditor({ adminKey }) {
     return <DescuentoForm inicial={editando} onCancel={() => setEditando(null)} onSave={guardar} error={error} />;
   }
 
-  const categorias = categories || [];
 
   return (
     <div>

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 export default function IntegrationsTab({ catalog, api, flash, adminKey }) {
   const cfg = catalog.storeConfig || {};
   const integrations = cfg.integrations || {};
-  const [cargando, setCargando] = useState(true);
   const [data, setData] = useState({
     instagramShop: { activo: integrations.instagramShop?.activo || false, businessId: integrations.instagramShop?.businessId || '', token: integrations.instagramShop?.token || '' },
     tiktokShop: { activo: integrations.tiktokShop?.activo || false, shopId: integrations.tiktokShop?.shopId || '', token: integrations.tiktokShop?.token || '' },
@@ -23,8 +22,7 @@ export default function IntegrationsTab({ catalog, api, flash, adminKey }) {
         const i = d?.storeConfig?.integrations;
         if (!cancelado && i) setData((prev) => ({ ...prev, ...i }));
       })
-      .catch(() => {})
-      .finally(() => { if (!cancelado) setCargando(false); });
+      .catch(() => {});
     return () => { cancelado = true; };
   }, [adminKey]);
 

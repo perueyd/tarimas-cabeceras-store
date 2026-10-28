@@ -14,7 +14,7 @@ const TIPOS_OFERTAS = [
 ];
 
 export default function MegaOfertasEditor({ adminKey }) {
-  const { currencyFormatter, getCategories } = useCatalog();
+  const { currencyFormatter } = useCatalog();
   const [ofertas, setOfertas] = useState(null);
   const [filtroTipo, setFiltroTipo] = useState('');
   const [error, setError] = useState('');

@@ -1,4 +1,4 @@
-import { hasDB, redisCmd } from '../_store.js';
+import { hasDB } from '../_store.js';
 import { s } from '../_pricing.js';
 import { checkAdminAuth } from '../_auth.js';
 import { isValidTipoDesc, listDescuentosAutomaticos, saveDescuentosAutomaticos } from '../_promo.js';

@@ -7,9 +7,9 @@
 // código del proyecto en un solo archivo. Cada cambio pequeño obligaba a
 // abrirlo entero.
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { PALETAS } from '../../data/paletas.js';
-import { Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
+import { Field, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
 
 export function CategoriasTab({ catalog, api, flash }) {
   const [nuevo, setNuevo] = useState({ id: '', label: '' });

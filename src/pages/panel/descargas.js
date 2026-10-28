@@ -4,7 +4,6 @@
 // Están juntas porque las tres hacen lo mismo — convertir datos del panel en
 // algo que se abre en otro programa — y ninguna necesita React.
 
-import { esVenta } from '../../lib/pedidos.js';
 
 // Link "agregar a Google Calendar" para una entrega (sin API ni permisos:
 // abre el evento pre-llenado y el dueño solo confirma con "Guardar").

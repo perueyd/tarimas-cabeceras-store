@@ -14,6 +14,7 @@
 // de verdad rompe la página.
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
+import react from 'eslint-plugin-react';
 
 export default [
   {
@@ -27,14 +28,26 @@ export default [
       parserOptions: { ecmaFeatures: { jsx: true } },
       globals: { ...globals.browser, ...globals.node },
     },
-    plugins: { 'react-hooks': reactHooks },
+    plugins: { 'react-hooks': reactHooks, react },
     rules: {
       // EL MOTIVO DE TODO ESTO: usar algo que no existe.
       'no-undef': 'error',
 
       // Lo que queda sin usar suele ser código muerto o un cambio a medias.
       // Los argumentos no cuentan: muchas veces hacen falta por su posición.
-      'no-unused-vars': ['warn', { args: 'none', varsIgnorePattern: '^_' }],
+      //
+      // ignoreRestSiblings: apartar campos con { a, b, ...resto } para NO
+      // guardarlos es una forma normal de escribirlo, y este proyecto la usa a
+      // propósito (TextosTab deja fuera los pagos para no pisar la pestaña
+      // Pagos). Sin esta opción, cada campo apartado salía como código muerto.
+      'no-unused-vars': ['warn', { args: 'none', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
+
+      // Sin esta regla, el revisor NO ve que un componente se usa dentro del
+      // JSX. Daba 184 avisos falsos —'Header is defined but never used' con el
+      // <Header /> tres líneas más abajo— y entre tanto ruido un trozo de
+      // código muerto de verdad no se distinguía. Doscientos avisos que no hay
+      // que atender enseñan a no mirar la salida, que es peor que no tenerla.
+      'react/jsx-uses-vars': 'error',
 
       // Errores de verdad, de los que no avisa nada más.
       'no-dupe-keys': 'error',
@@ -49,6 +62,7 @@ export default [
       // Los ganchos de React: llamarlos dentro de un `if` o de un bucle rompe
       // la pantalla de formas difíciles de entender, y pasa al mover código.
       'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 ];

@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       }
       await redisCmd(['SADD', 'newsletter:emails', email]);
       await redisCmd(['LPUSH', 'newsletter:list', JSON.stringify({ email, fecha: new Date().toISOString() })]);
-    } catch (err) {
+    } catch {
       console.log('SUSCRIPCIÓN (error Redis):', email);
       return res.status(200).json({ ok: true, saved: false });
     }

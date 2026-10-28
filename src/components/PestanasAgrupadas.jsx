@@ -32,7 +32,10 @@ export default function PestanasAgrupadas({ grupos, activa, onElegir }) {
   // saltaba a una pestaña de un grupo cerrado y la fila de abajo seguía
   // enseñando otra cosa: parecía que el botón no había hecho nada.
   useEffect(() => {
-    if (grupoDeLaActiva && grupoDeLaActiva !== abierto) setAbierto(grupoDeLaActiva);
+    // Sin comparar con el grupo abierto a propósito: poner el que ya está
+    // puesto no hace nada, y comparándolo había que leer un valor que este
+    // efecto no vigila — o sea, podía estar mirando el de hace dos cambios.
+    if (grupoDeLaActiva) setAbierto(grupoDeLaActiva);
   }, [grupoDeLaActiva]);
 
   const grupoAbierto = grupos.find((g) => g.id === abierto) || grupos[0];
@@ -42,19 +45,18 @@ export default function PestanasAgrupadas({ grupos, activa, onElegir }) {
   // pantalla. Pasa sobre todo cuando se llega desde fuera: "Qué hacer hoy"
   // manda a Reclamos, el grupo cambia solo, y la pestaña abierta queda a la
   // derecha sin verse. Entonces parecía que el botón no había hecho nada.
-  const filas = [useRef(null), useRef(null)];
+  const filaGrupos = useRef(null);
+  const filaPestanas = useRef(null);
   useEffect(() => {
-    for (const fila of filas) {
-      fila.current
-        ?.querySelector('[data-puesta="si"]')
-        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    for (const fila of [filaGrupos.current, filaPestanas.current]) {
+      fila?.querySelector('[data-puesta="si"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   }, [activa, abierto]);
 
   return (
     <div className="mb-6">
       {/* Nivel 1: los grupos */}
-      <div ref={filas[0]} className="fila-deslizable flex flex-wrap gap-1 border-b border-neutral-200">
+      <div ref={filaGrupos} className="fila-deslizable flex flex-wrap gap-1 border-b border-neutral-200">
         {grupos.map((g) => {
           const avisos = g.items.reduce((n, i) => n + (i.aviso || 0), 0);
           const hayUrgente = g.items.some((i) => i.urgente && i.aviso > 0);
@@ -92,7 +94,7 @@ export default function PestanasAgrupadas({ grupos, activa, onElegir }) {
       </div>
 
       {/* Nivel 2: las pestañas del grupo abierto */}
-      <div ref={filas[1]} className="fila-deslizable mt-3 flex flex-wrap gap-2">
+      <div ref={filaPestanas} className="fila-deslizable mt-3 flex flex-wrap gap-2">
         {grupoAbierto?.items.map((i) => (
           <button
             key={i.id}

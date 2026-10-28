@@ -34,6 +34,7 @@ export default async function handler(req, res) {
         totalPaginas: Math.ceil(historial.length / porPagina),
       });
     } catch (err) {
+      console.error('HISTORIAL (no se pudo leer):', err?.message);
       return res.status(500).json({ error: 'Error al consultar historial.' });
     }
   }

@@ -34,14 +34,16 @@ export function initAnalytics() {
 
   if (PIXEL_ID && !pixelListo && aceptaMarketing()) {
     pixelListo = true;
-    /* eslint-disable */
+    // El pegote de abajo es el código tal cual lo da Facebook para su píxel.
+    // No se toca ni se reformatea: si cambian su versión, se pega la nueva
+    // encima y punto. El revisor no le pone pegas, así que tampoco hace falta
+    // apagarlo para este trozo.
     (function (f, b, e, v, n, t, s) {
       if (f.fbq) return; n = f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); };
       if (!f._fbq) f._fbq = n; n.push = n; n.loaded = true; n.version = '2.0'; n.queue = [];
       t = b.createElement(e); t.async = true; t.src = v;
       s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
     })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-    /* eslint-enable */
     window.fbq('init', PIXEL_ID);
   }
 }

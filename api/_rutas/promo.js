@@ -1,4 +1,4 @@
-import { isValidTipo, isValidTipoDesc, listPromoCodes, savePromoCodes, validatePromo, listDescuentosAutomaticos, saveDescuentosAutomaticos, calcularDescuentosAutomaticos } from '../_promo.js';
+import { isValidTipo, listPromoCodes, savePromoCodes, validatePromo, listDescuentosAutomaticos } from '../_promo.js';
 import { hasDB } from '../_store.js';
 import { s } from '../_pricing.js';
 import { checkAdminAuth } from '../_auth.js';

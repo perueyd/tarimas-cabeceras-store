@@ -152,7 +152,6 @@ export default function EditorZonasColor({ abierto, foto, zonas, colores = [], o
 
       for (let z = 0; z < partida.length && z < 2; z++) {
         if (partida[z]?.mascara) {
-          // eslint-disable-next-line no-await-in-loop
           await pintarMascaraEnSeleccion(partida[z].mascara, w, h, sel, z + 1);
         } else {
           // Sin máscara = "todo el mueble" (así se comporta la tienda hoy).

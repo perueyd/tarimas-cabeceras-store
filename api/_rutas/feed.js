@@ -35,7 +35,7 @@ function escaparXML(texto) {
 // artículo distinto porque tiene su propio precio: anunciar "desde S/ 220" y
 // luego cobrar S/ 410 por la King hace que te rechacen el anuncio.
 function filas(catalog) {
-  const { products = [], sizes = [], storeConfig = {} } = catalog;
+  const { products = [], sizes = [] } = catalog;
   const nombreMedida = new Map(sizes.map((s) => [s.id, s.label || s.id]));
   // La marca que ve el comprador en el anuncio es el nombre COMERCIAL, no la
   // razón social: nadie busca "S.A.C." ni la reconoce. La razón social es un

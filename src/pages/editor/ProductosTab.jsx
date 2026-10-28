@@ -8,7 +8,7 @@
 // código del proyecto en un solo archivo. Cada cambio pequeño obligaba a
 // abrirlo entero.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import EditorZonasColor from '../../components/EditorZonasColor.jsx';
 import { BorrarFoto, Field, Seccion, UploadButton, useReordenar, useReordenarScopes } from './comunes.jsx';
 import { separarIGV } from '../../lib/igv.js';

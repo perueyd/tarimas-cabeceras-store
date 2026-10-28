@@ -182,6 +182,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ...data, orderCode, guardado: true });
   } catch (err) {
+    // Un cobro que falla y no deja rastro es lo peor de esta lista: el cliente
+    // pone su tarjeta, no pasa nada, y no queda ni una línea que explique por qué.
+    console.error('CULQI (no se pudo cobrar):', err?.message);
     return res.status(500).json({ error: 'Error al conectar con Culqi.' });
   }
 }

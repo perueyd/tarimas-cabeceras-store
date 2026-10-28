@@ -22,19 +22,6 @@ const KEYS = {
 // los 33 reales, sin vuelta atrás.
 const FALLO = Symbol('fallo-al-leer');
 
-async function getJSON(key, fallback) {
-  if (!hasDB) return fallback;
-  try {
-    const data = await redisCmd(['GET', key]);
-    if (!data.result) return fallback;
-    const parsed = JSON.parse(data.result);
-    return parsed ?? fallback;
-  } catch (err) {
-    console.error(`No se pudo leer ${key} de Redis:`, err?.message);
-    return FALLO;
-  }
-}
-
 async function setJSON(key, value) {
   if (!hasDB) return false;
   await redisCmd(['SET', key, JSON.stringify(value)]);

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
     try {
       await redisCmd(['LPUSH', 'encuestas', JSON.stringify(registro)]);
-    } catch (err) {
+    } catch {
       console.log('ENCUESTA (error Redis):', JSON.stringify(registro));
       return res.status(200).json({ ok: true, saved: false });
     }

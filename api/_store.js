@@ -79,7 +79,7 @@ export async function saveOrder(order, extra = {}) {
     try {
       await redisCmd(['LPUSH', 'pedidos', JSON.stringify(order)]);
       saved = true;
-    } catch (err) {
+    } catch {
       console.log('PEDIDO (error Redis):', JSON.stringify(order));
     }
   } else {

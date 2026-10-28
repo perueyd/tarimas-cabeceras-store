@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { logoEsImagen, NOMBRE_TIENDA } from '../data/sitio.js';
 
 // La cabecera del panel.

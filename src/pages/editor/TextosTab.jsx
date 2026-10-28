@@ -8,9 +8,9 @@
 // código del proyecto en un solo archivo. Cada cambio pequeño obligaba a
 // abrirlo entero.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PRIVACIDAD, TERMINOS } from '../../data/textosLegales.js';
-import { Field, Seccion, useReordenar, useReordenarScopes } from './comunes.jsx';
+import { Field, useReordenarScopes } from './comunes.jsx';
 
 export function FaqTab({ catalog, api, flash }) {
   const [faq, setFaq] = useState(() => (Array.isArray(catalog.storeConfig.faq) ? catalog.storeConfig.faq : []));

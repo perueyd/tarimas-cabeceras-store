@@ -112,7 +112,7 @@ export default async function handler(req, res) {
       // Ya compró: quita su carrito de la lista de "abandonados".
       if (hasDB && telefono) redisCmd(['HDEL', 'carritos:abandonados', telefono]).catch(() => {});
       return res.status(200).json({ ok: true, code: order.code, saved, monto: montoFinal, promoDescuento });
-    } catch (err) {
+    } catch {
       console.log('PEDIDO (error BD, respaldo):', JSON.stringify(order));
       return res.status(200).json({ ok: true, code: order.code, saved: false, monto: montoFinal, promoDescuento });
     }
@@ -160,6 +160,7 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ orders });
     } catch (err) {
+      console.error('PEDIDOS (no se pudieron leer):', err?.message);
       return res.status(500).json({ error: 'Error al leer los pedidos.' });
     }
   }

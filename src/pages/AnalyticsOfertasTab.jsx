@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
 
 export default function AnalyticsOfertasTab({ adminKey }) {
