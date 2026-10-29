@@ -11,6 +11,9 @@ export function metodosActivos(pm = {}) {
   return {
     culqi: true,
     transferencia: true,
+    // Pagar al recibir. Apagado salvo que el dueño lo encienda: compromete
+    // fabricar un mueble a medida antes de haber cobrado nada.
+    contraEntrega: pm.contraEntrega ?? false,
     ...resto,
     yape: pm.yape ?? yapePlin ?? true,
     plin: pm.plin ?? yapePlin ?? true,

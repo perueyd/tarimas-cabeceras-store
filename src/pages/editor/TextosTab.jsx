@@ -186,12 +186,6 @@ export function ConfigTab({ catalog, api, flash }) {
         <Field label="Tu correo (aviso de pedido nuevo)" value={cfg.ownerEmail ?? ''} onChange={(v) => set('ownerEmail', v)} placeholder="tucorreo@gmail.com" />
         <Field label="Tiempo de fabricación/entrega" value={cfg.leadTime} onChange={(v) => set('leadTime', v)} placeholder="3 a 4 días hábiles" />
         <Field
-          label="Días mínimos para entrega"
-          value={cfg.deliveryMinDays}
-          onChange={(v) => set('deliveryMinDays', Number(v) || 0)}
-          type="number"
-        />
-        <Field
           label="Cuotas a mostrar (0 = no mostrar)"
           value={cfg.cuotasNumero ?? 0}
           onChange={(v) => set('cuotasNumero', Math.max(Number(v) || 0, 0))}

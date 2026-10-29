@@ -106,7 +106,7 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
 
   async function guardar() {
     const pm = data.paymentMethods;
-    if (!pm.culqi && !pm.yape && !pm.plin && !pm.transferencia) {
+    if (!pm.culqi && !pm.yape && !pm.plin && !pm.transferencia && !pm.contraEntrega) {
       alert('Deja al menos un método de pago activo — si los apagas todos, nadie podrá pagar.');
       return;
     }
@@ -156,6 +156,7 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
             ['yape', 'Yape directo (QR o número) — lo confirmas tú'],
             ['plin', 'Plin directo (QR o número) — lo confirmas tú'],
             ['transferencia', 'Transferencia bancaria — la confirmas tú'],
+            ['contraEntrega', 'Pago contra entrega — cobras en efectivo al repartir'],
           ].map(([clave, texto]) => (
             <label key={clave} className="flex items-center gap-3">
               <input

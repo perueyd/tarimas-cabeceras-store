@@ -76,15 +76,14 @@ export default function EntregaTab({ catalog, api, flash }) {
               Aparece en el aviso de envío a provincia. Si lo dejas vacío, no se muestra.
             </span>
           </label>
-          <label className="block">
-            <span className="text-sm font-medium text-neutral-700">Días mínimos para elegir entrega (desde hoy)</span>
-            <input
-              type="number"
-              value={data.deliveryMinDays}
-              onChange={(e) => setData({ ...data, deliveryMinDays: parseInt(e.target.value) || 0 })}
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
-            />
-          </label>
+          {/* "Días mínimos" ya no existe: la fecha más cercana la decide la
+              regla de las 8 de la mañana (src/lib/entrega.js) — pedido hasta
+              las 8, entrega hoy desde las 5 de la tarde; después, mañana. */}
+          <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+            📅 La fecha más cercana se calcula sola: si el pedido entra <strong>hasta las 8:00 a. m.</strong>,
+            se puede entregar <strong>ese mismo día desde las 5:00 p. m.</strong>; después de esa hora,
+            pasa al día siguiente con la misma regla.
+          </p>
         </div>
       </section>
 

@@ -4,14 +4,28 @@ import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
+import { fotoChica } from '../lib/fotoChica.js';
 import { useMeta } from '../lib/meta.js';
 
 export default function Cart() {
   useMeta({ titulo: 'Tu carrito', descripcion: 'Revisa los muebles que elegiste antes de completar tu compra.' });
 
   const { items, updateQty, removeItem, totalAmount, lineKey } = useCart();
-  const { currencyFormatter, getColorById, getSizeById, getProductById: getProductByIdSafe } = useCatalog();
+  const { currencyFormatter, getColorById, getSizeById, getProductById: getProductByIdSafe, storeConfig } = useCatalog();
   const navigate = useNavigate();
+
+  // El plazo que el dueño escribió en el panel, el mismo que enseña la ficha
+  // del producto. Así el carrito no añade una versión más del plazo: ya hay
+  // cuatro textos distintos repartidos por la tienda.
+  const leadTime = storeConfig?.leadTime || '';
+
+  // La garantía solo se enseña si TODOS los productos del carrito dicen la
+  // misma: con una cabecera de 5 años y un colchón de 1, poner "Garantía 5
+  // años" debajo del total sería prometer de más sobre el colchón.
+  const garantias = new Set(
+    items.map((i) => getProductByIdSafe(i.productId)?.specs?.['Garantía']).filter(Boolean)
+  );
+  const garantia = garantias.size === 1 ? [...garantias][0] : '';
 
   if (items.length === 0) {
     return (
@@ -34,8 +48,11 @@ export default function Cart() {
           const priceInfo = product ? getUnitPrice(product, item.sizeId, item.opciones) : null;
           return (
             <div key={lineKey(item)} className="flex gap-4 p-4">
+              {/* La versión liviana: esta foto se ve a 96 px y se estaba
+                  descargando entera (unos 130 KB para una miniatura). Es la
+                  misma que ya usan las tarjetas del catálogo. */}
               <ProductImage
-                baseImage={item.baseImage}
+                baseImage={fotoChica(item.baseImage)}
                 colorHex={color?.hex}
                 colorHex2={getColorById(item.colorId2)?.hex}
                 alt={item.productName}
@@ -102,6 +119,23 @@ export default function Cart() {
         <p className="text-lg font-semibold">Total</p>
         <p className="text-lg font-semibold">{currencyFormatter.format(totalAmount)}</p>
       </div>
+
+      {/* El plazo y la garantía, en el momento en que se decide pagar.
+
+          POR QUÉ: la ficha del producto promete el plazo de entrega y los años
+          de garantía, y el carrito los dejaba caer justo cuando el cliente
+          duda. Son sus dos motivos para confiar y desaparecían en el último
+          paso.
+
+          Los textos NO se inventan aquí: el plazo es el que está escrito en el
+          panel y la garantía sale de la ficha de los productos del carrito.
+          Si el dueño no los ha puesto, no se enseña nada. */}
+      {(leadTime || garantia) && (
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-neutral-500">
+          {leadTime && <span>🚚 Fabricado a pedido — entrega en {leadTime}</span>}
+          {garantia && <span>🛡️ Garantía {garantia}</span>}
+        </div>
+      )}
 
       <button
         onClick={() => navigate('/checkout')}

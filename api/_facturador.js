@@ -47,6 +47,11 @@ const MEDIO_POR_METODO = {
   Plin: 'PLIN',
   'Transferencia bancaria': 'TRANSFERENCIA',
   'Yape/Plin': 'OTRO',
+  // Contra entrega se cobra en efectivo al repartir. Va como OTRO y no como
+  // EFECTIVO porque no está comprobado que el facturador acepte ese valor, y
+  // un valor que rechace deja el pedido cobrado y SIN boleta. Si se confirma
+  // que lo admite, cambiar aquí.
+  'Contra entrega': 'OTRO',
 };
 
 // Los montos de la tienda son números de JavaScript; el facturador exige texto

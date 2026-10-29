@@ -13,7 +13,7 @@ import { comprobanteParaCliente, comprobanteVigente, emitirComprobante } from '.
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 // 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
 // la boleta debe decir con qué se pagó.
-const METODOS_VALIDOS = ['Yape', 'Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)', 'Yape/Plin'];
+const METODOS_VALIDOS = ['Yape', 'Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)', 'Yape/Plin', 'Contra entrega'];
 
 // POST   -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
 // GET    -> ?code=  seguimiento público de UN pedido (sin datos sensibles, sin clave).

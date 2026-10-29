@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
+import { alcanzaParaHoy, horariosDeReparto, primerDiaDeEntrega } from '../lib/entrega.js';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import LocationSearch from '../components/LocationSearch.jsx';
@@ -42,11 +43,8 @@ const CONFIANZA_DEFAULT = [
   { icono: '💬', texto: 'Ayuda por WhatsApp' },
 ];
 
-// Fecha mínima de entrega: hoy + días de fabricación.
-function minDeliveryDate(deliveryMinDays) {
-  const d = new Date(Date.now() + deliveryMinDays * 86400000);
-  return d.toISOString().split('T')[0];
-}
+// La fecha mínima de entrega ya no es "hoy + N días": la decide la regla de
+// corte de las 8 de la mañana, que vive en src/lib/entrega.js.
 
 export default function Checkout() {
   useMeta({ titulo: 'Finalizar compra', descripcion: 'Completa tus datos de envío y elige cómo pagar.' });
@@ -92,9 +90,10 @@ export default function Checkout() {
     { key: 'yape', title: 'Yape', subtitle: 'Escanea el QR o envía al número' },
     { key: 'plin', title: 'Plin', subtitle: 'Escanea el QR o envía al número' },
     { key: 'transferencia', title: 'Transferencia', subtitle: 'Cuenta bancaria' },
+    { key: 'contraEntrega', title: 'Pago contra entrega', subtitle: 'Pagas al recibir tu pedido' },
   ].filter((m) => pm[m.key]);
   // Cómo se registra cada método en el pedido (y luego en la boleta).
-  const METODO_PEDIDO = { yape: 'Yape', plin: 'Plin', transferencia: 'Transferencia bancaria' };
+  const METODO_PEDIDO = { yape: 'Yape', plin: 'Plin', transferencia: 'Transferencia bancaria', contraEntrega: 'Contra entrega' };
   const cuentaDirecta = metodoPago === 'yape' || metodoPago === 'plin' ? billetera(storeConfig, metodoPago) : null;
 
   useEffect(() => {
@@ -480,7 +479,9 @@ export default function Checkout() {
 
       if (storeConfig.whatsapp) {
         const msg = encodeURIComponent(
-          `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}. Aquí envío mi comprobante:`
+          metodoLabel === 'Contra entrega'
+            ? `Hola, soy ${form.nombre}. Acabo de hacer mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}, para pagar al recibirlo. Quedo atento a la coordinación de la entrega.`
+            : `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}. Aquí envío mi comprobante:`
         );
         window.open(`https://wa.me/${storeConfig.whatsapp}?text=${msg}`, '_blank');
       }
@@ -670,7 +671,7 @@ export default function Checkout() {
                   type="date"
                   value={form.entregaFecha}
                   onChange={handleChange}
-                  min={minDeliveryDate(storeConfig.deliveryMinDays)}
+                  min={primerDiaDeEntrega()}
                 />
                 <label className="text-sm">
                   <span className="mb-1 block text-neutral-700">Rango de horario</span>
@@ -682,7 +683,7 @@ export default function Checkout() {
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
                   >
                     <option value="">Selecciona un horario</option>
-                    {storeConfig.deliverySlots.map((s) => (
+                    {horariosDeReparto(storeConfig.deliverySlots).map((s) => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>
@@ -789,6 +790,19 @@ export default function Checkout() {
             </p>
           )}
 
+          {metodoPago === 'contraEntrega' && (
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+              <p className="font-medium">Pagas cuando lo recibes</p>
+              <p className="mt-1 text-emerald-900">
+                No pagas nada ahora. Al entregarte el pedido abonas{' '}
+                <strong>{currencyFormatter.format(totalConDescuento)}</strong> en efectivo.
+              </p>
+              <p className="mt-2 text-xs text-emerald-800">
+                Ten el monto listo: el repartidor puede no llevar cambio.
+              </p>
+            </div>
+          )}
+
           {cuentaDirecta && (
             <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm text-purple-950">
               <p className="font-medium">Paga con {cuentaDirecta.nombre}:</p>
@@ -873,7 +887,11 @@ export default function Checkout() {
               disabled={status === 'paying'}
               className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
             >
-              {status === 'paying' ? 'Registrando pedido...' : 'Ya pagué — registrar pedido y enviar comprobante'}
+              {status === 'paying'
+                ? 'Registrando pedido...'
+                : metodoPago === 'contraEntrega'
+                  ? 'Confirmar pedido — pago al recibir'
+                  : 'Ya pagué — registrar pedido y enviar comprobante'}
             </button>
           ) : null}
         </>
