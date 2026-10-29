@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 
 import { comprobarMontoEsperado, mejorTotal, vencida } from '../api/_ofertas-auto.js';
 import { priceOrder } from '../api/_pricing.js';
+import { precioDeLinea } from '../src/lib/pricing.js';
 
 // ---------------------------------------------------------------------------
 // vencida(): las ofertas morían a las 7 de la tarde
@@ -172,4 +173,47 @@ test('de carrito a cobro: dos cabeceras King con 10% de descuento', () => {
   // Si la oferta hubiera vencido entre medias, el servidor cobraría 820 y se
   // rechaza en vez de cobrar de más.
   assert.equal(comprobarMontoEsperado(820, 738).ok, false);
+});
+
+// Refrescar el carrito no puede comerse el recargo de las opciones.
+//
+// EL FALLO QUE EVITA (visto en la tienda publicada): el carrito guarda el
+// precio del día en que se añadió el producto, y al cargar el catálogo lo
+// refresca con el precio de hoy. Para no perder los recargos ya elegidos
+// restaba un campo `precioBase`... que NADIE escribía nunca. Así que el
+// recargo salía 0 siempre: una MILÁN King con tela antifluido (+S/ 50) pasaba
+// de S/ 460 a S/ 410 ella sola, sin tocar nada.
+//
+// Y no se quedaba en regalar S/ 50: el servidor recalcula el precio real, ve
+// que cobraría MÁS de lo que decía la pantalla y rechaza el cargo para no
+// cobrar de más. La venta se caía entera.
+test('al refrescar el precio, el recargo de las opciones no se pierde', () => {
+  const producto = {
+    id: 'milan',
+    sizePricing: { king: 410 },
+    opciones: [
+      {
+        id: 'tela',
+        label: 'Tela',
+        valores: [
+          { id: 'terciopelo', label: 'Terciopelo', precioExtra: 0 },
+          { id: 'antifluido', label: 'Antifluido', precioExtra: 50 },
+        ],
+      },
+    ],
+  };
+
+  // Una línea del carrito tal como se guarda DE VERDAD: sin `precioBase`,
+  // porque ese campo no existe en ninguna parte del proyecto.
+  const linea = { sizeId: 'king', opciones: { tela: 'antifluido' }, qty: 1, unitPrice: 460 };
+
+  assert.equal(
+    precioDeLinea(producto, linea),
+    460,
+    'El recargo de la tela se perdió al refrescar: el cliente ve un precio ' +
+      'más bajo del que el servidor va a cobrar, y el cargo se rechaza.'
+  );
+
+  // Y sin recargo, el precio es el de la medida y nada más.
+  assert.equal(precioDeLinea(producto, { sizeId: 'king', opciones: { tela: 'terciopelo' } }), 410);
 });

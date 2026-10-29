@@ -69,6 +69,29 @@ export function getUnitPrice(product, sizeId, seleccionOpciones) {
   return { ...base, extra, detalle, unitPrice: round2(base.final + extra) };
 }
 
+/**
+ * Lo que cuesta HOY una línea del carrito, con sus opciones incluidas.
+ *
+ * POR QUÉ EXISTE: el carrito vive en el navegador y guarda el precio del día
+ * en que se añadió. Para refrescarlo se restaba un campo `precioBase` que
+ * NADIE escribía nunca, así que el recargo calculado salía siempre 0 y se
+ * perdía: una cabecera King con tela antifluido (+S/ 50) pasaba de S/ 460 a
+ * S/ 410 sola, en cuanto cargaba el catálogo.
+ *
+ * Lo caro no era el descuento regalado: el servidor recalcula el precio de
+ * verdad, ve que cobraría MÁS de lo que decía la pantalla y RECHAZA el cargo
+ * para no cobrar de más. O sea que la venta no se caía por S/ 50 — se caía
+ * entera, y el cliente no entendía por qué.
+ *
+ * Ahora se recalcula todo de cero desde el catálogo. No depende de ningún
+ * campo guardado, así que arregla también los carritos que la gente ya tenga
+ * abiertos en su navegador.
+ */
+export function precioDeLinea(product, item) {
+  const info = getUnitPrice(product, item?.sizeId, item?.opciones);
+  return info ? info.unitPrice : null;
+}
+
 export function clampPercent(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;

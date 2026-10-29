@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
 import { useCatalog } from './CatalogContext.jsx';
-import { getEffectivePrice } from '../lib/pricing.js';
+import { precioDeLinea } from '../lib/pricing.js';
 
 const CartContext = createContext(null);
 const STORAGE_KEY = 'tarimas-cart-v1';
@@ -78,11 +78,10 @@ export function CartProvider({ children }) {
     for (const i of items) {
       const p = products.find((x) => x.id === i.productId);
       if (!p) continue;
-      const base = getEffectivePrice(p, i.sizeId);
-      if (!base) continue;
-      // Se conservan los recargos por opciones ya elegidas (brazos, patas...).
-      const extra = (i.unitPrice ?? 0) - (i.precioBase ?? i.unitPrice ?? 0);
-      const nuevo = Math.round((base.final + (Number.isFinite(extra) ? extra : 0)) * 100) / 100;
+      // Precio de hoy CON las opciones elegidas. Antes se intentaba conservar
+      // el recargo restando un campo que nadie guardaba, y se perdía entero.
+      const nuevo = precioDeLinea(p, i);
+      if (nuevo == null) continue;
       precios[lineKey(i)] = nuevo;
       if (nuevo !== i.unitPrice) hayCambio = true;
     }
