@@ -1,12 +1,13 @@
 import { actualizarPedido, deleteOrder, hasDB, buscarPedido, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
-import { registerPromoUsage, reservarUso, validatePromo } from './_promo.js';
+import { registerPromoUsage, reservaDeCupon, validatePromo } from './_promo.js';
 import { checkAdminAuth } from './_auth.js';
 import { agregarAlHistorial } from './_historial.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
+import { avisarError } from './_alertas.js';
 import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
 import { comprobanteParaCliente, comprobanteVigente, emitirComprobante } from './_facturador.js';
 
@@ -46,13 +47,14 @@ export default async function handler(req, res) {
     // compra sigue, no se bloquea al cliente por eso.
     let promoCode = null;
     let promoDescuento = 0;
+    const reserva = reservaDeCupon();
     const promoInput = s(body.promoCode, 30);
     if (promoInput) {
       const promoResult = await validatePromo(promoInput, priced.total);
       if (promoResult.valid) {
         // Se reserva el uso de forma atomica ANTES de aplicar el descuento:
         // si el cupon se agoto justo ahora, no se aplica.
-        const reservado = await reservarUso(promoResult.promo.code, promoResult.promo.maxUsos);
+        const reservado = await reserva.reservar(promoResult.promo);
         if (reservado) {
           promoDescuento = promoResult.descuento;
           promoCode = promoResult.promo.code;
@@ -66,9 +68,15 @@ export default async function handler(req, res) {
     const { descuento, total: montoFinal, vieneDePromo } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
     const descuentoDePromo = vieneDePromo;
     promoDescuento = descuento;
+    // Ganó la oferta automática: el cupón no se usa, así que su uso se devuelve.
+    if (!descuentoDePromo) await reserva.liberar();
 
+    // Si el precio no cuadra, el pedido no se crea y el uso tampoco se gasta.
     const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
-    if (!control.ok) return res.status(409).json({ error: control.error });
+    if (!control.ok) {
+      await reserva.liberar();
+      return res.status(409).json({ error: control.error });
+    }
 
     // Datos del comprobante, revisados otra vez: lo que llega del navegador no
     // se cree sin comprobar (ver leerDatosComprobante).
@@ -100,6 +108,11 @@ export default async function handler(req, res) {
     };
     try {
       const saved = await saveOrder(order, { ownerEmail: s(catalog.storeConfig?.ownerEmail, 120) });
+      // saveOrder no lanza si Redis falla: devuelve false. Sin este aviso el
+      // pedido solo quedaba en los registros de Vercel y nadie se enteraba.
+      if (!saved && hasDB) {
+        await avisarError('pedido Yape/transferencia', `Pedido ${order.code} no se pudo guardar (está en los registros de Vercel)`);
+      }
       // Solo se gasta el cupón si el descuento aplicado salió de él, y se
       // espera: en Vercel la función se congela tras responder.
       if (promoCode && descuentoDePromo) {
@@ -114,6 +127,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, code: order.code, saved, monto: montoFinal, promoDescuento });
     } catch {
       console.log('PEDIDO (error BD, respaldo):', JSON.stringify(order));
+      await avisarError('pedido Yape/transferencia', `Pedido ${order.code} no se pudo guardar (está en los registros de Vercel)`);
       return res.status(200).json({ ok: true, code: order.code, saved: false, monto: montoFinal, promoDescuento });
     }
   }

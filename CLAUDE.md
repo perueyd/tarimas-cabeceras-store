@@ -143,6 +143,25 @@ prueba — no la borres.
 GitHub Actions repite `npm test` y `npm run build` en cada subida
 (`.github/workflows/verificar.yml`).
 
+## Errores en producción: `api/_alertas.js`
+
+`avisarError(origen, mensaje, detalle)` guarda el error en Redis (los últimos
+50) y, si existe `ALERTAS_URL` (p. ej. un tema de ntfy.sh), avisa al teléfono
+— como mucho una vez cada 30 min por error. El panel los muestra en "Qué hacer
+hoy" y en Mi tienda → Errores. Ya lo llaman: `api/[ruta].js`, los cobros
+fallidos o sin pedido guardado, y el navegador (`src/lib/reportarError.js` +
+`src/components/ErrorBoundary.jsx`, que evita la pantalla en blanco). Si
+añades un camino donde se cobra o se pierde un pedido, avisa desde ahí.
+**Nunca metas datos personales en el mensaje.**
+
+## Cupones: reservar y devolver
+
+El uso de un cupón se reserva ANTES de cobrar (`reservaDeCupon()` en
+`api/_promo.js`). Todo camino que no termine en venta tiene que llamar a
+`reserva.liberar()`: tarjeta rechazada, precio que no cuadra, oferta
+automática que gana. Si no, el cupón se agota sin ventas
+(`pruebas/cupones.test.js`).
+
 ## Copias de seguridad del catálogo
 
 Los productos se perdieron una vez de Redis y hubo que dictarlos de nuevo uno

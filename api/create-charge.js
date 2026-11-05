@@ -1,7 +1,7 @@
 import { actualizarPedido, newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
-import { registerPromoUsage, reservarUso, validatePromo } from './_promo.js';
+import { registerPromoUsage, reservaDeCupon, validatePromo } from './_promo.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { agregarAlHistorial } from './_historial.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
@@ -9,6 +9,7 @@ import { separarIGV } from './_impuestos.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { emitirComprobante, facturadorActivo } from './_facturador.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
+import { avisarError } from './_alertas.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -51,11 +52,13 @@ export default async function handler(req, res) {
   // Código promocional (opcional) — se revalida aquí igual que en /api/orders.
   let promoCode = null;
   let promoDescuento = 0;
+  // Si el cobro no se completa, el uso reservado se devuelve (ver liberarUso).
+  const reserva = reservaDeCupon();
   const promoInput = s(body.promoCode, 30);
   if (promoInput) {
     const promoResult = await validatePromo(promoInput, priced.total);
     if (promoResult.valid) {
-      const reservado = await reservarUso(promoResult.promo.code, promoResult.promo.maxUsos);
+      const reservado = await reserva.reservar(promoResult.promo);
       if (reservado) {
         promoDescuento = promoResult.descuento;
         promoCode = promoResult.promo.code;
@@ -70,10 +73,15 @@ export default async function handler(req, res) {
   const { descuento, total: montoFinal, vieneDePromo } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
   const descuentoDePromo = vieneDePromo; // ¿ganó el cupón o la oferta automática?
   promoDescuento = descuento;
+  // Ganó la oferta automática: el cupón no se usa, así que su uso se devuelve.
+  if (!descuentoDePromo) await reserva.liberar();
 
   // Nunca cobrar por encima de lo que el cliente vio en pantalla.
   const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
-  if (!control.ok) return res.status(409).json({ error: control.error });
+  if (!control.ok) {
+    await reserva.liberar();
+    return res.status(409).json({ error: control.error });
+  }
 
   const amount = Math.round(montoFinal * 100);
   const items = priced.items;
@@ -101,8 +109,13 @@ export default async function handler(req, res) {
     const data = await culqiRes.json();
 
     if (!culqiRes.ok) {
+      // Tarjeta rechazada: el cliente no compró, el cupón vuelve a estar libre.
+      await reserva.liberar();
       return res.status(culqiRes.status).json(data);
     }
+    // El dinero ya se cobró: desde aquí el uso es definitivo pase lo que pase
+    // después (aunque falle guardar el pedido, el cliente SÍ disfrutó el cupón).
+    reserva.confirmar();
 
     // Pago aprobado: registra el pedido.
     //
@@ -160,6 +173,9 @@ export default async function handler(req, res) {
         'PEDIDO PAGADO SIN GUARDAR — reconstruir a mano:',
         JSON.stringify({ chargeId: data.id, orderCode, monto: amount / 100, nombre, email, telefono, direccion, entrega, items })
       );
+      // Lo más grave que puede pasar: dinero cobrado sin pedido. Va al panel
+      // y al teléfono con lo mínimo para encontrarlo en Culqi (sin datos del cliente).
+      await avisarError('cobro con tarjeta', `PEDIDO PAGADO SIN GUARDAR: ${orderCode} (Culqi ${data.id}, S/ ${amount / 100})`);
       return res.status(200).json({
         ...data,
         orderCode,
@@ -185,6 +201,9 @@ export default async function handler(req, res) {
     // Un cobro que falla y no deja rastro es lo peor de esta lista: el cliente
     // pone su tarjeta, no pasa nada, y no queda ni una línea que explique por qué.
     console.error('CULQI (no se pudo cobrar):', err?.message);
+    // No hace nada si el cobro ya se había aprobado (se confirmó arriba).
+    await reserva.liberar();
+    await avisarError('cobro con tarjeta', `No se pudo conectar con Culqi: ${err?.message}`);
     return res.status(500).json({ error: 'Error al conectar con Culqi.' });
   }
 }
