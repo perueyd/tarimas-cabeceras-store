@@ -10,6 +10,7 @@ import PromoEditor from './PromoEditor.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
+import ErroresTab from './ErroresTab.jsx';
 import PestanasAgrupadas from '../components/PestanasAgrupadas.jsx';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
 import ImpuestosTab from './ImpuestosTab.jsx';
@@ -49,6 +50,8 @@ export default function Orders() {
   const [suscriptores, setSuscriptores] = useState([]);
   const [encuestas, setEncuestas] = useState([]);
   const [carritos, setCarritos] = useState([]);
+  // Lo que falló en la tienda (servidor y navegadores de clientes).
+  const [errores, setErrores] = useState([]);
   // Solicitudes de derechos ARCO: tienen plazo legal, por eso salen en el resumen.
   const [arco, setArco] = useState([]);
   // Cuándo bajó por última vez una copia del catálogo a su computadora.
@@ -112,6 +115,10 @@ export default function Orders() {
       fetch('/api/carritos', { headers: authHeader })
         .then((r) => r.json())
         .then((d) => setCarritos(d.carritos || []))
+        .catch(() => {});
+      fetch('/api/errores', { headers: authHeader })
+        .then((r) => r.json())
+        .then((d) => setErrores(d.errores || []))
         .catch(() => {});
     } catch (err) {
       setError(err.message);
@@ -426,7 +433,10 @@ export default function Orders() {
           {
             id: 'tienda',
             label: 'Mi tienda',
-            items: [{ id: 'editar', label: 'Editar página' }],
+            items: [
+              { id: 'editar', label: 'Editar página' },
+              { id: 'errores', label: 'Errores', aviso: errores.length, urgente: true },
+            ],
           },
         ]}
       />
@@ -439,6 +449,7 @@ export default function Orders() {
           reclamos={reclamos}
           carritos={carritos}
           arco={arco}
+          errores={errores}
           ultimaDescarga={ultimaDescarga}
           currencyFormatter={currencyFormatter}
           onIr={setTab}
@@ -717,6 +728,17 @@ export default function Orders() {
 
       {tab === 'editar' && <CatalogEditor adminKey={key} irA={subEditor} />}
 
+      {tab === 'errores' && (
+        <ErroresTab
+          errores={errores}
+          onBorrar={() =>
+            fetch('/api/errores', { method: 'DELETE', headers: { Authorization: `Bearer ${key}` } })
+              .then((r) => r.ok && setErrores([]))
+              .catch(() => {})
+          }
+        />
+      )}
+
       {/* JARVIS acompaña TODO el panel, no solo la pestaña de edición. Va aquí
           (dentro del bloque autenticado) para que el cliente nunca lo vea. */}
       {/* onNavegar es lo que permite que JARVIS ABRA de verdad una sección
@@ -749,6 +771,7 @@ const TITULOS = {
   historial: { titulo: 'Historial de códigos', descripcion: 'Quién usó cada cupón y cuánto se descontó' },
   analytics: { titulo: 'Analytics de ofertas', descripcion: 'Qué descuentos traen ventas de verdad' },
   editar: { titulo: 'Editar página', descripcion: 'Productos, textos y configuración de la tienda' },
+  errores: { titulo: 'Errores', descripcion: 'Lo que falló en la tienda, para poder arreglarlo' },
 };
 
 // La fecha de hoy escrita como se dice, para la cabecera del resumen.
@@ -768,7 +791,7 @@ function fechaDeHoy() {
 const SECCIONES_VALIDAS = new Set([
   'resumen', 'pedidos', 'resenas', 'carritos', 'reclamos', 'suscriptores',
   'encuestas', 'ofertas', 'promos', 'descAuto', 'analytics', 'historial', 'editar',
-  'impuestos', 'visitas',
+  'impuestos', 'visitas', 'errores',
 ]);
 
 // Una cifra del negocio.
@@ -790,4 +813,5 @@ function StatCard({ label, value, sub, accent = false }) {
       <p className="mt-0.5 text-xs text-neutral-500">{sub}</p>
     </div>
   );
-}
+}
+

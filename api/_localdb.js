@@ -127,6 +127,16 @@ export function localRedisCmd(command) {
       break;
     }
 
+    // LTRIM deja solo el tramo pedido (lo usa la lista de errores recientes
+    // para no crecer sin fin).
+    case 'LTRIM': {
+      const lista = entry?.t === 'l' ? entry.v : [];
+      const [i, f] = rango(lista.length, args[0], args[1]);
+      db[key] = { t: 'l', v: i > f ? [] : lista.slice(i, f + 1), exp: entry?.exp };
+      result = 'OK';
+      break;
+    }
+
     case 'LSET': {
       const lista = entry?.t === 'l' ? entry.v : [];
       const i = Number(args[0]);
