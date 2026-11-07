@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { dniValido, etiquetaComprobante, revisarComprobante, rucValido } from '../src/lib/documento.js';
+import { dniValido, etiquetaComprobante, leerDatosComprobante, revisarComprobante, rucValido } from '../src/lib/documento.js';
 
 test('DNI: ocho dígitos, ni uno más ni uno menos', () => {
   assert.equal(dniValido('45678912'), true);
@@ -100,4 +100,13 @@ test('etiquetaComprobante: texto corto para el panel', () => {
     'Factura · RUC 10742276878 · Mi Empresa SAC'
   );
   assert.equal(etiquetaComprobante({}), '', 'sin datos no inventa nada');
+});
+
+// Fallo que evita: los pedidos pagados con tarjeta (Culqi) llegaban al panel
+// sin DNI ni RUC, porque ese camino ignoraba lo que mandaba el checkout.
+test('datos del comprobante: se guardan si son válidos y se descartan si no', () => {
+  assert.deepEqual(leerDatosComprobante({ docTipo: 'boleta', docNumero: ' 45678912 ' }), { docTipo: 'boleta', docNumero: '45678912' });
+  assert.deepEqual(leerDatosComprobante({ docTipo: 'factura', docNumero: '20616613074', razonSocial: 'X SAC' }), { docTipo: 'factura', docNumero: '20616613074', razonSocial: 'X SAC' });
+  assert.deepEqual(leerDatosComprobante({ docTipo: 'boleta', docNumero: '123' }), {});
+  assert.deepEqual(leerDatosComprobante({}), {});
 });

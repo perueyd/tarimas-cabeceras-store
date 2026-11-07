@@ -62,20 +62,17 @@ fallará (ya pasó con `HGET` y `HINCRBY`).
 Claves en `.env.local`: `GROQ_API_KEY`, `ORDERS_ADMIN_KEY`. La de Groq está
 puesta en Vercel; en local puede estar sin configurar.
 
-## Boletas y facturas: el facturador propio
+## Boletas y facturas: la tienda NO emite
 
-`api/_facturador.js` conecta con el facturador electrónico (repositorio
-`facturador-sunat`). Se emite SOLO con el pago garantizado: al aprobarse un
-cargo de Culqi (`api/create-charge.js`) o cuando el dueño marca el pedido
-"Pagado" en el panel (`PATCH /api/orders`). El panel emite de nuevo y descarga
-el PDF por `/api/comprobante` (`api/_rutas/comprobante.js`): la llave del
-facturador nunca llega al navegador.
+La tienda y el facturador electrónico (repositorio `facturador-sunat`) son
+**independientes** por decisión del dueño (07/11/2026). La tienda no llama al
+facturador ni guarda llaves suyas: el dueño emite cada boleta o factura desde
+el panel del facturador. No vuelvas a conectarlos sin que el dueño lo pida.
 
-- Apagado mientras falten `FACTURADOR_URL` y `FACTURADOR_LLAVE` en Vercel.
-- El descuento (cupón u oferta) se calcula como suma de productos − monto
-  cobrado, en céntimos enteros: la boleta dice EXACTAMENTE lo cobrado.
-- Reintentar es seguro: el facturador no emite dos veces el mismo pedido.
-- Yape y Plin son métodos separados (la boleta dice con cuál se pagó).
+- El checkout sigue pidiendo DNI o RUC (`src/lib/documento.js`) y la ficha del
+  pedido los muestra con base, IGV y total, listos para copiar
+  (`BloqueComprobante` en `src/pages/panel/PedidoCard.jsx`).
+- Yape y Plin son métodos separados (la boleta debe decir con cuál se pagó).
   `src/lib/metodosPago.js` mantiene válida la configuración antigua `yapePlin`.
 - Los pagos (métodos, números, QR) se editan SOLO en la pestaña Pagos.
 

@@ -188,9 +188,9 @@ export default function Orders() {
 
   async function actualizarPedido(o, cambios) {
     // Al confirmar un Yape, Plin o transferencia se pide el número de
-    // operación: va en la boleta y evita registrar dos veces el mismo pago.
+    // operación: evita registrar dos veces el mismo pago.
     if (cambios.estado === 'Pagado' && !o.referencia && !o.chargeId) {
-      const operacion = window.prompt('Número de operación del pago (opcional, va en la boleta):', '');
+      const operacion = window.prompt('Número de operación del pago (opcional):', '');
       if (operacion === null) return; // canceló: no se cambia nada
       if (operacion.trim()) cambios = { ...cambios, referencia: operacion.trim().slice(0, 60) };
     }
@@ -203,7 +203,6 @@ export default function Orders() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         reemplazarPedido(data.order || { ...o, ...cambios });
-        if (data.aviso) alert(data.aviso);
       } else alert(data.error || 'No se pudo actualizar el pedido.');
     } catch { /* no-op */ }
   }
@@ -465,8 +464,6 @@ export default function Orders() {
                 key={o.code}
                 o={o}
                 onUpdate={actualizarPedido}
-                onReemplazar={reemplazarPedido}
-                adminKey={key}
                 onDelete={eliminarPedido}
                 currencyFormatter={currencyFormatter}
                 getColorById={getColorById}

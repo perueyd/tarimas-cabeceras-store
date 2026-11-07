@@ -1,5 +1,5 @@
 // La ficha de un pedido: lo que el dueño mira para confirmar un pago, apuntar
-// una entrega y emitir el comprobante.
+// una entrega y copiar los datos de la boleta (que emite en su facturador).
 //
 // Es la pieza más usada del panel —se abre decenas de veces al día— y por eso
 // tiene su propio archivo en vez de vivir perdida en medio de la página.
@@ -79,7 +79,7 @@ function fechaCorta(iso) {
   }
 }
 
-export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, currencyFormatter, getColorById, getSizeById }) {
+export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, getSizeById }) {
   // Los pedidos que esperan una decisión se abren solos; los ya resueltos
   // empiezan plegados. Antes TODOS enseñaban sus ocho bloques a la vez, y con
   // veinte pedidos en pantalla encontrar el que importaba era un ejercicio de
@@ -197,10 +197,9 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
             </ul>
           )}
 
-          {/* Todo lo que hace falta para emitir el comprobante en SUNAT, junto
-              y listo para copiar. */}
+          {/* Todo lo que hace falta para emitir el comprobante en el
+              facturador, junto y listo para copiar. */}
           <BloqueComprobante o={o} currencyFormatter={currencyFormatter} />
-          <ComprobanteElectronico o={o} adminKey={adminKey} onReemplazar={onReemplazar} />
 
           <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-xs">
             <label className="flex items-center gap-1.5">
@@ -272,7 +271,9 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
 }
 
 // Los datos del pedido tal como hacen falta para emitir la boleta o la
-// factura en el portal de SUNAT: documento del cliente, base, IGV y total.
+// factura en el facturador: documento del cliente, base, IGV y total. La
+// tienda y el facturador son independientes (decisión del dueño, 07/11/2026):
+// la tienda no emite nada, solo junta los datos.
 //
 // El botón copia las cuatro líneas de una vez. Parece poca cosa, pero es la
 // diferencia entre emitir el comprobante en veinte segundos o ir saltando por
@@ -331,125 +332,6 @@ Nombre: ${o.nombre}`,
         Base {currencyFormatter.format(base)} · IGV {currencyFormatter.format(igv)} · Total{' '}
         {currencyFormatter.format(o.monto)}
       </p>
-    </div>
-  );
-}
-
-// La boleta o factura electrónica del pedido (facturador propio). Aparece
-// cuando el pedido está cobrado: muestra el número, descarga el PDF y, si algo
-// falló, permite emitirla de nuevo (nunca sale dos veces el mismo pedido).
-// Lo que respondió SUNAT, en palabras del dueño (los códigos vienen del facturador).
-export const ESTADO_SUNAT = {
-  ACEPTADO: '✅ aceptada por SUNAT',
-  ACEPTADO_OBS: '✅ aceptada por SUNAT (con observaciones)',
-  PENDIENTE_ENVIO: '⏳ en cola: se envía a SUNAT sola',
-  EMITIDO_LOCAL: '⏳ en cola: se envía a SUNAT sola',
-  RECHAZADO: '❌ rechazada por SUNAT',
-  ANULACION_EN_PROCESO: 'anulación en proceso',
-  ANULADO: 'anulada',
-};
-
-export function ComprobanteElectronico({ o, adminKey, onReemplazar }) {
-  const [ocupado, setOcupado] = useState(false);
-  const cobrado = o.estado === 'Pagado' || o.estado === 'Entregado';
-  const c = o.comprobante;
-  if (!cobrado && !c) return null;
-
-  async function emitir() {
-    setOcupado(true);
-    try {
-      const res = await fetch('/api/comprobante', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminKey}` },
-        body: JSON.stringify({ code: o.code }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data.order) onReemplazar(data.order);
-      else alert(data.error || 'No se pudo emitir.');
-    } finally {
-      setOcupado(false);
-    }
-  }
-
-  async function verPdf(formato) {
-    // Se descarga con la clave del panel y se abre aquí mismo: la llave del
-    // facturador nunca llega al navegador.
-    const ventana = window.open('', '_blank');
-    const res = await fetch(`/api/comprobante?code=${encodeURIComponent(o.code)}&formato=${formato}`, {
-      headers: { Authorization: `Bearer ${adminKey}` },
-    });
-    if (!res.ok) {
-      ventana?.close();
-      const data = await res.json().catch(() => ({}));
-      alert(data.error || 'No se pudo descargar el PDF.');
-      return;
-    }
-    const url = URL.createObjectURL(await res.blob());
-    if (ventana) ventana.location.href = url;
-    else window.location.href = url;
-  }
-
-  // Rechazada: no vale. Se muestra por qué y se deja emitir otra (con número
-  // nuevo) después de corregir el DNI o RUC del pedido.
-  //
-  // Va ANTES del caso normal de abajo: si no, una rechazada se enseñaría en
-  // verde como si estuviera bien.
-  if (c?.numero && c.estado === 'RECHAZADO') {
-    return (
-      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs">
-        <p className="text-red-700">
-          🧾 SUNAT rechazó la {c.numero.startsWith('F') ? 'factura' : 'boleta'} {c.numero}
-          {c.motivo ? `: ${c.motivo}` : '.'}
-        </p>
-        <p className="mt-1 text-red-700">
-          No tiene valor. Corrige los datos del cliente si hace falta y emite una nueva (saldrá
-          con otro número).
-        </p>
-        <button
-          onClick={emitir}
-          disabled={ocupado}
-          className="mt-2 rounded-lg bg-ink px-3 py-1.5 font-medium text-white hover:bg-neutral-800 disabled:opacity-60"
-        >
-          {ocupado ? 'Emitiendo...' : 'Emitir una nueva'}
-        </button>
-      </div>
-    );
-  }
-
-  if (c?.numero) {
-    return (
-      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs">
-        <span className="font-medium text-green-800">
-          🧾 {c.numero.startsWith('F') ? 'Factura' : 'Boleta'} {c.numero}
-        </span>
-        <span className="text-green-700">· {ESTADO_SUNAT[c.estado] || c.estado || '—'}</span>
-        <button onClick={emitir} disabled={ocupado} title="Consultar el estado actual en SUNAT" className="text-green-700 hover:underline disabled:opacity-60">
-          {ocupado ? '...' : '↻ actualizar'}
-        </button>
-        <button onClick={() => verPdf('A4')} className="rounded-lg border border-green-300 bg-white px-2.5 py-1 font-medium hover:border-green-600">
-          PDF A4
-        </button>
-        <button onClick={() => verPdf('TICKET_80')} className="rounded-lg border border-green-300 bg-white px-2.5 py-1 font-medium hover:border-green-600">
-          Ticket
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${c?.error ? 'border-red-200 bg-red-50' : 'border-neutral-200 bg-neutral-50'}`}>
-      {c?.error ? (
-        <p className="text-red-700">🧾 No se emitió el comprobante: {c.error}</p>
-      ) : (
-        <p className="text-neutral-600">🧾 Este pedido aún no tiene boleta ni factura electrónica.</p>
-      )}
-      <button
-        onClick={emitir}
-        disabled={ocupado}
-        className="mt-2 rounded-lg bg-ink px-3 py-1.5 font-medium text-white hover:bg-neutral-800 disabled:opacity-60"
-      >
-        {ocupado ? 'Emitiendo...' : c?.error ? 'Emitir de nuevo' : 'Emitir comprobante'}
-      </button>
     </div>
   );
 }

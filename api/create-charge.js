@@ -1,4 +1,4 @@
-import { actualizarPedido, newOrderCode, saveOrder } from './_store.js';
+import { newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
 import { registerPromoUsage, reservarUso, validatePromo } from './_promo.js';
@@ -7,7 +7,6 @@ import { agregarAlHistorial } from './_historial.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
-import { emitirComprobante, facturadorActivo } from './_facturador.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
@@ -42,7 +41,7 @@ export default async function handler(req, res) {
   }
 
   // SEGURIDAD: el monto se recalcula aquí desde el catálogo ACTUAL; se ignora el del navegador.
-  const { products, sizes } = await getCatalog();
+  const { products } = await getCatalog();
   const priced = priceOrder(products, body.items);
   if (!priced) {
     return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
@@ -126,7 +125,8 @@ export default async function handler(req, res) {
         base: separarIGV(amount / 100).base,
         igv: separarIGV(amount / 100).igv,
         // El checkout ya mandaba el DNI o RUC, pero aquí se ignoraba: los
-        // pedidos pagados con tarjeta llegaban al panel sin datos para la boleta.
+        // pedidos pagados con tarjeta llegaban al panel sin datos para la boleta
+        // (que el dueño emite en su facturador, aparte de la tienda).
         ...leerDatosComprobante(body),
         promoCode,
         promoDescuento,
@@ -169,15 +169,6 @@ export default async function handler(req, res) {
           'Guarda este comprobante y escríbenos por WhatsApp al +51951278010 para confirmarlo — ' +
           'no vuelvas a pagar.',
       });
-    }
-
-    // Culqi ya garantizó el pago: se emite la boleta o factura en el acto. Si
-    // el facturador falla, el pedido queda igual y el dueño la emite desde el
-    // panel ("Emitir de nuevo"); nunca se le muestra un error al cliente.
-    if (facturadorActivo()) {
-      const pedido = { code: orderCode, metodo: 'Tarjeta/Yape (Culqi)', chargeId: data.id, monto: amount / 100, nombre, items, ...leerDatosComprobante(body) };
-      const comprobante = await emitirComprobante(pedido, { sizes, esperaMs: 3000 });
-      await actualizarPedido(orderCode, (o) => ({ ...o, comprobante })).catch(() => {});
     }
 
     return res.status(200).json({ ...data, orderCode, guardado: true });
