@@ -149,8 +149,8 @@ export async function reemplazarEnLista(clave, valorViejo, valorNuevo) {
 
 // Cambia un pedido por su código: `cambiar` recibe el pedido y devuelve la
 // versión nueva. Hace lo mismo que antes hacía el PATCH a mano (buscar en la
-// lista, reemplazar POR VALOR y actualizar el índice), para que el panel y el
-// facturador no repitan ese código ni se olviden del índice.
+// lista, reemplazar POR VALOR y actualizar el índice), para que nadie repita
+// ese código ni se olvide del índice.
 // Devuelve el pedido actualizado, o null si no existe.
 export async function actualizarPedido(code, cambiar) {
   if (!hasDB || !code) return null;
