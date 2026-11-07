@@ -97,12 +97,6 @@ export default function Checkout() {
   const METODO_PEDIDO = { yape: 'Yape', plin: 'Plin', transferencia: 'Transferencia bancaria', contraEntrega: 'Contra entrega' };
   const cuentaDirecta = metodoPago === 'yape' || metodoPago === 'plin' ? billetera(storeConfig, metodoPago) : null;
 
-  // Contra entrega: cuánto se adelanta y cuánto queda para el día de la
-  // entrega. Es solo para ENSEÑARLO — el importe que vale es el que recalcula
-  // el servidor al registrar el pedido, igual que el precio.
-  const { adelanto, saldo } = partirPago(totalConDescuento, storeConfig.adelantoPorcentaje);
-  const cuentaAdelanto = adelanto > 0 ? billetera(storeConfig, 'yape') : null;
-
   useEffect(() => {
     if (metodosDisponibles.length && !metodosDisponibles.some((m) => m.key === metodoPago)) {
       setMetodoPago(metodosDisponibles[0].key);
@@ -194,6 +188,12 @@ export default function Checkout() {
     0
   );
   const totalConDescuento = Math.max(totalAmount - descuentoTotal, 0);
+
+  // Contra entrega: cuánto se adelanta y cuánto queda para el día de la
+  // entrega. Es solo para ENSEÑARLO — el importe que vale es el que recalcula
+  // el servidor al registrar el pedido, igual que el precio.
+  const { adelanto, saldo } = partirPago(totalConDescuento, storeConfig.adelantoPorcentaje);
+  const cuentaAdelanto = adelanto > 0 ? billetera(storeConfig, 'yape') : null;
 
   // Listas buscables de lugares (Lima Metropolitana + Callao para el flujo
   // Lima; los 1892 distritos del Perú para Provincia).
