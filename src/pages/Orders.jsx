@@ -787,5 +787,4 @@ function StatCard({ label, value, sub, accent = false }) {
       <p className="mt-0.5 text-xs text-neutral-500">{sub}</p>
     </div>
   );
-}
-
+}
