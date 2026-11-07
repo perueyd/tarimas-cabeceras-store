@@ -46,6 +46,13 @@ export const storeConfig = {
   avisoColor: 'El color de la foto es referencial. El tono real puede variar según tu pantalla, la iluminación y el lote de la tela.',
 
   // ---------- ENTREGA ----------
+  // Lo que el cliente lee sobre el costo del envío, antes de pagar.
+  //
+  // POR QUÉ EXISTE: el carrito llegaba a "Total S/ 220" sin decir si el envío
+  // se cobraba aparte. No saber el precio FINAL es la primera causa de
+  // carritos abandonados — más que el precio en sí. Se edita en Panel →
+  // Entrega; vacío, no se muestra nada.
+  envioTexto: 'Envío incluido en Lima Metropolitana',
   leadTime: '3 a 4 días hábiles',
   deliveryMinDays: 4,
   deliverySlots: [

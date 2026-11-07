@@ -53,20 +53,41 @@ export function alcanzaParaHoy(ahora = new Date()) {
 }
 
 /**
- * De los horarios que el dueño tenga configurados, los que empiezan a las 5
- * de la tarde o después.
+ * Los horarios que se le pueden ofrecer al cliente para la fecha que eligió.
  *
- * Si ninguno cumple —porque todavía no los ha actualizado en el panel— se
- * devuelven todos: es preferible ofrecer un horario que quizá haya que
- * coordinar a dejar al cliente sin poder elegir ninguno y sin poder comprar.
+ * LA REGLA, tal como funciona el taller: el pedido que entra hasta las 8 de la
+ * mañana lo fabrican ese día y se lo entregan al dueño A LAS 5 DE LA TARDE.
+ * Recién entonces él sale a repartir. Así que para HOY MISMO no hay elección:
+ * solo caben los horarios de las 5 en adelante.
+ *
+ * Para cualquier OTRO día el mueble ya está hecho desde la víspera, así que el
+ * cliente elige la hora que quiera — mañana, tarde o noche.
+ *
+ * Antes se filtraba siempre, cualquier fecha, y eso le quitaba al cliente las
+ * entregas de mañana y tarde de los días siguientes sin motivo.
+ *
+ * Si para hoy no cuadra ningún horario —porque todavía no se han puesto en el
+ * panel— se devuelven todos: mejor una hora a coordinar que dejar al cliente
+ * sin poder comprar.
  */
-export function horariosDeReparto(slots = []) {
-  const tarde = slots.filter((s) => {
-    const m = String(s?.label || '').match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?\s*m|p\.?\s*m)/i);
-    if (!m) return false;
-    let hora = Number(m[1]) % 12;
-    if (/p/i.test(m[3])) hora += 12;
-    return hora >= HORA_DESDE;
-  });
+export function horariosDeReparto(slots = [], fechaElegida = '', ahora = new Date()) {
+  // Solo el mismo día está limitado. Sin fecha elegida todavía, se muestran
+  // todos: el cliente aún no ha dicho para cuándo lo quiere.
+  if (!fechaElegida || fechaElegida !== diaEnLima(ahora)) return slots;
+
+  const tarde = slots.filter((s) => horaDeInicio(s?.label) >= HORA_DESDE);
   return tarde.length ? tarde : slots;
+}
+
+/** La hora a la que empieza un horario escrito como "Noche (6:00 p.m. – ...)". */
+function horaDeInicio(label) {
+  const m = String(label || '').match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?\s*m|p\.?\s*m)/i);
+  if (!m) return -1;
+  const hora = Number(m[1]) % 12;
+  return /p/i.test(m[3]) ? hora + 12 : hora;
+}
+
+/** El día de hoy en Lima, como "2026-11-07". */
+function diaEnLima(ahora) {
+  return enLima(ahora)?.toISOString().slice(0, 10) ?? '';
 }

@@ -18,6 +18,7 @@ export default function Cart() {
   // del producto. Así el carrito no añade una versión más del plazo: ya hay
   // cuatro textos distintos repartidos por la tienda.
   const leadTime = storeConfig?.leadTime || '';
+  const envioTexto = storeConfig?.envioTexto || '';
 
   // La garantía solo se enseña si TODOS los productos del carrito dicen la
   // misma: con una cabecera de 5 años y un colchón de 1, poner "Garantía 5
@@ -130,8 +131,17 @@ export default function Cart() {
           Los textos NO se inventan aquí: el plazo es el que está escrito en el
           panel y la garantía sale de la ficha de los productos del carrito.
           Si el dueño no los ha puesto, no se enseña nada. */}
+      {/* El costo del envío va aparte y más visible que el resto: es el dato
+          que falta para saber cuánto se paga en total, y no tenerlo es lo que
+          más carritos abandona. */}
+      {envioTexto && (
+        <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+          📦 {envioTexto}
+        </p>
+      )}
+
       {(leadTime || garantia) && (
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-neutral-500">
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-neutral-500">
           {leadTime && <span>🚚 Fabricado a pedido — entrega en {leadTime}</span>}
           {garantia && <span>🛡️ Garantía {garantia}</span>}
         </div>

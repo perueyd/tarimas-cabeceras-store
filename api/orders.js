@@ -7,12 +7,19 @@ import { agregarAlHistorial } from './_historial.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
+import { partirPago } from '../src/lib/pedidos.js';
 import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
 import { comprobanteParaCliente, comprobanteVigente, emitirComprobante } from './_facturador.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 // 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
 // la boleta debe decir con qué se pagó.
+// El adelanto de un pedido contra entrega, o nada si el dueño no pide ninguno.
+function adelantoDelPedido(montoFinal, storeConfig) {
+  const { adelanto, saldo } = partirPago(montoFinal, storeConfig?.adelantoPorcentaje);
+  return adelanto > 0 ? { adelanto, saldo } : {};
+}
+
 const METODOS_VALIDOS = ['Yape', 'Plin', 'Transferencia bancaria', 'Tarjeta/Yape (Culqi)', 'Yape/Plin', 'Contra entrega'];
 
 // POST   -> registra un pedido (pagos manuales: Yape/Plin directo, transferencia).
@@ -87,6 +94,12 @@ export default async function handler(req, res) {
       igv: separarIGV(montoFinal).igv,
       promoCode,
       promoDescuento,
+      // Contra entrega: cuánto adelantó y cuánto debe al recibir.
+      //
+      // Se calcula AQUÍ, con el porcentaje guardado en el panel, y nunca con
+      // lo que mande el navegador: si no, cualquiera podría pedir un mueble de
+      // mil soles declarando un adelanto de un sol.
+      ...(metodo === 'Contra entrega' ? adelantoDelPedido(montoFinal, catalog.storeConfig) : {}),
       // Lo que hace falta para emitir la boleta o la factura en SUNAT.
       ...datosComprobante,
       nombre,

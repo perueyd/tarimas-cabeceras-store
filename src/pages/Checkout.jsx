@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { alcanzaParaHoy, horariosDeReparto, primerDiaDeEntrega } from '../lib/entrega.js';
+import { partirPago } from '../lib/pedidos.js';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import LocationSearch from '../components/LocationSearch.jsx';
@@ -95,6 +96,12 @@ export default function Checkout() {
   // Cómo se registra cada método en el pedido (y luego en la boleta).
   const METODO_PEDIDO = { yape: 'Yape', plin: 'Plin', transferencia: 'Transferencia bancaria', contraEntrega: 'Contra entrega' };
   const cuentaDirecta = metodoPago === 'yape' || metodoPago === 'plin' ? billetera(storeConfig, metodoPago) : null;
+
+  // Contra entrega: cuánto se adelanta y cuánto queda para el día de la
+  // entrega. Es solo para ENSEÑARLO — el importe que vale es el que recalcula
+  // el servidor al registrar el pedido, igual que el precio.
+  const { adelanto, saldo } = partirPago(totalConDescuento, storeConfig.adelantoPorcentaje);
+  const cuentaAdelanto = adelanto > 0 ? billetera(storeConfig, 'yape') : null;
 
   useEffect(() => {
     if (metodosDisponibles.length && !metodosDisponibles.some((m) => m.key === metodoPago)) {
@@ -480,7 +487,9 @@ export default function Checkout() {
       if (storeConfig.whatsapp) {
         const msg = encodeURIComponent(
           metodoLabel === 'Contra entrega'
-            ? `Hola, soy ${form.nombre}. Acabo de hacer mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}, para pagar al recibirlo. Quedo atento a la coordinación de la entrega.`
+            ? adelanto > 0
+              ? `Hola, soy ${form.nombre}. Acabo de hacer mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)} y ya envié el adelanto de ${currencyFormatter.format(adelanto)}. Aquí va mi comprobante; el saldo de ${currencyFormatter.format(saldo)} lo pago al recibirlo.`
+              : `Hola, soy ${form.nombre}. Acabo de hacer mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}, para pagar al recibirlo. Quedo atento a la coordinación de la entrega.`
             : `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}. Aquí envío mi comprobante:`
         );
         window.open(`https://wa.me/${storeConfig.whatsapp}?text=${msg}`, '_blank');
@@ -683,7 +692,7 @@ export default function Checkout() {
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
                   >
                     <option value="">Selecciona un horario</option>
-                    {horariosDeReparto(storeConfig.deliverySlots).map((s) => (
+                    {horariosDeReparto(storeConfig.deliverySlots, form.entregaFecha).map((s) => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>
@@ -792,14 +801,51 @@ export default function Checkout() {
 
           {metodoPago === 'contraEntrega' && (
             <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-              <p className="font-medium">Pagas cuando lo recibes</p>
-              <p className="mt-1 text-emerald-900">
-                No pagas nada ahora. Al entregarte el pedido abonas{' '}
-                <strong>{currencyFormatter.format(totalConDescuento)}</strong> en efectivo.
-              </p>
-              <p className="mt-2 text-xs text-emerald-800">
-                Ten el monto listo: el repartidor puede no llevar cambio.
-              </p>
+              {adelanto > 0 ? (
+                <>
+                  {/* El mueble se fabrica a medida: el adelanto cubre el
+                      material antes de empezar a cortar. */}
+                  <p className="font-medium">Pagas en dos partes</p>
+                  <dl className="mt-2 space-y-1">
+                    <div className="flex justify-between gap-4">
+                      <dt>Adelanto ahora, por {cuentaAdelanto?.nombre || 'Yape'}</dt>
+                      <dd className="font-semibold tabular-nums">{currencyFormatter.format(adelanto)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>Al recibir, en efectivo</dt>
+                      <dd className="font-semibold tabular-nums">{currencyFormatter.format(saldo)}</dd>
+                    </div>
+                  </dl>
+                  {cuentaAdelanto?.numero && (
+                    <p className="mt-3 border-t border-emerald-200 pt-3">
+                      Envía el adelanto a <strong>{cuentaAdelanto.numero}</strong>
+                      {cuentaAdelanto.titular && <> — {cuentaAdelanto.titular}</>}
+                    </p>
+                  )}
+                  {cuentaAdelanto?.qr && (
+                    <img
+                      src={cuentaAdelanto.qr}
+                      alt={`Código QR de ${cuentaAdelanto.nombre}`}
+                      className="mt-2 h-40 w-40 rounded-lg border border-emerald-200 bg-white object-contain p-1"
+                    />
+                  )}
+                  <p className="mt-2 text-xs text-emerald-800">
+                    Tu pedido entra a fabricación en cuanto confirmemos el adelanto. El resto lo
+                    pagas al recibirlo — ten el monto listo, el repartidor puede no llevar cambio.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">Pagas cuando lo recibes</p>
+                  <p className="mt-1 text-emerald-900">
+                    No pagas nada ahora. Al entregarte el pedido abonas{' '}
+                    <strong>{currencyFormatter.format(totalConDescuento)}</strong> en efectivo.
+                  </p>
+                  <p className="mt-2 text-xs text-emerald-800">
+                    Ten el monto listo: el repartidor puede no llevar cambio.
+                  </p>
+                </>
+              )}
             </div>
           )}
 
@@ -890,7 +936,9 @@ export default function Checkout() {
               {status === 'paying'
                 ? 'Registrando pedido...'
                 : metodoPago === 'contraEntrega'
-                  ? 'Confirmar pedido — pago al recibir'
+                  ? adelanto > 0
+                    ? 'Ya pagué el adelanto — registrar pedido'
+                    : 'Confirmar pedido — pago al recibir'
                   : 'Ya pagué — registrar pedido y enviar comprobante'}
             </button>
           ) : null}

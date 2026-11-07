@@ -160,6 +160,18 @@ export function PedidoCard({ o, onUpdate, onReemplazar, adminKey, onDelete, curr
           <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             <p><span className="text-neutral-500">Teléfono:</span> {o.telefono || '—'}</p>
             <p><span className="text-neutral-500">Pagó con:</span> {o.metodo}</p>
+            {/* Contra entrega con adelanto: lo que ya está cobrado y lo que
+                hay que cobrar al dejar el mueble. Sin esto habría que sacar
+                la cuenta a mano delante del cliente. */}
+            {o.adelanto > 0 && (
+              <p className="sm:col-span-2 rounded-lg bg-emerald-50 px-3 py-2 text-emerald-900">
+                <span className="text-emerald-700">Adelanto cobrado:</span>{' '}
+                <strong>{currencyFormatter.format(o.adelanto)}</strong>
+                {' · '}
+                <span className="text-emerald-700">Cobrar al entregar:</span>{' '}
+                <strong>{currencyFormatter.format(o.saldo)}</strong>
+              </p>
+            )}
             <p><span className="text-neutral-500">Entrega:</span> {o.entrega || '—'}</p>
             <p><span className="text-neutral-500">Pedido el:</span> {new Date(o.fecha).toLocaleString('es-PE')}</p>
             <p className="sm:col-span-2"><span className="text-neutral-500">Dirección:</span> {o.direccion || '—'} ({o.zona})</p>

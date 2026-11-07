@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { comprobarMontoEsperado, mejorTotal, vencida } from '../api/_ofertas-auto.js';
 import { priceOrder } from '../api/_pricing.js';
 import { precioDeLinea } from '../src/lib/pricing.js';
+import { partirPago } from '../src/lib/pedidos.js';
 
 // ---------------------------------------------------------------------------
 // vencida(): las ofertas morían a las 7 de la tarde
@@ -216,4 +217,31 @@ test('al refrescar el precio, el recargo de las opciones no se pierde', () => {
 
   // Y sin recargo, el precio es el de la medida y nada más.
   assert.equal(precioDeLinea(producto, { sizeId: 'king', opciones: { tela: 'terciopelo' } }), 410);
+});
+
+// El adelanto del contra entrega: la suma tiene que cuadrar al céntimo.
+//
+// POR QUÉ: adelanto y saldo se le dicen al cliente por separado ("pagas S/ X
+// ahora y S/ Y al recibir") y se guardan por separado en el pedido. Si cada
+// uno se calculara con su propio porcentaje, un total impar dejaría un céntimo
+// suelto: el cliente paga dos veces y le falta —o le sobra— un céntimo frente
+// a la boleta. Por eso el saldo se obtiene RESTANDO, nunca con otro cálculo.
+test('adelanto + saldo da exactamente el total, también con céntimos', () => {
+  assert.deepEqual(partirPago(460, 50), { adelanto: 230, saldo: 230 });
+
+  // 349.99 al 50% no se parte en dos mitades exactas.
+  const p = partirPago(349.99, 50);
+  assert.equal(p.adelanto + p.saldo, 349.99, 'adelanto + saldo tiene que dar el total exacto');
+  assert.equal(p.adelanto, 175);
+  assert.equal(p.saldo, 174.99);
+});
+
+test('sin porcentaje configurado no hay adelanto: se cobra todo al entregar', () => {
+  assert.deepEqual(partirPago(460, 0), { adelanto: 0, saldo: 460 });
+  assert.deepEqual(partirPago(460, undefined), { adelanto: 0, saldo: 460 });
+});
+
+test('un porcentaje absurdo no puede cobrar de más', () => {
+  assert.deepEqual(partirPago(460, 500), { adelanto: 460, saldo: 0 });
+  assert.deepEqual(partirPago(460, -20), { adelanto: 0, saldo: 460 });
 });

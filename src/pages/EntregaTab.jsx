@@ -6,6 +6,7 @@ export default function EntregaTab({ catalog, api, flash }) {
     leadTime: cfg.leadTime || '',
     pesoEnvio: cfg.pesoEnvio || '',
     deliveryMinDays: cfg.deliveryMinDays || 4,
+    envioTexto: cfg.envioTexto ?? '',
     deliverySlots: cfg.deliverySlots || [],
   });
   const [saving, setSaving] = useState(false);
@@ -76,6 +77,22 @@ export default function EntregaTab({ catalog, api, flash }) {
               Aparece en el aviso de envío a provincia. Si lo dejas vacío, no se muestra.
             </span>
           </label>
+          <label className="block">
+            <span className="text-sm font-medium text-neutral-700">Costo del envío (lo lee el cliente en el carrito)</span>
+            <input
+              type="text"
+              maxLength="120"
+              value={data.envioTexto}
+              onChange={(e) => setData({ ...data, envioTexto: e.target.value })}
+              placeholder="Ej. Envío incluido en Lima Metropolitana"
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            />
+            <span className="mt-1 block text-xs text-neutral-500">
+              Déjalo vacío y no se muestra nada. El día que cobres envío, cámbialo aquí
+              — por ejemplo «Envío S/ 20 en Lima · provincia se cotiza».
+            </span>
+          </label>
+
           {/* "Días mínimos" ya no existe: la fecha más cercana la decide la
               regla de las 8 de la mañana (src/lib/entrega.js) — pedido hasta
               las 8, entrega hoy desde las 5 de la tarde; después, mañana. */}

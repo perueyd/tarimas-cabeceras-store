@@ -21,6 +21,29 @@
 // dinero que no se cobró.
 export const ESTADOS_DE_VENTA = ['Pagado', 'Entregado'];
 
+/**
+ * Cuánto se paga por adelantado y cuánto queda para la entrega.
+ *
+ * POR QUÉ EXISTE EL ADELANTO: los muebles se fabrican a medida. Si el cliente
+ * pide una cabecera King antifluido morada y luego no recibe, esa pieza no se
+ * le vende a nadie más — es del color y la tela que pidió él. Sin adelanto, el
+ * cliente no arriesga nada y el taller lo arriesga todo. Con medio pago por
+ * delante, el material está cubierto y quien paga, recibe.
+ *
+ * El porcentaje lo pone el dueño en el panel. En 0 no hay adelanto y se cobra
+ * todo al entregar.
+ *
+ * Se redondea a céntimos y el saldo se calcula RESTANDO, nunca con un segundo
+ * porcentaje: así adelanto + saldo da exactamente el total, sin un céntimo
+ * suelto que luego nadie sabe de dónde salió.
+ */
+export function partirPago(total, porcentaje) {
+  const t = Math.round((Number(total) || 0) * 100);
+  const pct = Math.min(Math.max(Number(porcentaje) || 0, 0), 100);
+  const adelanto = Math.round((t * pct) / 100);
+  return { adelanto: adelanto / 100, saldo: (t - adelanto) / 100 };
+}
+
 export function esVenta(pedido) {
   return ESTADOS_DE_VENTA.includes(pedido?.estado);
 }

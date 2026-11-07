@@ -99,6 +99,7 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
     plinTitular: cfg.plinTitular || cfg.yapeTitular || '',
     plinQr: cfg.plinQr || '',
     paymentMethods: metodosActivos(cfg.paymentMethods),
+    adelantoPorcentaje: cfg.adelantoPorcentaje ?? 50,
     // Por defecto visible, para no cambiar el comportamiento de quien ya lo usa.
     mostrarCupon: cfg.mostrarCupon !== false,
   });
@@ -169,6 +170,37 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
             </label>
           ))}
         </div>
+
+        {/* El adelanto solo tiene sentido con el contra entrega encendido.
+            POR QUÉ SE PIDE: el mueble se fabrica a medida. Si el cliente no
+            recibe, esa pieza —de su color y su tela— no se le vende a nadie
+            más. Con medio pago por delante el material está cubierto, y quien
+            adelanta, recibe. En 0 se cobra todo al entregar. */}
+        {data.paymentMethods.contraEntrega && (
+          <label className="mt-4 block max-w-md rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <span className="text-sm font-medium text-neutral-700">
+              Adelanto que pides en el contra entrega
+            </span>
+            <span className="mt-1 flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={data.adelantoPorcentaje}
+                onChange={(e) =>
+                  setData({ ...data, adelantoPorcentaje: Math.min(Math.max(Number(e.target.value) || 0, 0), 100) })
+                }
+                className="w-24 rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              />
+              <span className="text-sm text-neutral-600">% por Yape al pedir, el resto al recibir</span>
+            </span>
+            <span className="mt-2 block text-xs text-neutral-500">
+              En un pedido de S/ 460 eso son{' '}
+              <strong>S/ {((460 * (Number(data.adelantoPorcentaje) || 0)) / 100).toFixed(2)}</strong>{' '}
+              de adelanto. Ponlo en 0 y se cobra todo al entregar.
+            </span>
+          </label>
+        )}
       </section>
 
       <button

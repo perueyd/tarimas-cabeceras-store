@@ -50,20 +50,39 @@ test('cambio de mes: el 31 de octubre de noche pasa al 1 de noviembre', () => {
   assert.equal(primerDiaDeEntrega(limaUTC(31, 20, 0)), '2026-11-01');
 });
 
-test('solo se ofrecen horarios de las 5 de la tarde en adelante', () => {
-  const slots = [
-    { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
-    { id: 'tarde', label: 'Tarde (2:00 p.m. – 6:00 p.m.)' },
-    { id: 'noche', label: 'Noche (6:00 p.m. – 10:30 p.m.)' },
-  ];
+const SLOTS = [
+  { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
+  { id: 'tarde', label: 'Tarde (2:00 p.m. – 6:00 p.m.)' },
+  { id: 'noche', label: 'Noche (6:00 p.m. – 10:30 p.m.)' },
+];
+
+// La regla del taller: lo que entra hasta las 8 se fabrica ese día y se lo
+// entregan al dueño A LAS 5 DE LA TARDE, así que para HOY no hay elección de
+// hora. Para cualquier otro día el mueble ya está hecho desde la víspera y el
+// cliente elige la hora que quiera.
+test('para HOY mismo solo caben los horarios de las 5 en adelante', () => {
+  const ahora = limaUTC(7, 7, 0); // 7 de la mañana: alcanza para hoy
   assert.deepEqual(
-    horariosDeReparto(slots).map((s) => s.id),
+    horariosDeReparto(SLOTS, '2026-10-07', ahora).map((s) => s.id),
     ['noche'],
-    'Mañana y tarde empiezan antes de las 5, así que no se pueden ofrecer.'
+    'El taller se lo entrega al dueño a las 5; mañana y tarde son imposibles hoy.'
   );
 });
 
-test('si ninguno empieza tarde, se ofrecen todos en vez de dejar al cliente sin opciones', () => {
-  const slots = [{ id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' }];
-  assert.deepEqual(horariosDeReparto(slots).map((s) => s.id), ['manana']);
+test('para OTRO día el cliente elige la hora que quiera', () => {
+  const ahora = limaUTC(7, 7, 0);
+  assert.deepEqual(
+    horariosDeReparto(SLOTS, '2026-10-08', ahora).map((s) => s.id),
+    ['manana', 'tarde', 'noche'],
+    'Al día siguiente el mueble ya está hecho: no hay motivo para quitarle horas.'
+  );
+});
+
+test('sin fecha elegida todavía, se muestran todas', () => {
+  assert.deepEqual(horariosDeReparto(SLOTS, '', limaUTC(7, 7, 0)).length, 3);
+});
+
+test('si para hoy no cuadra ninguno, se ofrecen todos antes que dejarlo sin comprar', () => {
+  const soloManana = [{ id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' }];
+  assert.deepEqual(horariosDeReparto(soloManana, '2026-10-07', limaUTC(7, 7, 0)).map((s) => s.id), ['manana']);
 });
