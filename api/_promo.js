@@ -212,6 +212,45 @@ export async function reservarUso(code, maxUsos) {
   }
 }
 
+// Devuelve un uso reservado que al final NO se gastó.
+//
+// La reserva se hace antes de cobrar, así que si la compra no llega a cerrarse
+// (la tarjeta se rechaza, el precio no cuadra con lo mostrado, o gana una
+// oferta automática y el cupón no se aplica) el uso quedaba apartado para
+// siempre: un cupón de 10 usos se "agotaba" con 3 compras reales y 7 tarjetas
+// rechazadas. Recibe lo mismo que reservarUso para no devolver nada en un
+// cupón sin límite, donde nunca se reservó.
+export async function liberarUso(code, maxUsos) {
+  if (!hasDB || !maxUsos) return;
+  try {
+    await redisCmd(['HINCRBY', KEY_USOS, normalizeCode(code), '-1']);
+  } catch { /* si la base falla, el peor caso es un uso de menos: lo de antes */ }
+}
+
+// Ayudante para los dos sitios que cobran (create-charge y orders): guarda
+// qué se reservó y garantiza que se devuelve COMO MUCHO una vez, aunque el
+// código llame a liberar() desde varios caminos de error.
+export function reservaDeCupon() {
+  let pendiente = null;
+  return {
+    async reservar(promo) {
+      const ok = await reservarUso(promo.code, promo.maxUsos);
+      if (ok) pendiente = promo;
+      return ok;
+    },
+    async liberar() {
+      if (!pendiente) return;
+      const p = pendiente;
+      pendiente = null;
+      await liberarUso(p.code, p.maxUsos);
+    },
+    // El uso se gastó de verdad: ya no hay nada que devolver.
+    confirmar() {
+      pendiente = null;
+    },
+  };
+}
+
 export async function registerPromoUsage(code) {
   const buscado = normalizeCode(code);
 

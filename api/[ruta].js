@@ -9,6 +9,8 @@
 // La solución sin pagar nada: las direcciones de poco tráfico (todas del panel)
 // viven ahora en api/_rutas/. Los archivos que empiezan por "_" no cuentan como
 // función. Este despachador las carga bajo demanda.
+
+import { avisarError } from './_alertas.js';
 //
 // IMPORTANTE: las direcciones NO cambian. /api/newsletter sigue siendo
 // /api/newsletter — el navegador y el panel no se enteran de nada.
@@ -24,6 +26,8 @@ const RUTAS = {
   compartir: () => import('./_rutas/compartir.js'),
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
+  // Errores recientes de la tienda y avisos al teléfono (api/_alertas.js).
+  errores: () => import('./_rutas/errores.js'),
   // El catálogo en el formato que leen Google, Meta y TikTok para anunciar.
   feed: () => import('./_rutas/feed.js'),
   historial: () => import('./_rutas/historial.js'),
@@ -55,6 +59,7 @@ export default async function handler(req, res) {
     return await modulo.default(req, res);
   } catch (err) {
     console.error(`Error en /api/${ruta}:`, err?.message, err?.stack);
+    await avisarError(`/api/${ruta}`, err?.message, err?.stack).catch(() => {});
     if (res.headersSent) return undefined;
     return res.status(500).json({ error: 'Error interno del servidor.' });
   }
