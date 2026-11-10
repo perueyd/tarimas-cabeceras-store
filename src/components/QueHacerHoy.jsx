@@ -39,6 +39,7 @@ export default function QueHacerHoy({
   reclamos = [],
   carritos = [],
   arco = [],
+  errores = [],
   ultimaDescarga,
   currencyFormatter,
   onIr,
@@ -155,6 +156,24 @@ export default function QueHacerHoy({
         tab: 'editar',
       });
     }
+  }
+
+  // Errores de las últimas 24 horas. Un cobro sin pedido guardado va primero
+  // que todo: hay dinero de un cliente sin rastro en el panel.
+  const recientes = errores.filter((e) => dias(e.fecha) < 1);
+  if (recientes.length) {
+    const grave = recientes.some((e) => e.mensaje.includes('PEDIDO PAGADO SIN GUARDAR'));
+    avisos.push({
+      orden: grave ? -4 : 1,
+      color: grave ? 'rojo' : 'ambar',
+      icono: '⚠️',
+      titulo: grave
+        ? 'Hay un cobro sin pedido guardado'
+        : `${recientes.length} error${recientes.length > 1 ? 'es' : ''} en la tienda hoy`,
+      detalle: recientes[0].mensaje,
+      accion: 'Ver',
+      tab: 'errores',
+    });
   }
 
   if (!avisos.length) {
