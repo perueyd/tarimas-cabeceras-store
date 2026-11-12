@@ -45,6 +45,27 @@ function archivosDeCodigo(dir, acc = []) {
   return acc;
 }
 
+// Fallo que evita: al mudarse la tienda a corporacionagamenon.vercel.app, robots.txt
+// siguió mandando a Google al mapa del sitio del dominio viejo durante dos semanas.
+test('robots.txt manda al mapa del sitio del dominio actual', async () => {
+  const { SITIO_URL } = await import('../src/data/sitio.js');
+  const mapa = /^Sitemap:\s*(\S+)/m.exec(leer('public/robots.txt'))?.[1];
+  assert.equal(mapa, `${SITIO_URL}/sitemap.xml`);
+});
+
+// Fallo que evita: una foto que no existía devolvía la portada (200, HTML) en vez de un
+// 404, así que ni el navegador ni la revisión de la tienda notaban que faltaba.
+test('una foto o un archivo que no existe no se responde con la portada', () => {
+  const { rewrites } = JSON.parse(leer('vercel.json'));
+  const portada = rewrites.find((r) => r.destination === '/index.html');
+  const cae = (ruta) => new RegExp(`^${portada.source}$`).test(ruta);
+  assert.equal(cae('/productos/no-existe.webp'), false);
+  assert.equal(cae('/assets/index-viejo.js'), false);
+  assert.equal(cae('/api/catalog'), false);
+  // Las páginas de la tienda sí: es una sola página.
+  for (const ruta of ['/', '/tienda', '/producto/tarima-clasica', '/checkout', '/pedidos']) assert.equal(cae(ruta), true, ruta);
+});
+
 test('no queda ningún nombre viejo de la marca en el código', () => {
   const archivos = [...archivosDeCodigo('src'), ...archivosDeCodigo('api'), 'index.html'];
   const culpables = [];

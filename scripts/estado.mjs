@@ -15,9 +15,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+// La dirección de la tienda, del mismo sitio que la usa (se mudó de dominio en octubre de 2026).
+import { SITIO_URL as WEB } from '../src/data/sitio.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const WEB = 'https://eydperu.vercel.app';
 
 const linea = (etiqueta, valor) => console.log(`  ${etiqueta.padEnd(26)} ${valor}`);
 
