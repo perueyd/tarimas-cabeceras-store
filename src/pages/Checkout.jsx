@@ -13,6 +13,7 @@ import { revisarComprobante } from '../lib/documento.js';
 import { billetera, metodosActivos } from '../lib/metodosPago.js';
 import { useMeta } from '../lib/meta.js';
 import { esLineaDeServicio } from '../lib/servicios.js';
+import { codigoDelLive } from '../lib/live.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -55,7 +56,11 @@ export default function Checkout() {
   const { storeConfig, currencyFormatter, getColorById, getSizeById, getProductById } = useCatalog();
   // El campo del cupón se puede ocultar desde el panel mientras no haya
   // códigos en circulación.
-  const mostrarCupon = storeConfig?.mostrarCupon !== false;
+  // Quien viene de registrarse en un live trae su código: se le deja ya
+  // escrito, y el campo se enseña aunque el dueño lo tenga oculto para el
+  // resto — si no, tendría un código y ningún sitio donde ponerlo.
+  const [codigoTraido] = useState(codigoDelLive);
+  const mostrarCupon = storeConfig?.mostrarCupon !== false || Boolean(codigoTraido);
   const navigate = useNavigate();
   // Array.isArray, no ".length ? ...": una lista vacía significa que el
   // dueño la quitó a propósito — no debe "revivir" con el respaldo (mismo
@@ -113,7 +118,7 @@ export default function Checkout() {
 
   // Código de descuento (opcional) — se valida contra el servidor, nunca se
   // confía en un descuento calculado solo en el navegador.
-  const [promoInput, setPromoInput] = useState('');
+  const [promoInput, setPromoInput] = useState(codigoTraido);
   const [promo, setPromo] = useState(null); // { code, descuento, tipo, valor }
   const [promoMsg, setPromoMsg] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);

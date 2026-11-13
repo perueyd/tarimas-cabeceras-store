@@ -7,6 +7,7 @@ import MegaOfertasEditor from './MegaOfertasEditor.jsx';
 import HistorialCodigosTab from './HistorialCodigosTab.jsx';
 import AnalyticsOfertasTab from './AnalyticsOfertasTab.jsx';
 import PromoEditor from './PromoEditor.jsx';
+import LiveTab from './LiveTab.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
@@ -424,6 +425,7 @@ export default function Orders() {
             items: [
               { id: 'ofertas', label: 'Ofertas y descuentos' },
               { id: 'promos', label: 'Códigos de descuento' },
+              { id: 'live', label: 'Live' },
               { id: 'descAuto', label: 'Descuentos automáticos' },
               { id: 'historial', label: 'Historial de códigos' },
               { id: 'analytics', label: 'Analytics' },
@@ -708,6 +710,7 @@ export default function Orders() {
           lado, así que no había forma de crear un código que el checkout
           reconociera: es la única UI que escribe en 'promo:codes'. */}
       {tab === 'promos' && <PromoEditor adminKey={key} />}
+      {tab === 'live' && <LiveTab adminKey={key} onIr={setTab} />}
 
       {tab === 'descAuto' && <DescuentosAutoEditor adminKey={key} />}
 

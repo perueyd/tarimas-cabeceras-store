@@ -491,6 +491,41 @@ Cosas que conviene saber:
 - El chat de la web (CHAT-ED) conoce tus planes y sus precios: si cambias un
   precio aquí, el chat lo dice al momento.
 
+## El live: registro y oferta al instante (/live)
+
+Para cuando haces una transmisión en vivo (TikTok, Instagram, Facebook). Tú
+dices en el live «entren a **corporacionagamenon.vercel.app/live**»; quien
+entra deja su nombre y su WhatsApp y ve al momento el código de descuento.
+
+Se maneja en `/pedidos` → **Promociones** → **Live**:
+
+1. **Elige el código** que vas a regalar. Si no tienes uno, toca «Crear un
+   código nuevo para este live»: le pones el nombre (ej. `LIVE15`), cuánto
+   descuenta, hasta qué día vale y el máximo de compras.
+2. Toca **🔴 Encender el live** justo antes de anunciarlo.
+3. Mientras transmites, abajo ves la lista de **registrados** (se actualiza
+   sola). Cada número es un enlace que abre su WhatsApp.
+4. Al terminar, toca **Apagar el live**. La página pasa a decir «ahora no
+   estamos en vivo» y ya no entrega el código. Quien ya lo tiene puede seguir
+   usándolo hasta que venza o se acaben los usos.
+
+Cosas que conviene saber:
+
+- El código **no se ve** hasta registrarse, ni siquiera mirando «por dentro»
+  la página.
+- En el pago, al cliente le aparece el código **ya escrito**.
+- Si el código se vence o se agota durante el live, la página deja de
+  entregarlo sola. Para seguir, crea otro código y guarda.
+- El tope de «máximo de compras» cuenta **compras**, no registros.
+- **Datos personales:** nadie queda registrado sin marcar la casilla de
+  aceptación. Puedes escribirles a todos por la oferta de su live; para
+  avisar de **otras** ofertas, solo a quienes dicen «Sí» en la última columna.
+  Si alguien te pide que lo borres, usa «Borrar» en su fila. Los registros se
+  borran solos al cumplir un año.
+- La primera vez, el panel te avisará de que tu **política de privacidad** no
+  menciona el live: ve a Editar página → Ajustes delicados → Legal y pulsa el
+  botón para usar el texto recomendado.
+
 ## Seguimiento de pedido para el cliente (/seguimiento)
 
 - Cualquier cliente puede entrar a `tudominio.vercel.app/seguimiento`, poner

@@ -23,12 +23,14 @@ Solo pedimos lo necesario para venderte y entregarte tu mueble:
 · Dirección de entrega y distrito — para llevarte el producto.
 · Tipo y número de documento — solo si registras un reclamo o queja, porque el Libro de Reclamaciones lo exige.
 · Datos de tu compra (productos, medidas, colores, importe) — para atender tu pedido y cumplir nuestras obligaciones tributarias.
+· Nombre y número de WhatsApp, si te registras durante una transmisión en vivo — para darte la oferta de esa transmisión y, solo si lo aceptas en una casilla aparte, avisarte de próximas ofertas.
 
 NO guardamos los datos de tu tarjeta. El pago con tarjeta lo procesa íntegramente Culqi; nosotros solo recibimos la confirmación de que el cobro se realizó.
 
 3. CON QUÉ BASE LEGAL LOS TRATAMOS
 · Para procesar tu pedido: la ejecución del contrato de compraventa.
 · Para las cookies de análisis y publicidad: tu consentimiento, que pides o rechazas en el aviso de cookies y puedes cambiar cuando quieras.
+· Para el registro en una transmisión en vivo: tu consentimiento, que das al marcar la casilla del formulario y puedes revocar cuando quieras.
 · Para conservar comprobantes: nuestras obligaciones contables y tributarias.
 
 4. QUIÉN MÁS TRATA TUS DATOS
@@ -47,6 +49,7 @@ Varios de esos proveedores están en Estados Unidos, así que tus datos son obje
 · Datos de pedidos y comprobantes: 5 años, por las obligaciones tributarias.
 · Reclamos y quejas: 2 años desde su registro, como manda el Libro de Reclamaciones.
 · Correo del boletín: hasta que te des de baja.
+· Registro en transmisiones en vivo: un año como máximo, o antes si nos pides que lo borremos.
 · Conversaciones del chat: no se archivan; se borran al cerrar la pestaña.
 Pasados esos plazos, los datos se eliminan o se anonimizan.
 

@@ -26,6 +26,8 @@ const Orders = lazy(() => import('./pages/Orders.jsx'));
 //     su código para ver la portada.
 const ArmarDormitorio = lazy(() => import('./pages/ArmarDormitorio.jsx'));
 const Servicios = lazy(() => import('./pages/Servicios.jsx'));
+// La página del live solo la abre quien viene de una transmisión.
+const Live = lazy(() => import('./pages/Live.jsx'));
 const ChatbotWidget = lazy(() => import('./components/ChatbotWidget.jsx'));
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
@@ -81,7 +83,12 @@ export default function App() {
   // aviso de cookies. Cuatro cosas pensadas para vender, tapando aquello con
   // lo que gestiona el negocio — y el chat y el WhatsApp además se ponían
   // literalmente encima de las fichas de pedido.
-  const enElPanel = useLocation().pathname.startsWith('/pedidos');
+  const { pathname } = useLocation();
+  const enElPanel = pathname.startsWith('/pedidos');
+  // En la página del live, los dos botones flotantes (WhatsApp y chat) caían
+  // justo encima del botón «Ver mi oferta» en el celular. Ahí la persona viene
+  // a una sola cosa y tiene diez segundos: no se le pone nada delante.
+  const enElLive = pathname.startsWith('/live');
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -101,6 +108,7 @@ export default function App() {
           <Route path="/tienda" element={<Home />} />
           <Route path="/arma-tu-dormitorio" element={<ArmarDormitorio />} />
           <Route path="/servicios" element={<Servicios />} />
+          <Route path="/live" element={<Live />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
@@ -118,10 +126,14 @@ export default function App() {
       {!enElPanel && (
         <>
           <Footer />
-          <WhatsAppButton />
-          <Suspense fallback={null}>
-            <ChatbotWidget />
-          </Suspense>
+          {!enElLive && (
+            <>
+              <WhatsAppButton />
+              <Suspense fallback={null}>
+                <ChatbotWidget />
+              </Suspense>
+            </>
+          )}
           <AvisoCookies />
         </>
       )}

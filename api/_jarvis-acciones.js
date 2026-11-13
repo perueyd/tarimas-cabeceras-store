@@ -20,6 +20,7 @@ export const PESTANAS = {
   encuestas: 'Respuestas de la encuesta',
   ofertas: 'Ofertas y descuentos',
   promos: 'Códigos de descuento',
+  live: 'Live: encender la oferta de la transmisión en vivo y ver los registrados',
   descAuto: 'Descuentos automáticos',
   analytics: 'Analíticas de ofertas y cupones',
   historial: 'Historial de códigos',

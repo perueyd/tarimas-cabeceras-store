@@ -210,6 +210,30 @@ Tres consecuencias:
 La arquitectura NO está en el objeto social de la empresa y es una profesión
 regulada (Ley 28966): el panel avisa al escribir esa área, pero no la bloquea.
 
+## El live: `api/_rutas/live.js`
+
+El dueño hace transmisiones en vivo y manda al público a `/live`: quien entra
+deja nombre y WhatsApp y ve al instante el código de descuento de ese live. Se
+enciende y se apaga en el panel → Promociones → Live (`src/pages/LiveTab.jsx`),
+donde también está la lista de registrados.
+
+- **El código solo sale DESPUÉS de registrarse.** La consulta pública
+  (`GET /api/live` sin clave) se arma campo por campo y nunca lo incluye.
+- El código es un cupón normal de «Códigos de descuento». No se puede encender
+  el live con uno vencido, desactivado o agotado, y si se agota a mitad de la
+  transmisión deja de entregarse: no se promete un descuento que el pago
+  rechazaría.
+- **Son datos personales (Ley 29733):** no se guarda nada sin la casilla de
+  consentimiento; el permiso para avisar de OTRAS ofertas es una segunda
+  casilla aparte (`promos`); se borran uno a uno desde el panel y solos al año.
+  La política por defecto (`textosLegales.js`) ya declara este registro; el
+  panel avisa si la política guardada es anterior.
+- El tope de registros por visitante es alto (60 por hora) a propósito: en
+  Perú muchos celulares comparten dirección de internet y un tope bajo dejaría
+  fuera a media audiencia.
+- El código viaja al pago por `sessionStorage` (`src/lib/live.js`): el campo
+  del cupón aparece ya relleno, aunque esté oculto para el resto.
+
 ## Vencimientos: `src/lib/vencimiento.js`
 
 `vencida()` vive ahí porque el servidor Y el navegador necesitan la misma
