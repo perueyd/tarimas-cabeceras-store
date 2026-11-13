@@ -354,6 +354,35 @@ test('respaldos: restaurar una copia antigua no deja un plan de precio fijo sin 
   );
 });
 
+// ---------------------------------------------------------------------------
+// Editar sobre la página no puede costarle nada al cliente
+//
+// El panel se cargaba entero con la tienda y cada cliente descargaba sus ~20
+// pestañas antes de ver la portada. La página de servicios se puede editar
+// "como la ve el cliente", y es justo el sitio donde ese fallo volvería: si
+// importara los formularios del panel directamente, cada visitante bajaría el
+// editor completo para leer una página.
+// ---------------------------------------------------------------------------
+test('la página de servicios no arrastra los formularios del panel', async () => {
+  const fs = await import('node:fs');
+  const pagina = fs.readFileSync(new URL('../src/pages/Servicios.jsx', import.meta.url), 'utf8');
+  const ligero = fs.readFileSync(new URL('../src/pages/servicios/edicion.jsx', import.meta.url), 'utf8');
+
+  for (const [nombre, fuente] of [['Servicios.jsx', pagina], ['servicios/edicion.jsx', ligero]]) {
+    assert.ok(
+      !/^import [^;]*from '[^']*\/editor\//m.test(fuente),
+      `${nombre} importa algo de src/pages/editor/: el cliente descargaría los formularios del panel`
+    );
+  }
+  assert.match(
+    pagina,
+    /lazy\(\(\) => import\('\.\/servicios\/EdicionModal\.jsx'\)\)/,
+    'los formularios del modo edición tienen que cargarse aparte, solo cuando el dueño los abre'
+  );
+  // Y sin la sesión del panel no hay modo edición que valga.
+  assert.match(ligero, /if \(!clave\) return null;/, 'el modo edición debe apagarse entero si no hay sesión del panel');
+});
+
 test('respaldos: los planes y los proyectos entran en la copia', () => {
   assert.ok(PARTES.includes('services'), 'los planes de servicio no entran en la copia de seguridad');
   assert.ok(PARTES.includes('projects'), 'el portafolio no entra en la copia de seguridad');

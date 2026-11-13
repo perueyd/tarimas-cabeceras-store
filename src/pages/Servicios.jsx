@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -19,6 +19,18 @@ import {
   proyectosVisibles,
   textosDeServicios,
 } from '../lib/servicios.js';
+import {
+  BarraDeEdicion,
+  BotonesDeTarjeta,
+  ProveedorDeEdicion,
+  TarjetaAgregar,
+  Texto,
+  useEdicion,
+  useEdicionDeServicios,
+} from './servicios/edicion.jsx';
+
+// Los formularios del modo edición solo los descarga el dueño, al abrirlos.
+const EdicionModal = lazy(() => import('./servicios/EdicionModal.jsx'));
 
 // Página de servicios y portafolio.
 //
@@ -79,7 +91,51 @@ function Miniatura({ src, className }) {
   );
 }
 
-function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enCarrito, onContratar }) {
+// El precio de un plan de precio fijo, escrito sobre la tarjeta. Se guarda al
+// salir del campo; si lo escrito no es un precio, vuelve al que había.
+function PrecioEditable({ precio, onGuardar }) {
+  // Con sus dos decimales, igual que lo lee el cliente ("399.90", no "399.9").
+  const comoTexto = (n) => (Number.isFinite(Number(n)) && n !== '' && n != null ? Number(n).toFixed(2) : '');
+  const [texto, setTexto] = useState(() => comoTexto(precio));
+  useEffect(() => setTexto(comoTexto(precio)), [precio]);
+  return (
+    <p className="flex items-baseline gap-2 text-3xl font-bold tracking-tight text-neutral-900">
+      <span>S/</span>
+      <input
+        type="number"
+        min="1"
+        step="0.01"
+        inputMode="decimal"
+        value={texto}
+        aria-label="Precio en soles, con IGV incluido"
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={() => {
+          const n = Number(texto);
+          if (Number.isFinite(n) && n > 0 && n !== Number(precio)) onGuardar(n);
+          else setTexto(comoTexto(precio));
+        }}
+        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        className="w-40 rounded border-0 bg-transparent p-0 font-bold outline-dashed outline-1 outline-offset-4 outline-sky-500/60 focus:bg-sky-500/10 focus:outline-2 focus:outline-sky-500"
+      />
+    </p>
+  );
+}
+
+function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enCarrito, onContratar, orden }) {
+  const ed = useEdicion();
+  const editando = Boolean(ed?.activa);
+  const guardar = (cambios) => ed.guardarPlan({ ...plan, ...cambios });
+  // Un plan de precio fijo que está oculto no tiene con qué cobrarse (ver
+  // sincronizarProductos), pero al editarlo hay que seguir viendo su precio.
+  const precioFijo = cobro?.precio ?? (editando && plan.modo === 'pagar' ? plan.precio : null);
+
+  function guardarLinea(i, valor) {
+    const incluye = [...(plan.incluye || [])];
+    if (valor) incluye[i] = valor;
+    else incluye.splice(i, 1); // dejar una línea vacía es borrarla
+    guardar({ incluye });
+  }
+
   const enlace = enlaceWhatsApp(
     storeConfig,
     conReferencia(
@@ -89,7 +145,32 @@ function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enC
   );
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-xl">
+    <article
+      className={`group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-xl ${
+        editando && plan.activo === false ? 'opacity-60' : ''
+      }`}
+    >
+      {editando && (
+        <div className="border-b border-sky-100 p-2">
+          <BotonesDeTarjeta
+            oculto={plan.activo === false}
+            onEditar={() => ed.abrir({ tipo: 'plan', plan })}
+            onOcultar={() => guardar({ activo: plan.activo === false })}
+            onSubir={orden?.antes ? () => ed.moverPlan(plan.id, orden.antes) : undefined}
+            onBajar={orden?.despues ? () => ed.moverPlan(plan.id, orden.despues) : undefined}
+            onBorrar={() => ed.borrar('service', plan.id, plan.nombre)}
+          />
+        </div>
+      )}
+      {!plan.foto && editando && (
+        <button
+          type="button"
+          onClick={() => ed.abrir({ tipo: 'plan', plan })}
+          className="flex aspect-[16/10] items-center justify-center border-b border-dashed border-sky-300 bg-sky-50/50 text-sm font-medium text-sky-800 hover:bg-sky-50"
+        >
+          + Añadir foto
+        </button>
+      )}
       {plan.foto && (
         <div className="aspect-[16/10] overflow-hidden bg-neutral-100">
           <Foto
@@ -101,37 +182,76 @@ function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enC
       )}
 
       <div className="flex flex-1 flex-col p-6 sm:p-7">
-        <h3 className="text-xl font-semibold tracking-tight text-neutral-900">{plan.nombre}</h3>
+        <Texto
+          as="h3"
+          className="text-xl font-semibold tracking-tight text-neutral-900"
+          valor={plan.nombre}
+          // El nombre no puede quedar vacío: si lo borra, se conserva el que había.
+          onGuardar={(v) => v && guardar({ nombre: v })}
+          placeholder="Nombre del plan"
+          max={80}
+        />
         {/* Quién lo ejecuta, con su colegiatura: en arquitectura e ingeniería
             es lo que el cliente necesita saber antes de contratar. */}
         {credito && <p className="mt-1 text-xs font-medium text-neutral-500">A cargo de {credito}</p>}
-        {plan.descripcion && (
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-600">{plan.descripcion}</p>
-        )}
+        <Texto
+          className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-600"
+          valor={plan.descripcion}
+          onGuardar={(v) => guardar({ descripcion: v })}
+          placeholder="Describe el plan en dos o tres líneas…"
+          multilinea
+        />
 
-        {plan.incluye?.length > 0 && (
+        {(plan.incluye?.length > 0 || editando) && (
           <ul className="mt-5 space-y-2.5 border-t border-neutral-100 pt-5 text-sm text-neutral-700">
             {plan.incluye.map((linea, i) => (
               <li key={i} className="flex gap-2.5">
                 <svg viewBox="0 0 20 20" className="mt-0.5 h-4 w-4 shrink-0 fill-neutral-900" aria-hidden="true">
                   <path d="M7.6 13.2 4.4 10l-1.1 1.1 4.3 4.3 9.1-9.1-1.1-1.1z" />
                 </svg>
-                <span>{linea}</span>
+                <Texto
+                  as="span"
+                  className="min-w-0 flex-1"
+                  valor={linea}
+                  onGuardar={(v) => guardarLinea(i, v)}
+                  placeholder="Qué incluye"
+                  max={140}
+                />
               </li>
             ))}
+            {editando && (plan.incluye?.length || 0) < 12 && (
+              <li className="flex gap-2.5 text-sky-800">
+                <span className="w-4 shrink-0 text-center font-bold">+</span>
+                <Texto
+                  as="span"
+                  className="min-w-0 flex-1"
+                  valor=""
+                  nuevo
+                  onGuardar={(v) => v && guardar({ incluye: [...(plan.incluye || []), v] })}
+                  placeholder="Añadir algo que incluye"
+                  max={140}
+                />
+              </li>
+            )}
           </ul>
         )}
 
         <div className="mt-auto pt-7">
-          {cobro ? (
+          {precioFijo != null ? (
             <>
-              <p className="text-3xl font-bold tracking-tight text-neutral-900">{formato.format(cobro.precio)}</p>
+              {editando ? (
+                <PrecioEditable precio={precioFijo} onGuardar={(n) => guardar({ precio: n })} />
+              ) : (
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">{formato.format(precioFijo)}</p>
+              )}
               {/* La Ley 29571 pide que el precio mostrado sea el final. Se dice
                   junto al número, no en una nota al pie que nadie lee. */}
               <p className="mt-1 text-xs text-neutral-500">Precio final, IGV incluido</p>
               <button
                 type="button"
-                onClick={() => onContratar(plan, cobro)}
+                // En modo edición el botón se ve como lo ve el cliente, pero
+                // no lleva al carrito: el dueño está editando, no comprando.
+                onClick={() => !editando && cobro && onContratar(plan, cobro)}
                 className="mt-5 w-full rounded-xl bg-neutral-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-black active:scale-[0.98]"
               >
                 {enCarrito ? 'Ya está en tu carrito — ir a pagar' : 'Contratar este plan'}
@@ -139,13 +259,24 @@ function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enC
             </>
           ) : (
             <>
-              <p className="text-lg font-semibold text-neutral-900">{plan.precioTexto || 'Precio según tu proyecto'}</p>
+              {editando ? (
+                <Texto
+                  className="text-lg font-semibold text-neutral-900"
+                  valor={plan.precioTexto}
+                  onGuardar={(v) => guardar({ precioTexto: v })}
+                  placeholder="Precio según tu proyecto"
+                  max={60}
+                />
+              ) : (
+                <p className="text-lg font-semibold text-neutral-900">{plan.precioTexto || 'Precio según tu proyecto'}</p>
+              )}
               {plan.precioTexto && <p className="mt-1 text-xs text-neutral-500">IGV incluido</p>}
               {enlace && (
                 <a
                   href={enlace}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(e) => editando && e.preventDefault()}
                   className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-neutral-900 px-5 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-900 hover:text-white active:scale-[0.98]"
                 >
                   <IconoWhatsApp className="h-4 w-4" />
@@ -160,24 +291,29 @@ function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enC
   );
 }
 
-function TarjetaProyecto({ proyecto, credito, onAbrir }) {
+function TarjetaProyecto({ proyecto, credito, onAbrir, orden }) {
+  const ed = useEdicion();
+  const editando = Boolean(ed?.activa);
   const detalle = [proyecto.lugar, proyecto.anio].filter(Boolean).join(' · ');
-  return (
+  const sinFotos = !proyecto.fotos?.length;
+  const tarjeta = (
     <button
       type="button"
       onClick={onAbrir}
       aria-label={`Ver las fotos de ${proyecto.titulo}`}
       className="group relative block aspect-[4/3] w-full overflow-hidden rounded-2xl bg-neutral-200 text-left shadow-sm transition-shadow duration-300 hover:shadow-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-neutral-400"
     >
-      <Foto
-        src={proyecto.fotos[0]}
-        alt={proyecto.titulo}
-        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-      />
+      {!sinFotos && (
+        <Foto
+          src={proyecto.fotos[0]}
+          alt={proyecto.titulo}
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      )}
       {/* El degradado no es adorno: sin él, el título en blanco no se lee
           sobre una foto clara (una pared blanca, una ventana). */}
       <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-      {proyecto.fotos.length > 1 && (
+      {(proyecto.fotos?.length || 0) > 1 && (
         <span className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
           {proyecto.fotos.length} fotos
         </span>
@@ -191,6 +327,30 @@ function TarjetaProyecto({ proyecto, credito, onAbrir }) {
         {credito && <span className="mt-0.5 block text-xs text-white/75">Proyecto de {credito}</span>}
       </span>
     </button>
+  );
+
+  if (!editando) return tarjeta;
+  const oculto = proyecto.activo === false || sinFotos;
+  return (
+    <div className={`relative ${oculto ? 'opacity-70' : ''}`}>
+      {tarjeta}
+      <div className="absolute left-2 top-2 z-[1]">
+        <BotonesDeTarjeta
+          oscuro
+          oculto={proyecto.activo === false}
+          onEditar={() => ed.abrir({ tipo: 'proyecto', proyecto })}
+          onOcultar={() => ed.guardarProyecto({ ...proyecto, activo: proyecto.activo === false })}
+          onSubir={orden?.antes ? () => ed.moverProyecto(proyecto.id, orden.antes) : undefined}
+          onBajar={orden?.despues ? () => ed.moverProyecto(proyecto.id, orden.despues) : undefined}
+          onBorrar={() => ed.borrar('project', proyecto.id, proyecto.titulo)}
+        />
+      </div>
+      {sinFotos && (
+        <p className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm font-medium text-neutral-600">
+          Sin fotos: el cliente no lo ve
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -356,12 +516,26 @@ export default function Servicios() {
     setReferido(aliadoDelEnlace.id);
   }, [aliadoDelEnlace]);
 
+  // El modo edición: solo existe si esta pestaña tiene abierta la sesión del
+  // panel. Para un cliente `ed` es null y nada de lo de abajo cambia.
+  const ed = useEdicionDeServicios();
+  const editando = Boolean(ed?.activa);
+
   const textos = textosDeServicios(storeConfig);
-  const todosLosPlanes = useMemo(() => planesVisibles(services), [services]);
-  const todosLosProyectos = useMemo(() => proyectosVisibles(projects), [projects]);
+  // Editando se ve TODO, también lo oculto y los proyectos sin foto (atenuados):
+  // si no, no habría forma de volver a publicarlos desde la página.
+  const todosLosPlanes = useMemo(
+    () => (editando ? (Array.isArray(services) ? services : []) : planesVisibles(services)),
+    [services, editando]
+  );
+  const todosLosProyectos = useMemo(
+    () => (editando ? (Array.isArray(projects) ? projects : []) : proyectosVisibles(projects)),
+    [projects, editando]
+  );
   // Si ese aliado todavía no tiene nada publicado, se enseña todo: mejor la
   // página completa que una vacía para quien viene desde sus redes.
   const soloDe =
+    !editando &&
     aliadoDelEnlace &&
     [...todosLosPlanes, ...todosLosProyectos].some((x) => x.aliado === aliadoDelEnlace.id)
       ? aliadoDelEnlace.id
@@ -394,7 +568,7 @@ export default function Servicios() {
   // La foto de cabecera: la que eligió el dueño o, si no eligió ninguna, la
   // primera del portafolio. Así la página tiene una imagen real desde el
   // primer proyecto publicado, sin recurrir a una foto de archivo.
-  const fotoPortada = textos.fotoPortada || proyectos[0]?.fotos[0] || '';
+  const fotoPortada = textos.fotoPortada || proyectos.find((p) => p.fotos?.length)?.fotos[0] || '';
 
   useMeta({
     titulo: textos.titulo,
@@ -437,15 +611,19 @@ export default function Servicios() {
     conReferencia('Hola, vengo de la página de servicios y quiero contarles mi proyecto.', referido)
   );
 
+  const sinContenido = planes.length === 0 && proyectos.length === 0;
+
   // Todavía no se sabe si hay contenido: mejor una espera corta que enseñar
   // "estamos preparando esta sección" y cambiarla medio segundo después.
-  if (!loaded && planes.length === 0 && proyectos.length === 0) {
+  if (!loaded && sinContenido) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-20 text-center text-sm text-neutral-500">Cargando…</main>
     );
   }
 
-  if (planes.length === 0 && proyectos.length === 0) {
+  // Sin nada publicado, el cliente ve este aviso. El dueño, editando, ve la
+  // página entera con sus huecos de "agregar": así la arma desde cero aquí.
+  if (sinContenido && !editando) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-20 text-center">
         <h1 className="text-3xl font-bold tracking-tight">{textos.titulo}</h1>
@@ -471,227 +649,387 @@ export default function Servicios() {
             Ver la tienda
           </Link>
         </div>
+        {ed && <BarraDeEdicion ed={ed} />}
       </main>
     );
   }
 
+  const clasesDeTitulo = 'text-2xl font-bold tracking-tight sm:text-3xl';
+  const clasesDeBajada = 'mt-3 max-w-2xl whitespace-pre-line text-base text-neutral-600 sm:text-lg';
+  // El vecino de cada tarjeta, para los botones ▲▼ del modo edición.
+  const vecinos = (lista, i) => ({ antes: lista[i - 1]?.id, despues: lista[i + 1]?.id });
+
   return (
-    // "!p-0": la hoja de estilos le pone un margen interior a todo <main> en
-    // el celular, y la cabecera de esta página va de borde a borde.
-    <main className="!p-0">
-      {/* ================= CABECERA ================= */}
-      <section className="relative isolate overflow-hidden bg-neutral-950 text-white">
-        {fotoPortada && (
-          <img
-            src={fotoPortada}
-            alt=""
-            className="absolute inset-0 -z-20 h-full w-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
+    <ProveedorDeEdicion value={ed}>
+      {/* "!p-0": la hoja de estilos le pone un margen interior a todo <main>
+          en el celular, y la cabecera de esta página va de borde a borde. */}
+      <main className="!p-0">
+        {ed && <BarraDeEdicion ed={ed} />}
+
+        {/* ================= CABECERA ================= */}
+        <section className="relative isolate overflow-hidden bg-neutral-950 text-white">
+          {fotoPortada && (
+            <img
+              src={fotoPortada}
+              alt=""
+              className="absolute inset-0 -z-20 h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
+          {/* Velo oscuro: garantiza que el título se lea sea cual sea la foto. */}
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-neutral-950/90 via-neutral-950/70 to-neutral-950/40" />
+
+          <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-24 lg:py-32">
+            {editando && (
+              <button
+                type="button"
+                onClick={() => ed.abrir({ tipo: 'portada', foto: textos.fotoPortada })}
+                className="mb-6 rounded-lg border border-white/40 bg-black/40 px-3 py-1.5 text-xs font-medium backdrop-blur transition hover:bg-black/60"
+              >
+                🖼 Cambiar la foto de fondo
+              </button>
+            )}
+            {areas.length > 0 && (
+              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{areas.join(' · ')}</p>
+            )}
+            <Texto
+              as="h1"
+              className="mt-4 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl"
+              valor={textos.titulo}
+              onGuardar={(v) => v && ed.guardarTextos({ titulo: v })}
+              placeholder="Título de la página"
+              max={80}
+            />
+            <Texto
+              className="mt-5 max-w-2xl whitespace-pre-line text-base leading-relaxed text-white/85 sm:text-lg"
+              valor={textos.descripcion}
+              onGuardar={(v) => ed.guardarTextos({ descripcion: v })}
+              placeholder="Cuenta en dos o tres líneas qué servicios ofreces y para quién…"
+              multilinea
+            />
+
+            <div className="mt-9 flex flex-wrap gap-3">
+              {planes.length > 0 && (
+                <a
+                  href="#planes"
+                  className="rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
+                >
+                  Ver los planes
+                </a>
+              )}
+              {proyectos.length > 0 && (
+                <a
+                  href="#portafolio"
+                  className={`rounded-xl px-6 py-3.5 text-sm font-semibold transition ${
+                    planes.length > 0
+                      ? 'border border-white/40 text-white hover:bg-white/10'
+                      : 'bg-white text-neutral-900 hover:bg-neutral-200'
+                  }`}
+                >
+                  Ver proyectos
+                </a>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Quien llegó por el enlace de un profesional ve solo lo suyo. Se le
+            dice, y se le deja a un toque el resto de servicios. */}
+        {soloDe && (
+          <div className="border-b border-neutral-200 bg-neutral-50">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm sm:px-6">
+              <span className="text-neutral-600">
+                {creditoDe(soloDe, partners)
+                  ? `Servicios y proyectos de ${creditoDe(soloDe, partners)}`
+                  : 'Estás viendo una selección de nuestros servicios'}
+              </span>
+              <Link to="/servicios" className="font-medium text-neutral-900 underline">
+                Ver todos los servicios
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ================= PLANES ================= */}
+        {(planes.length > 0 || editando) && (
+          <section id="planes" className="scroll-mt-24 bg-white">
+            <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20">
+              <Texto
+                as="h2"
+                className={clasesDeTitulo}
+                valor={textos.planesTitulo}
+                onGuardar={(v) => v && ed.guardarTextos({ planesTitulo: v })}
+                placeholder="Título de los planes"
+                max={60}
+              />
+              <Texto
+                className={clasesDeBajada}
+                valor={textos.planesDescripcion}
+                onGuardar={(v) => ed.guardarTextos({ planesDescripcion: v })}
+                placeholder="Texto bajo el título (opcional)"
+                multilinea
+              />
+
+              {grupos.map((grupo) => (
+                <div key={grupo.area || 'sin-area'} className="mt-10 first:mt-8">
+                  {grupo.area && (
+                    <div className="mb-6 flex items-center gap-4">
+                      <h3 className="shrink-0 text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                        {grupo.area}
+                      </h3>
+                      <span className="h-px flex-1 bg-neutral-200" />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                    {grupo.planes.map((plan, i) => {
+                      const cobro = cobroDePlan(plan, products);
+                      return (
+                        <TarjetaPlan
+                          key={plan.id}
+                          plan={plan}
+                          cobro={cobro}
+                          credito={creditoDe(plan.aliado, partners)}
+                          referido={referido}
+                          storeConfig={storeConfig}
+                          formato={currencyFormatter}
+                          enCarrito={Boolean(cobro) && items.some((x) => x.productId === cobro.producto.id)}
+                          onContratar={contratar}
+                          orden={vecinos(grupo.planes, i)}
+                        />
+                      );
+                    })}
+                    {editando && (
+                      <TarjetaAgregar
+                        texto={grupo.area ? `+ Agregar plan en «${grupo.area}»` : '+ Agregar plan'}
+                        onClick={() => ed.abrir({ tipo: 'plan', plan: null, area: grupo.area })}
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {editando && (
+                <div className="mt-8">
+                  <TarjetaAgregar
+                    texto={grupos.length ? '+ Agregar plan en otra área' : '+ Agregar tu primer plan'}
+                    onClick={() => ed.abrir({ tipo: 'plan', plan: null, area: '' })}
+                    className="!min-h-[5rem]"
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ================= CÓMO TRABAJAMOS ================= */}
+        {(textos.pasos.length > 0 || editando) && (
+          <section className="border-t border-neutral-100 bg-neutral-50">
+            <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20">
+              <Texto
+                as="h2"
+                className={clasesDeTitulo}
+                valor={textos.pasosTitulo}
+                onGuardar={(v) => v && ed.guardarTextos({ pasosTitulo: v })}
+                placeholder="Título de los pasos"
+                max={60}
+              />
+              {editando && textos.pasos.length === 0 && (
+                <p className="mt-2 text-sm text-neutral-500">
+                  Mientras no escribas ningún paso, esta parte no se le muestra al cliente.
+                </p>
+              )}
+              <ol className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {textos.pasos.map((paso, i) => {
+                  const cambiar = (cambios) =>
+                    ed.guardarTextos({ pasos: textos.pasos.map((p, j) => (j === i ? { ...p, ...cambios } : p)) });
+                  return (
+                    <li key={i} className="relative rounded-2xl border border-neutral-200 bg-white p-6">
+                      {editando && (
+                        <button
+                          type="button"
+                          onClick={() => ed.guardarTextos({ pasos: textos.pasos.filter((_, j) => j !== i) })}
+                          aria-label={`Quitar el paso ${i + 1}`}
+                          className="absolute right-3 top-3 rounded-md bg-sky-50 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 text-base font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <Texto
+                        as="h3"
+                        className="mt-4 text-lg font-semibold text-neutral-900"
+                        valor={paso.titulo}
+                        onGuardar={(v) => cambiar({ titulo: v })}
+                        placeholder="Título del paso"
+                        max={60}
+                      />
+                      <Texto
+                        className="mt-2 text-sm leading-relaxed text-neutral-600"
+                        valor={paso.texto}
+                        onGuardar={(v) => cambiar({ texto: v })}
+                        placeholder="Qué pasa en este paso"
+                        max={200}
+                      />
+                    </li>
+                  );
+                })}
+                {editando && textos.pasos.length < 8 && (
+                  <li className="rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50/50 p-6 text-sky-900">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-200 text-base font-bold">+</span>
+                    <Texto
+                      as="h3"
+                      className="mt-4 text-lg font-semibold"
+                      valor=""
+                      nuevo
+                      onGuardar={(v) => v && ed.guardarTextos({ pasos: [...textos.pasos, { titulo: v, texto: '' }] })}
+                      placeholder="Escribe aquí un paso nuevo"
+                      max={60}
+                    />
+                  </li>
+                )}
+              </ol>
+            </div>
+          </section>
+        )}
+
+        {/* ================= PORTAFOLIO ================= */}
+        {(proyectos.length > 0 || editando) && (
+          <section id="portafolio" className="scroll-mt-24 border-t border-neutral-100 bg-white">
+            <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20">
+              <Texto
+                as="h2"
+                className={clasesDeTitulo}
+                valor={textos.portafolioTitulo}
+                onGuardar={(v) => v && ed.guardarTextos({ portafolioTitulo: v })}
+                placeholder="Título del portafolio"
+                max={60}
+              />
+              <Texto
+                className={clasesDeBajada}
+                valor={textos.portafolioDescripcion}
+                onGuardar={(v) => ed.guardarTextos({ portafolioDescripcion: v })}
+                placeholder="Texto bajo el título (opcional)"
+                multilinea
+              />
+
+              {areasDeProyectos.length > 1 && (
+                <div className="mt-7 flex flex-wrap gap-2">
+                  {['todas', ...areasDeProyectos].map((area) => (
+                    <button
+                      key={area}
+                      type="button"
+                      onClick={() => setAreaElegida(area)}
+                      className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        areaElegida === area
+                          ? 'border-neutral-900 bg-neutral-900 text-white'
+                          : 'border-neutral-300 text-neutral-700 hover:border-neutral-900'
+                      }`}
+                    >
+                      {area === 'todas' ? 'Todos' : area}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {proyectosFiltrados.map((proyecto, i) => (
+                  <TarjetaProyecto
+                    key={proyecto.id}
+                    proyecto={proyecto}
+                    credito={creditoDe(proyecto.aliado, partners)}
+                    // Un proyecto sin fotos no tiene galería que abrir: editando,
+                    // tocarlo lleva directo a ponérselas.
+                    onAbrir={() =>
+                      proyecto.fotos?.length ? setAbierto(proyecto.id) : ed?.abrir({ tipo: 'proyecto', proyecto })
+                    }
+                    orden={vecinos(proyectosFiltrados, i)}
+                  />
+                ))}
+                {editando && (
+                  <TarjetaAgregar
+                    texto="+ Agregar proyecto"
+                    onClick={() => ed.abrir({ tipo: 'proyecto', proyecto: null })}
+                    className="aspect-[4/3]"
+                  />
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ================= LLAMADA FINAL ================= */}
+        {((enlaceGeneral && (textos.ctaTitulo || textos.ctaTexto)) || editando) && (
+          <section className="bg-neutral-950 text-white">
+            <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-5 py-14 sm:px-6 sm:py-16 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 flex-1">
+                <Texto
+                  as="h2"
+                  className={clasesDeTitulo}
+                  valor={textos.ctaTitulo}
+                  onGuardar={(v) => ed.guardarTextos({ ctaTitulo: v })}
+                  placeholder="Título de la franja final (vacío: no se muestra)"
+                  max={80}
+                />
+                <Texto
+                  className="mt-2 max-w-xl text-white/75"
+                  valor={textos.ctaTexto}
+                  onGuardar={(v) => ed.guardarTextos({ ctaTexto: v })}
+                  placeholder="Texto de la franja final"
+                  max={200}
+                />
+              </div>
+              {editando ? (
+                // Editando, el botón no es un enlace: al tocarlo se escribe su
+                // texto en vez de abrir WhatsApp.
+                <span className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-7 py-4 text-sm font-semibold text-neutral-900">
+                  <IconoWhatsApp className="h-5 w-5" />
+                  <Texto
+                    as="span"
+                    valor={textos.ctaBoton}
+                    onGuardar={(v) => v && ed.guardarTextos({ ctaBoton: v })}
+                    placeholder="Texto del botón"
+                    max={40}
+                  />
+                </span>
+              ) : (
+                <a
+                  href={enlaceGeneral}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-7 py-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
+                >
+                  <IconoWhatsApp className="h-5 w-5" />
+                  {textos.ctaBoton}
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
+        {proyectoAbierto && (
+          <GaleriaProyecto
+            // La galería empieza en la primera foto de CADA proyecto: sin esta
+            // clave, al abrir un segundo proyecto seguía en el número de foto
+            // donde se dejó el anterior.
+            key={proyectoAbierto.id}
+            proyecto={proyectoAbierto}
+            credito={creditoDe(proyectoAbierto.aliado, partners)}
+            referido={referido}
+            storeConfig={storeConfig}
+            onCerrar={cerrarGaleria}
           />
         )}
-        {/* Velo oscuro: garantiza que el título se lea sea cual sea la foto. */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-neutral-950/90 via-neutral-950/70 to-neutral-950/40" />
 
-        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 sm:py-24 lg:py-32">
-          {areas.length > 0 && (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/70">{areas.join(' · ')}</p>
-          )}
-          <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl [text-wrap:balance]">
-            {textos.titulo}
-          </h1>
-          {textos.descripcion && (
-            <p className="mt-5 max-w-2xl whitespace-pre-line text-base leading-relaxed text-white/85 sm:text-lg">
-              {textos.descripcion}
-            </p>
-          )}
-
-          <div className="mt-9 flex flex-wrap gap-3">
-            {planes.length > 0 && (
-              <a
-                href="#planes"
-                className="rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
-              >
-                Ver los planes
-              </a>
-            )}
-            {proyectos.length > 0 && (
-              <a
-                href="#portafolio"
-                className={`rounded-xl px-6 py-3.5 text-sm font-semibold transition ${
-                  planes.length > 0
-                    ? 'border border-white/40 text-white hover:bg-white/10'
-                    : 'bg-white text-neutral-900 hover:bg-neutral-200'
-                }`}
-              >
-                Ver proyectos
-              </a>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Quien llegó por el enlace de un profesional ve solo lo suyo. Se le
-          dice, y se le deja a un toque el resto de servicios. */}
-      {soloDe && (
-        <div className="border-b border-neutral-200 bg-neutral-50">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm sm:px-6">
-            <span className="text-neutral-600">
-              {creditoDe(soloDe, partners)
-                ? `Servicios y proyectos de ${creditoDe(soloDe, partners)}`
-                : 'Estás viendo una selección de nuestros servicios'}
-            </span>
-            <Link to="/servicios" className="font-medium text-neutral-900 underline">
-              Ver todos los servicios
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* ================= PLANES ================= */}
-      {planes.length > 0 && (
-        <section id="planes" className="scroll-mt-24 bg-white">
-          <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{textos.planesTitulo}</h2>
-            {textos.planesDescripcion && (
-              <p className="mt-3 max-w-2xl whitespace-pre-line text-base text-neutral-600 sm:text-lg">
-                {textos.planesDescripcion}
-              </p>
-            )}
-
-            {grupos.map((grupo) => (
-              <div key={grupo.area || 'sin-area'} className="mt-10 first:mt-8">
-                {grupo.area && (
-                  <div className="mb-6 flex items-center gap-4">
-                    <h3 className="shrink-0 text-xs font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                      {grupo.area}
-                    </h3>
-                    <span className="h-px flex-1 bg-neutral-200" />
-                  </div>
-                )}
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                  {grupo.planes.map((plan) => {
-                    const cobro = cobroDePlan(plan, products);
-                    return (
-                      <TarjetaPlan
-                        key={plan.id}
-                        plan={plan}
-                        cobro={cobro}
-                        credito={creditoDe(plan.aliado, partners)}
-                        referido={referido}
-                        storeConfig={storeConfig}
-                        formato={currencyFormatter}
-                        enCarrito={Boolean(cobro) && items.some((i) => i.productId === cobro.producto.id)}
-                        onContratar={contratar}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ================= CÓMO TRABAJAMOS ================= */}
-      {textos.pasos.length > 0 && (
-        <section className="border-t border-neutral-100 bg-neutral-50">
-          <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{textos.pasosTitulo}</h2>
-            <ol className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {textos.pasos.map((paso, i) => (
-                <li key={i} className="rounded-2xl border border-neutral-200 bg-white p-6">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 text-base font-bold text-white">
-                    {i + 1}
-                  </span>
-                  {paso.titulo && <h3 className="mt-4 text-lg font-semibold text-neutral-900">{paso.titulo}</h3>}
-                  {paso.texto && <p className="mt-2 text-sm leading-relaxed text-neutral-600">{paso.texto}</p>}
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-      )}
-
-      {/* ================= PORTAFOLIO ================= */}
-      {proyectos.length > 0 && (
-        <section id="portafolio" className="scroll-mt-24 border-t border-neutral-100 bg-white">
-          <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{textos.portafolioTitulo}</h2>
-            {textos.portafolioDescripcion && (
-              <p className="mt-3 max-w-2xl whitespace-pre-line text-base text-neutral-600 sm:text-lg">
-                {textos.portafolioDescripcion}
-              </p>
-            )}
-
-            {areasDeProyectos.length > 1 && (
-              <div className="mt-7 flex flex-wrap gap-2">
-                {['todas', ...areasDeProyectos].map((area) => (
-                  <button
-                    key={area}
-                    type="button"
-                    onClick={() => setAreaElegida(area)}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                      areaElegida === area
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-300 text-neutral-700 hover:border-neutral-900'
-                    }`}
-                  >
-                    {area === 'todas' ? 'Todos' : area}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {proyectosFiltrados.map((proyecto) => (
-                <TarjetaProyecto
-                  key={proyecto.id}
-                  proyecto={proyecto}
-                  credito={creditoDe(proyecto.aliado, partners)}
-                  onAbrir={() => setAbierto(proyecto.id)}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ================= LLAMADA FINAL ================= */}
-      {enlaceGeneral && (textos.ctaTitulo || textos.ctaTexto) && (
-        <section className="bg-neutral-950 text-white">
-          <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-5 py-14 sm:px-6 sm:py-16 md:flex-row md:items-center md:justify-between">
-            <div>
-              {textos.ctaTitulo && <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{textos.ctaTitulo}</h2>}
-              {textos.ctaTexto && <p className="mt-2 max-w-xl text-white/75">{textos.ctaTexto}</p>}
-            </div>
-            <a
-              href={enlaceGeneral}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-white px-7 py-4 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200"
-            >
-              <IconoWhatsApp className="h-5 w-5" />
-              {textos.ctaBoton}
-            </a>
-          </div>
-        </section>
-      )}
-
-      {proyectoAbierto && (
-        <GaleriaProyecto
-          // La galería empieza en la primera foto de CADA proyecto: sin esta
-          // clave, al abrir un segundo proyecto seguía en el número de foto
-          // donde se dejó el anterior.
-          key={proyectoAbierto.id}
-          proyecto={proyectoAbierto}
-          credito={creditoDe(proyectoAbierto.aliado, partners)}
-          referido={referido}
-          storeConfig={storeConfig}
-          onCerrar={cerrarGaleria}
-        />
-      )}
-    </main>
+        {ed?.modal && (
+          <Suspense fallback={null}>
+            <EdicionModal ed={ed} catalog={ed.catalogo} clave={ed.clave} />
+          </Suspense>
+        )}
+      </main>
+    </ProveedorDeEdicion>
   );
 }

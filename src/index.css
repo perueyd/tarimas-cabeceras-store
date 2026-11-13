@@ -108,3 +108,51 @@ html {
   .fila-deslizable::-webkit-scrollbar { display: none; }
   .fila-deslizable > * { flex-shrink: 0; }
 }
+
+/* Texto que el dueño edita sobre la propia página (modo edición).
+   El truco: el texto se pinta dos veces en la misma celda — una invisible
+   (::after) que le da el tamaño, y el campo encima heredando letra, color y
+   espaciado. Así lo que escribe ocupa EXACTAMENTE lo que verá el cliente, sin
+   barras de desplazamiento ni cajas de formulario. */
+.texto-editable {
+  display: grid;
+}
+.texto-editable::after {
+  content: attr(data-valor) ' ';
+  visibility: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  grid-area: 1 / 1;
+}
+.texto-editable > textarea {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-width: 3ch;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-transform: inherit;
+  border-radius: 4px;
+  outline: 1px dashed rgb(59 130 246 / 0.55);
+  outline-offset: 4px;
+  cursor: text;
+}
+.texto-editable > textarea::placeholder {
+  color: inherit;
+  opacity: 0.45;
+}
+.texto-editable > textarea:hover {
+  outline-color: rgb(59 130 246);
+}
+.texto-editable > textarea:focus {
+  outline: 2px solid rgb(59 130 246);
+  background: rgb(59 130 246 / 0.08);
+}
