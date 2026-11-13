@@ -16,6 +16,7 @@ import { BorrarFoto, Field, Seccion, UploadButton } from './comunes.jsx';
 import {
   TEXTOS_SERVICIOS,
   aIdentificador,
+  areaRegulada,
   cobroDePlan,
   fotoValida,
   hayServicios,
@@ -31,7 +32,12 @@ const AREAS_SUGERIDAS = [
   'Tapicería y restauración',
   'Reparación y mantenimiento',
   'Instalación',
+  'Transporte de carga',
   'Asesoría de tiendas virtuales',
+  // Estas dos no figuran en el objeto social y son profesiones reguladas: se
+  // ofrecen a través de un profesional aliado (pestaña Aliados).
+  'Arquitectura',
+  'Ingeniería civil',
 ];
 
 const CLASE_CAMPO =
@@ -61,13 +67,46 @@ function CampoArea({ value, onChange, catalog }) {
       <span className="mt-1 block text-xs text-neutral-500">
         Agrupa los planes y sirve de filtro en el portafolio. Escribe la misma área igual en todos.
       </span>
-      {/* La arquitectura es una profesión regulada (Ley 28966) y no figura en
-          el objeto social de la empresa. No se bloquea — el dueño puede
-          trabajar con un arquitecto — pero se avisa antes de publicarlo. */}
-      {/arquitect/i.test(value) && (
+      {/transport/i.test(value) && (
+        <span className="mt-2 block rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+          El transporte de carga está en el objeto social de la empresa. Si vas a llevar mercadería de terceros,
+          pregunta a tu contador por el permiso del MTC y por la detracción que se aplica a este servicio.
+        </span>
+      )}
+    </label>
+  );
+}
+
+// Quién ejecuta el plan o hizo el proyecto, si es un profesional de fuera.
+function CampoAliado({ value, onChange, catalog, area }) {
+  const aliados = catalog.partners || [];
+  const elegido = aliados.find((a) => a.id === value);
+  // Arquitectura e ingeniería son profesiones reguladas (Leyes 28966 y 28858)
+  // y no figuran en el objeto social de la empresa. No se bloquea, pero el
+  // aviso sale hasta que haya un profesional con colegiatura a cargo.
+  const faltaColegiado = areaRegulada(area) && !(elegido && elegido.colegiatura);
+  return (
+    <label className="block text-sm">
+      <span className="mb-1 block font-medium text-neutral-700">Profesional a cargo (opcional)</span>
+      <select value={value || ''} onChange={(e) => onChange(e.target.value)} className={CLASE_CAMPO}>
+        <option value="">— Lo hace mi empresa —</option>
+        {aliados.map((a) => (
+          <option key={a.id} value={a.id}>
+            {[a.titulo, a.nombre].filter(Boolean).join(' ')}
+            {a.colegiatura ? ` · ${a.colegiatura}` : ''}
+            {a.activo === false ? ' (inactivo)' : ''}
+          </option>
+        ))}
+        {value && !elegido && <option value={value}>{value} (ya no existe)</option>}
+      </select>
+      <span className="mt-1 block text-xs text-neutral-500">
+        Los profesionales externos se dan de alta en la pestaña Aliados.
+      </span>
+      {faltaColegiado && (
         <span className="mt-2 block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          ⚠️ Los planos y trámites de arquitectura los firma un arquitecto colegiado y habilitado. Ofrécelo solo si
-          trabajas con uno, y consulta con tu notario si conviene añadirlo al objeto social de la empresa.
+          ⚠️ En arquitectura e ingeniería, los planos y expedientes los firma un profesional colegiado y habilitado.
+          Asigna aquí al arquitecto o ingeniero que lo hará, con su número de colegiatura. Consulta además con tu
+          notario si conviene añadir esta actividad al objeto social de la empresa.
         </span>
       )}
     </label>
@@ -357,6 +396,7 @@ const PLAN_VACIO = {
   modo: 'cotizar',
   precio: '',
   precioTexto: '',
+  aliado: '',
   activo: true,
 };
 
@@ -405,6 +445,9 @@ function FormularioPlan({ inicial, esNuevo, catalog, adminKey, onGuardar, onCanc
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Nombre del plan" value={p.nombre} onChange={poner('nombre')} placeholder="ej. Diseño de dormitorio" />
         <CampoArea value={p.area} onChange={poner('area')} catalog={catalog} />
+        <div className="sm:col-span-2">
+          <CampoAliado value={p.aliado} onChange={poner('aliado')} catalog={catalog} area={p.area} />
+        </div>
         <div className="sm:col-span-2">
           <AreaTexto
             label="Descripción"
@@ -638,7 +681,7 @@ export function ServiciosTab({ catalog, api, flash, adminKey }) {
 // ============================================================
 // PORTAFOLIO
 // ============================================================
-const PROYECTO_VACIO = { id: '', titulo: '', area: '', descripcion: '', lugar: '', anio: '', fotos: [], activo: true };
+const PROYECTO_VACIO = { id: '', titulo: '', area: '', descripcion: '', lugar: '', anio: '', fotos: [], aliado: '', activo: true };
 const MAX_FOTOS = 12;
 
 function FormularioProyecto({ inicial, esNuevo, catalog, adminKey, onGuardar, onCancelar }) {
@@ -691,6 +734,9 @@ function FormularioProyecto({ inicial, esNuevo, catalog, adminKey, onGuardar, on
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Título" value={p.titulo} onChange={poner('titulo')} placeholder="ej. Dormitorio principal en Surco" />
         <CampoArea value={p.area} onChange={poner('area')} catalog={catalog} />
+        <div className="sm:col-span-2">
+          <CampoAliado value={p.aliado} onChange={poner('aliado')} catalog={catalog} area={p.area} />
+        </div>
         <Field label="Lugar (opcional)" value={p.lugar} onChange={poner('lugar')} placeholder="ej. Santiago de Surco, Lima" />
         <Field label="Año (opcional)" value={p.anio} onChange={(v) => poner('anio')(v.replace(/\D/g, '').slice(0, 4))} placeholder="ej. 2026" />
         <div className="sm:col-span-2">

@@ -261,6 +261,13 @@ export default function LiveTab({ adminKey, onIr }) {
         </a>
       </div>
 
+      {/* El dueño transmite por TikTok, y ahí un enlace escrito en el live no
+          se puede tocar: el público tiene que poder llegar de otra forma. */}
+      <p className="mt-2 text-xs text-neutral-500">
+        <strong>En TikTok</strong> los enlaces que se dicen o se escriben en el live no se pueden tocar. Pon esta
+        dirección en el enlace de tu perfil antes de empezar, y dila en voz alta: es corta a propósito.
+      </p>
+
       {politicaDesfasada && (
         <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
           ⚠️ Tu política de privacidad publicada no menciona el registro del live. Antes de encenderlo, ve a{' '}

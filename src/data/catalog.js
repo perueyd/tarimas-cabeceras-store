@@ -227,6 +227,9 @@ export const showcase = [
 // tiene que ser trabajo real del negocio.
 export const services = [];
 export const projects = [];
+// Profesionales externos (aliados) que ofrecen sus servicios por la tienda.
+// También nace vacía: son personas reales que el dueño da de alta.
+export const partners = [];
 
 // ---------- PRODUCTOS ----------
 // Campos de cada producto:

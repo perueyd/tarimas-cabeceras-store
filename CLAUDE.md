@@ -207,8 +207,23 @@ Tres consecuencias:
 - Esos productos no se enseñan en la pestaña Productos ni tienen ficha
   (`/producto/servicio-…` lleva a `/servicios`).
 
-La arquitectura NO está en el objeto social de la empresa y es una profesión
-regulada (Ley 28966): el panel avisa al escribir esa área, pero no la bloquea.
+### Aliados: profesionales externos
+
+Arquitectura e ingeniería NO están en el objeto social de la empresa y son
+profesiones reguladas (Leyes 28966 y 28858). El dueño las ofrece a través de
+profesionales de fuera: la lista `partners` (recurso `partner`, pestaña
+Aliados). Un plan o un proyecto puede llevar `aliado: <id>`.
+
+- **Lo privado del aliado no se publica**: teléfono, comisión y notas los quita
+  `aliadoPublico()` en `/api/catalog`; y si el dueño eligió no nombrarlo
+  (`mostrar: false`), tampoco sale su nombre. Hay prueba (`pruebas/aliados.test.js`).
+- Cada aliado tiene su enlace `/servicios?de=<id>`: enseña lo suyo y recuerda
+  la visita (`sessionStorage`). La referencia viaja en los mensajes de WhatsApp
+  («(Ref.: id)») y en el pedido (`order.referido`).
+- **`referido` se comprueba en el servidor** (`referidoValido`): solo se anota
+  si es un aliado que existe y está activo. No cambia el importe.
+- El panel avisa (no bloquea) cuando un plan de arquitectura o ingeniería no
+  tiene asignado un profesional con colegiatura, y cuando se oculta el nombre.
 
 ## El live: `api/_rutas/live.js`
 

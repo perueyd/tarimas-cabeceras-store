@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useMeta } from '../lib/meta.js';
@@ -9,7 +9,12 @@ import {
   TAMANO_SERVICIO,
   agruparPorArea,
   cobroDePlan,
+  aliadoActivo,
+  conReferencia,
+  creditoDe,
   enlaceWhatsApp,
+  recordarReferido,
+  referidoActual,
   planesVisibles,
   proyectosVisibles,
   textosDeServicios,
@@ -74,10 +79,13 @@ function Miniatura({ src, className }) {
   );
 }
 
-function TarjetaPlan({ plan, cobro, storeConfig, formato, enCarrito, onContratar }) {
+function TarjetaPlan({ plan, cobro, credito, referido, storeConfig, formato, enCarrito, onContratar }) {
   const enlace = enlaceWhatsApp(
     storeConfig,
-    `Hola, vi el servicio «${plan.nombre}»${plan.area ? ` (${plan.area})` : ''} en su página web y quiero una cotización.`
+    conReferencia(
+      `Hola, vi el servicio «${plan.nombre}»${plan.area ? ` (${plan.area})` : ''} en su página web y quiero una cotización.`,
+      referido
+    )
   );
 
   return (
@@ -94,6 +102,9 @@ function TarjetaPlan({ plan, cobro, storeConfig, formato, enCarrito, onContratar
 
       <div className="flex flex-1 flex-col p-6 sm:p-7">
         <h3 className="text-xl font-semibold tracking-tight text-neutral-900">{plan.nombre}</h3>
+        {/* Quién lo ejecuta, con su colegiatura: en arquitectura e ingeniería
+            es lo que el cliente necesita saber antes de contratar. */}
+        {credito && <p className="mt-1 text-xs font-medium text-neutral-500">A cargo de {credito}</p>}
         {plan.descripcion && (
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-600">{plan.descripcion}</p>
         )}
@@ -149,7 +160,7 @@ function TarjetaPlan({ plan, cobro, storeConfig, formato, enCarrito, onContratar
   );
 }
 
-function TarjetaProyecto({ proyecto, onAbrir }) {
+function TarjetaProyecto({ proyecto, credito, onAbrir }) {
   const detalle = [proyecto.lugar, proyecto.anio].filter(Boolean).join(' · ');
   return (
     <button
@@ -177,13 +188,14 @@ function TarjetaProyecto({ proyecto, onAbrir }) {
         )}
         <span className="mt-1 block text-lg font-semibold leading-snug text-white">{proyecto.titulo}</span>
         {detalle && <span className="mt-0.5 block text-xs text-white/75">{detalle}</span>}
+        {credito && <span className="mt-0.5 block text-xs text-white/75">Proyecto de {credito}</span>}
       </span>
     </button>
   );
 }
 
 // Las fotos de un proyecto, a pantalla completa.
-function GaleriaProyecto({ proyecto, storeConfig, onCerrar }) {
+function GaleriaProyecto({ proyecto, credito, referido, storeConfig, onCerrar }) {
   const [indice, setIndice] = useState(0);
   const total = proyecto.fotos.length;
   const cerrarRef = useRef(null);
@@ -213,7 +225,7 @@ function GaleriaProyecto({ proyecto, storeConfig, onCerrar }) {
   const detalle = [proyecto.area, proyecto.lugar, proyecto.anio].filter(Boolean).join(' · ');
   const enlace = enlaceWhatsApp(
     storeConfig,
-    `Hola, vi el proyecto «${proyecto.titulo}» en su página web y quiero algo parecido.`
+    conReferencia(`Hola, vi el proyecto «${proyecto.titulo}» en su página web y quiero algo parecido.`, referido)
   );
 
   return (
@@ -285,6 +297,7 @@ function GaleriaProyecto({ proyecto, storeConfig, onCerrar }) {
         <div className="lg:pr-12">
           {detalle && <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/60">{detalle}</p>}
           <h2 className="mt-1 text-xl font-semibold leading-snug">{proyecto.titulo}</h2>
+          {credito && <p className="mt-1 text-xs text-white/70">Proyecto de {credito}</p>}
         </div>
 
         {proyecto.descripcion && (
@@ -326,14 +339,41 @@ function GaleriaProyecto({ proyecto, storeConfig, onCerrar }) {
 }
 
 export default function Servicios() {
-  const { services, projects, products, storeConfig, currencyFormatter, loaded } = useCatalog();
+  const { services, projects, partners, products, storeConfig, currencyFormatter, loaded } = useCatalog();
   const { items, addItem } = useCart();
   const navigate = useNavigate();
   const { hash } = useLocation();
+  const [parametros] = useSearchParams();
+
+  // El enlace de un profesional aliado: /servicios?de=su-codigo. Quien llega
+  // por ahí ve primero lo de ese profesional, y la visita queda anotada como
+  // suya (para la consulta por WhatsApp y para el pedido).
+  const aliadoDelEnlace = aliadoActivo(parametros.get('de'), partners);
+  const [referido, setReferido] = useState(referidoActual);
+  useEffect(() => {
+    if (!aliadoDelEnlace) return;
+    recordarReferido(aliadoDelEnlace.id);
+    setReferido(aliadoDelEnlace.id);
+  }, [aliadoDelEnlace]);
 
   const textos = textosDeServicios(storeConfig);
-  const planes = useMemo(() => planesVisibles(services), [services]);
-  const proyectos = useMemo(() => proyectosVisibles(projects), [projects]);
+  const todosLosPlanes = useMemo(() => planesVisibles(services), [services]);
+  const todosLosProyectos = useMemo(() => proyectosVisibles(projects), [projects]);
+  // Si ese aliado todavía no tiene nada publicado, se enseña todo: mejor la
+  // página completa que una vacía para quien viene desde sus redes.
+  const soloDe =
+    aliadoDelEnlace &&
+    [...todosLosPlanes, ...todosLosProyectos].some((x) => x.aliado === aliadoDelEnlace.id)
+      ? aliadoDelEnlace.id
+      : '';
+  const planes = useMemo(
+    () => (soloDe ? todosLosPlanes.filter((p) => p.aliado === soloDe) : todosLosPlanes),
+    [todosLosPlanes, soloDe]
+  );
+  const proyectos = useMemo(
+    () => (soloDe ? todosLosProyectos.filter((p) => p.aliado === soloDe) : todosLosProyectos),
+    [todosLosProyectos, soloDe]
+  );
   const grupos = useMemo(() => agruparPorArea(planes), [planes]);
 
   const [areaElegida, setAreaElegida] = useState('todas');
@@ -394,7 +434,7 @@ export default function Servicios() {
 
   const enlaceGeneral = enlaceWhatsApp(
     storeConfig,
-    'Hola, vengo de la página de servicios y quiero contarles mi proyecto.'
+    conReferencia('Hola, vengo de la página de servicios y quiero contarles mi proyecto.', referido)
   );
 
   // Todavía no se sabe si hay contenido: mejor una espera corta que enseñar
@@ -492,6 +532,23 @@ export default function Servicios() {
         </div>
       </section>
 
+      {/* Quien llegó por el enlace de un profesional ve solo lo suyo. Se le
+          dice, y se le deja a un toque el resto de servicios. */}
+      {soloDe && (
+        <div className="border-b border-neutral-200 bg-neutral-50">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm sm:px-6">
+            <span className="text-neutral-600">
+              {creditoDe(soloDe, partners)
+                ? `Servicios y proyectos de ${creditoDe(soloDe, partners)}`
+                : 'Estás viendo una selección de nuestros servicios'}
+            </span>
+            <Link to="/servicios" className="font-medium text-neutral-900 underline">
+              Ver todos los servicios
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ================= PLANES ================= */}
       {planes.length > 0 && (
         <section id="planes" className="scroll-mt-24 bg-white">
@@ -521,6 +578,8 @@ export default function Servicios() {
                         key={plan.id}
                         plan={plan}
                         cobro={cobro}
+                        credito={creditoDe(plan.aliado, partners)}
+                        referido={referido}
                         storeConfig={storeConfig}
                         formato={currencyFormatter}
                         enCarrito={Boolean(cobro) && items.some((i) => i.productId === cobro.producto.id)}
@@ -587,7 +646,12 @@ export default function Servicios() {
 
             <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {proyectosFiltrados.map((proyecto) => (
-                <TarjetaProyecto key={proyecto.id} proyecto={proyecto} onAbrir={() => setAbierto(proyecto.id)} />
+                <TarjetaProyecto
+                  key={proyecto.id}
+                  proyecto={proyecto}
+                  credito={creditoDe(proyecto.aliado, partners)}
+                  onAbrir={() => setAbierto(proyecto.id)}
+                />
               ))}
             </div>
           </div>
@@ -622,6 +686,8 @@ export default function Servicios() {
           // donde se dejó el anterior.
           key={proyectoAbierto.id}
           proyecto={proyectoAbierto}
+          credito={creditoDe(proyectoAbierto.aliado, partners)}
+          referido={referido}
           storeConfig={storeConfig}
           onCerrar={cerrarGaleria}
         />

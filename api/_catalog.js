@@ -4,7 +4,7 @@
 // estático de src/data/catalog.js como respaldo — la tienda nunca se rompe.
 import { hasDB, redisCmd } from './_store.js';
 import { respaldar } from './_respaldos.js';
-import { categories, colors, products, projects, services, showcase, sizes, storeConfig } from '../src/data/catalog.js';
+import { categories, colors, partners, products, projects, services, showcase, sizes, storeConfig } from '../src/data/catalog.js';
 import { sincronizarProductos } from '../src/lib/servicios.js';
 
 const KEYS = {
@@ -18,6 +18,8 @@ const KEYS = {
   // los productos: un servicio no tiene tallas ni colores.
   services: 'catalog:services',
   projects: 'catalog:projects',
+  // Profesionales externos que venden a través de la tienda.
+  partners: 'catalog:partners',
 };
 
 // Distingue "la base dice que no hay nada" de "la base no respondió".
@@ -48,7 +50,7 @@ async function setJSON(key, value) {
 // el catálogo COMPLETO cuando lleva la clave de administrador, y una caché
 // compartida podría acabar sirviéndole a un cliente la respuesta del panel,
 // con los tokens de integraciones dentro.
-const ORDEN = ['products', 'categories', 'colors', 'sizes', 'showcase', 'config', 'services', 'projects'];
+const ORDEN = ['products', 'categories', 'colors', 'sizes', 'showcase', 'config', 'services', 'projects', 'partners'];
 
 async function leerTodo() {
   if (!hasDB) return ORDEN.map(() => null);
@@ -83,7 +85,7 @@ export async function getCatalog({ paraEditar = false } = {}) {
 
   // Para MOSTRAR la tienda sí se usa el catálogo de fábrica si la base falla:
   // una tienda con productos de ejemplo es mejor que una página rota.
-  const [dbProducts, dbCategories, dbColors, dbSizes, dbShowcase, dbConfig, dbServices, dbProjects] = leidos.map(
+  const [dbProducts, dbCategories, dbColors, dbSizes, dbShowcase, dbConfig, dbServices, dbProjects, dbPartners] = leidos.map(
     (x) => (x === FALLO ? null : x)
   );
 
@@ -96,6 +98,7 @@ export async function getCatalog({ paraEditar = false } = {}) {
     storeConfig: dbConfig ? { ...storeConfig, ...dbConfig } : storeConfig,
     services: dbServices ?? services,
     projects: dbProjects ?? projects,
+    partners: dbPartners ?? partners,
   };
 }
 
@@ -107,6 +110,7 @@ const LIST_RESOURCES = {
   showcase: 'showcase',
   service: 'services',
   project: 'projects',
+  partner: 'partners',
 };
 
 export function listKeyFor(resource) {
