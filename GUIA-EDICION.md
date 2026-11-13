@@ -476,6 +476,28 @@ Todo se maneja desde `/pedidos` → **Mi tienda** → **Editar página** → gru
 - **Portafolio** → los proyectos. Título, área, lugar, año, descripción y
   hasta 12 fotos (la primera es la portada; se reordenan con ◀ ▶).
 
+### Editar viendo lo mismo que el cliente
+
+En la pestaña Servicios (o Portafolio) toca **✏️ Editar sobre la página**. Se
+abre tu página de servicios tal como la ve el cliente, con una franja azul
+arriba que dice «Estás editando»:
+
+- **Los textos con borde punteado se tocan y se escriben ahí mismo**: el
+  título, la descripción, el nombre de cada plan, lo que incluye, el precio,
+  los pasos, la franja final. Se guarda solo al salir del texto (arriba verás
+  «✓ Guardado»). Enter confirma; Esc deshace.
+- **Cada tarjeta trae sus botones**: «Editar todo» (fotos, área, forma de
+  contratar, profesional a cargo), «Publicado / Oculto», ▲ ▼ para moverla y 🗑
+  para eliminarla.
+- **Los huecos punteados «+ Agregar…»** crean un plan, un paso o un proyecto.
+- Para borrar una línea de «qué incluye», déjala vacía.
+- Lo que tengas oculto se ve atenuado: solo tú lo ves.
+- **«✓ Ver como cliente»** quita todo lo de edición sin salir de la página:
+  es exactamente lo que ve quien entra a tu web.
+
+Los formularios de siempre siguen ahí, en las mismas pestañas, por si
+prefieres la lista.
+
 Cosas que conviene saber:
 
 - La página **no aparece** en el menú ni en la portada hasta que publiques al

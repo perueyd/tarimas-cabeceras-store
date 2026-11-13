@@ -207,6 +207,28 @@ Tres consecuencias:
 - Esos productos no se enseñan en la pestaña Productos ni tienen ficha
   (`/producto/servicio-…` lleva a `/servicios`).
 
+### Editar sobre la página: `src/pages/servicios/edicion.jsx`
+
+El dueño edita `/servicios` viendo lo mismo que el cliente. Si la pestaña tiene
+abierta la sesión del panel (`leerClaveGuardada()`), `useEdicionDeServicios()`
+devuelve el modo edición; para un cliente devuelve `null` y la página se pinta
+como siempre. Se entra desde el panel con «Editar sobre la página» (misma
+pestaña, a propósito: la sesión vive en la memoria de la pestaña).
+
+- `<Texto>` es el mismo texto para los dos: quieto para el cliente, escribible
+  para el dueño (un campo transparente que hereda letra y tamaño; el estilo
+  `.texto-editable` está en `src/index.css`). Guarda al salir del campo.
+- Lo que no cabe sobre una tarjeta (fotos, área, forma de contratar,
+  profesional) abre los MISMOS formularios del panel en una ventana
+  (`servicios/EdicionModal.jsx`).
+- **No importes nada de `src/pages/editor/` desde `Servicios.jsx` ni desde
+  `edicion.jsx`**: el cliente descargaría el editor entero. Los formularios van
+  por `lazy()`; hay una prueba que lo vigila.
+- Editando se ve todo, también lo oculto (atenuado). «Ver como cliente» apaga
+  el modo sin salir de la página.
+- Hoy cubre la página de servicios. La portada, la tienda y el live se siguen
+  editando desde el panel.
+
 ### Aliados: profesionales externos
 
 Arquitectura e ingeniería NO están en el objeto social de la empresa y son

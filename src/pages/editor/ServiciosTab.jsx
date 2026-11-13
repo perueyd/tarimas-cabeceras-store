@@ -12,6 +12,7 @@
 // como reales y tuvieron que quitarse).
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { BorrarFoto, Field, Seccion, UploadButton } from './comunes.jsx';
 import {
   TEXTOS_SERVICIOS,
@@ -92,7 +93,7 @@ function CampoAliado({ value, onChange, catalog, area }) {
         <option value="">— Lo hace mi empresa —</option>
         {aliados.map((a) => (
           <option key={a.id} value={a.id}>
-            {[a.titulo, a.nombre].filter(Boolean).join(' ')}
+            {[a.titulo, a.nombre].filter(Boolean).join(' ') || a.id}
             {a.colegiatura ? ` · ${a.colegiatura}` : ''}
             {a.activo === false ? ' (inactivo)' : ''}
           </option>
@@ -131,7 +132,7 @@ function AreaTexto({ label, value, onChange, placeholder, filas = 3, ayuda }) {
 
 // Una foto: subirla desde el equipo o pegar su dirección, con la vista previa
 // al lado para confirmar que es la correcta antes de guardar.
-function CampoFoto({ label, value, onChange, adminKey, ayuda }) {
+export function CampoFoto({ label, value, onChange, adminKey, ayuda }) {
   return (
     <div className="text-sm">
       <span className="mb-1 block font-medium text-neutral-700">{label}</span>
@@ -174,7 +175,7 @@ function CampoFoto({ label, value, onChange, adminKey, ayuda }) {
 }
 
 // Un identificador nuevo que no choque con los que ya existen.
-function idNuevo(nombre, existentes, respaldo) {
+export function idNuevo(nombre, existentes, respaldo) {
   const base = aIdentificador(nombre) || respaldo;
   let id = base;
   let n = 2;
@@ -226,14 +227,24 @@ function AvisoPagina({ catalog }) {
           ? '✓ La página de servicios está publicada y aparece en el menú de la tienda.'
           : 'La página de servicios todavía no aparece en la tienda: saldrá sola en cuanto publiques un plan o un proyecto con foto.'}
       </span>
-      <a
-        href="/servicios"
-        target="_blank"
-        rel="noreferrer"
-        className="shrink-0 rounded-lg border border-current px-3 py-1.5 font-medium hover:bg-white/60"
-      >
-        Ver la página ↗
-      </a>
+      <span className="flex shrink-0 flex-wrap gap-2">
+        {/* En la MISMA pestaña a propósito: la sesión del panel vive en la
+            memoria de esta pestaña, y es lo que enciende el modo edición. */}
+        <Link
+          to="/servicios?editar=1"
+          className="rounded-lg bg-ink px-3 py-1.5 font-medium text-white hover:bg-neutral-800"
+        >
+          ✏️ Editar sobre la página
+        </Link>
+        <a
+          href="/servicios"
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg border border-current px-3 py-1.5 font-medium hover:bg-white/60"
+        >
+          Ver como cliente ↗
+        </a>
+      </span>
     </div>
   );
 }
@@ -386,7 +397,7 @@ function TextosDePagina({ catalog, api, flash, adminKey }) {
 // ============================================================
 // PLANES
 // ============================================================
-const PLAN_VACIO = {
+export const PLAN_VACIO = {
   id: '',
   area: '',
   nombre: '',
@@ -400,7 +411,7 @@ const PLAN_VACIO = {
   activo: true,
 };
 
-function FormularioPlan({ inicial, esNuevo, catalog, adminKey, onGuardar, onCancelar }) {
+export function FormularioPlan({ inicial, esNuevo, catalog, adminKey, onGuardar, onCancelar }) {
   const [p, setP] = useState(inicial);
   const [guardando, setGuardando] = useState(false);
   const poner = (campo) => (valor) => setP((prev) => ({ ...prev, [campo]: valor }));
@@ -681,10 +692,10 @@ export function ServiciosTab({ catalog, api, flash, adminKey }) {
 // ============================================================
 // PORTAFOLIO
 // ============================================================
-const PROYECTO_VACIO = { id: '', titulo: '', area: '', descripcion: '', lugar: '', anio: '', fotos: [], aliado: '', activo: true };
+export const PROYECTO_VACIO = { id: '', titulo: '', area: '', descripcion: '', lugar: '', anio: '', fotos: [], aliado: '', activo: true };
 const MAX_FOTOS = 12;
 
-function FormularioProyecto({ inicial, esNuevo, catalog, adminKey, onGuardar, onCancelar }) {
+export function FormularioProyecto({ inicial, esNuevo, catalog, adminKey, onGuardar, onCancelar }) {
   const [p, setP] = useState(inicial);
   const [direccion, setDireccion] = useState('');
   const [guardando, setGuardando] = useState(false);
