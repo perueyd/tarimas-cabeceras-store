@@ -35,6 +35,8 @@ const RUTAS = {
   impuestos: () => import('./_rutas/impuestos.js'),
   'derechos-arco': () => import('./_rutas/derechos-arco.js'),
   'jarvis-accion': () => import('./_rutas/jarvis-accion.js'),
+  // Registro de quienes ven una transmisión en vivo y la oferta de ese live.
+  live: () => import('./_rutas/live.js'),
   newsletter: () => import('./_rutas/newsletter.js'),
   ofertas: () => import('./_rutas/ofertas.js'),
   promo: () => import('./_rutas/promo.js'),
