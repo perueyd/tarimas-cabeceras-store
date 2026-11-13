@@ -590,10 +590,14 @@ export default function ProductDetail() {
                     >
                       {/* Si la opción tiene foto (tipo de botón, modelo de pata),
                           se muestra para que el cliente vea de qué se trata. */}
+                      {/* Si la foto no existe (se apuntó en el panel pero nunca se
+                          subió), se quita: en la tienda publicada las tres patas
+                          de la Tarima Clásica salían con el ícono de imagen rota. */}
                       {v.img && (
                         <img loading="lazy" decoding="async"
                           src={v.img}
-                          alt={v.label}
+                          alt=""
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                           className="aspect-square w-full bg-neutral-50 object-contain"
                         />
                       )}

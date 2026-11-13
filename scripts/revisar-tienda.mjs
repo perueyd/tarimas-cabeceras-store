@@ -10,7 +10,11 @@
 // Esta es la revisión que habría cazado la pérdida del catálogo el mismo día
 // en vez de semanas después.
 
-const BASE = (process.argv[2] || 'https://eydperu.vercel.app').replace(/\/$/, '');
+// La dirección sale del mismo sitio que usa la tienda: al mudarse de dominio
+// (octubre 2026) este script siguió revisando el viejo sin que nadie lo notara.
+import { SITIO_URL } from '../src/data/sitio.js';
+
+const BASE = (process.argv[2] || SITIO_URL).replace(/\/$/, '');
 const TIEMPO_LIMITE = 20000;
 
 const resultados = [];
@@ -90,6 +94,11 @@ function fotosDe(p) {
   return [p.baseImage, ...Object.values(p.sizeImages || {}), ...(p.gallery || [])].filter(Boolean);
 }
 
+// Las fotos de las opciones (tipo de pata, de botón…): también se ven en la ficha.
+function fotosDeOpciones(p) {
+  return (p.opciones || []).flatMap((g) => (g.valores || []).map((v) => v.img)).filter(Boolean);
+}
+
 await revisar('Todos los productos visibles tienen foto', async () => {
   if (!catalogo) throw new Error('no se pudo leer el catálogo');
   const sinFoto = catalogo.products.filter((p) => !p.oculto && fotosDe(p).length === 0).map((p) => p.id);
@@ -98,27 +107,32 @@ await revisar('Todos los productos visibles tienen foto', async () => {
 });
 
 // Que el catálogo diga que hay foto no significa que la foto exista. Se
-// comprueban unas cuantas de verdad: pedirlas todas sería lento y gastaría
-// transferencia (la cuota de Blob ya se agotó una vez por eso).
-await revisar('Las fotos se descargan (muestra de 5)', async () => {
+// comprueban TODAS, también las de las opciones, pero solo con HEAD: se pide
+// la cabecera y no la imagen, así que no gasta transferencia.
+//
+// POR QUÉ TODAS Y POR QUÉ SE MIRA EL TIPO: antes se probaban 5 y bastaba con
+// que respondiera 200. Las tres fotos de patas de la Tarima Clásica no
+// existían y la tienda devolvía la portada (200, pero HTML) en su lugar: la
+// revisión decía "15 bien" mientras los clientes veían tres imágenes rotas.
+await revisar('Todas las fotos existen y son imágenes', async () => {
   if (!catalogo) throw new Error('no se pudo leer el catálogo');
-  const urls = catalogo.products
-    .filter((p) => !p.oculto)
-    .map((p) => fotosDe(p)[0])
-    .filter(Boolean)
-    .slice(0, 5);
+  const urls = [...new Set(catalogo.products.filter((p) => !p.oculto).flatMap((p) => [...fotosDe(p), ...fotosDeOpciones(p)]))];
 
   const rotas = [];
-  for (const url of urls) {
+  async function probar(url) {
     const absoluta = url.startsWith('http') ? url : BASE + url;
     try {
       const res = await fetch(absoluta, { method: 'HEAD' });
+      const tipo = res.headers.get('content-type') || '';
       if (!res.ok) rotas.push(`${url} (${res.status})`);
+      else if (!tipo.startsWith('image/')) rotas.push(`${url} (no es una imagen: la foto no existe)`);
     } catch {
       rotas.push(`${url} (no responde)`);
     }
   }
-  if (rotas.length) throw new Error(`fotos rotas: ${rotas.join(', ')}`);
+  // De 8 en 8: rápido sin abrir cientos de conexiones a la vez.
+  for (let i = 0; i < urls.length; i += 8) await Promise.all(urls.slice(i, i + 8).map(probar));
+  if (rotas.length) throw new Error(`${rotas.length} de ${urls.length} fotos rotas: ${rotas.slice(0, 8).join(', ')}${rotas.length > 8 ? '…' : ''}`);
 });
 
 await revisar('Los colores y las medidas siguen ahí', async () => {

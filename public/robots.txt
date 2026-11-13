@@ -16,4 +16,4 @@ Disallow: /gracias
 # Todo lo demás sí: portada, tienda, fichas de producto, seguimiento y legales.
 Allow: /
 
-Sitemap: https://eydperu.vercel.app/sitemap.xml
+Sitemap: https://corporacionagamenon.vercel.app/sitemap.xml

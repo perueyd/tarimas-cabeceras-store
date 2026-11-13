@@ -20,10 +20,11 @@ import path from 'path';
 import http from 'http';
 import { execFile } from 'child_process';
 import sharp from 'sharp';
+import { SITIO_URL } from '../src/data/sitio.js';
 
 // La tienda de verdad. Se puede apuntar a otra (una copia de prueba) con la
 // variable TIENDA_URL, para no tocar la tienda real mientras se prueba algo.
-const SITIO = process.env.TIENDA_URL || 'https://eydperu.vercel.app';
+const SITIO = process.env.TIENDA_URL || SITIO_URL;
 const PUERTO = 4321;
 const ANCHO_MAX = 1600;
 const CALIDAD = 82;

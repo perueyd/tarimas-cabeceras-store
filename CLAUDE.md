@@ -5,8 +5,10 @@ Tienda peruana (Lima): tarimas, cabeceras y sofás cama hechos a medida.
 jerga. Los comentarios del código están en español y explican el PORQUÉ, no el
 qué — mantén ese estilo.
 
-- Producción: https://eydperu.vercel.app (el dominio antiguo
-  `tarimas-cabeceras-store.vercel.app` solo redirige)
+- Producción: https://corporacionagamenon.vercel.app (desde el 28/10/2026; la
+  dirección vive en `src/data/sitio.js`). Los dominios anteriores
+  `eydperu.vercel.app` y `tarimas-cabeceras-store.vercel.app` siguen abriendo
+  la tienda, pero ya no se usan en enlaces ni en `robots.txt`.
 - Stack: React + Vite · funciones serverless de Vercel en `api/` · Redis Upstash
   · Tailwind · Culqi (pagos) · Groq (los dos asistentes de IA)
 
@@ -20,9 +22,17 @@ Para añadir un endpoint nuevo: NO crees `api/loquesea.js`. Ponlo en
 `api/_rutas/` y regístralo en el mapa de `api/[ruta].js`. Los archivos que
 empiezan por `_` no cuentan como función y la dirección pública no cambia.
 
-**Vercel Blob:** la cuota de transferencia (10 GB) se agotó y el almacén quedó
-bloqueado 30 días — las 33 fotos de productos devuelven 403. Las subidas nuevas
-se comprimen en el navegador (`src/lib/comprimirImagen.js`) antes de viajar.
+**Fotos de productos:** viven en `public/productos/` (se suben con
+`node scripts/elegir-fotos.mjs`), no en Vercel Blob. La cuota de transferencia
+de Blob (10 GB) se agotó en octubre de 2026 y el almacén quedó bloqueado; las
+subidas desde el panel se comprimen en el navegador
+(`src/lib/comprimirImagen.js`) antes de viajar. Comprobado el 12/11/2026: el
+catálogo apunta a 176 fotos, todas en el propio sitio.
+
+**Una foto que no existe da 404** (no la portada): `vercel.json` no reescribe
+`/productos/` ni `/assets/`. Los archivos de `/assets/` (con huella en el
+nombre) se guardan un año en el navegador y las fotos un día; si cambias una
+foto y quieres que se vea ya, súbela con otro nombre.
 
 ## Invariantes que no se pueden romper
 
@@ -198,6 +208,10 @@ pestañas planas. **Lo urgente sube al botón del grupo** (en rojo), así que
 agrupar no esconde un reclamo con plazo legal.
 
 ## Verificar antes de dar algo por hecho
+
+`npm run revisar-tienda` pide TODAS las fotos del catálogo (también las de las
+opciones, como las patas) y exige que sean imágenes de verdad: en noviembre de
+2026 decía "15 bien" con tres fotos rotas a la vista del cliente.
 
 `npm run build` no basta para lo que se ve. Usa el navegador de la vista previa
 y comprueba el efecto real: que el precio cobrado coincida con el mostrado, que

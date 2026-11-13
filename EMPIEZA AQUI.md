@@ -1,7 +1,7 @@
 # Tu tienda, en una hoja
 
-Para Enmanuel — E|D Espacios y Diseño · https://eydperu.vercel.app
-Panel: https://eydperu.vercel.app/pedidos
+Para Enmanuel — E|D Espacios y Diseño · https://corporacionagamenon.vercel.app
+Panel: https://corporacionagamenon.vercel.app/pedidos
 
 ---
 
