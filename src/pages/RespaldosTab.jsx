@@ -17,6 +17,8 @@ const PARTES = [
   ['colors', 'colores'],
   ['sizes', 'medidas'],
   ['showcase', 'vitrina'],
+  ['services', 'planes de servicio'],
+  ['projects', 'proyectos'],
 ];
 
 function fechaBonita(iso) {

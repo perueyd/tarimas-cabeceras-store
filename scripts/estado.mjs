@@ -17,6 +17,7 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 // La dirección de la tienda, del mismo sitio que la usa (se mudó de dominio en octubre de 2026).
 import { SITIO_URL as WEB } from '../src/data/sitio.js';
+import { planesVisibles, proyectosVisibles } from '../src/lib/servicios.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -111,6 +112,15 @@ async function mirar() {
       (p) => !p.baseImage && !Object.keys(p.sizeImages || {}).length && !(p.gallery || []).length
     );
     linea('Sin foto', sinFoto.length === 0 ? 'ninguno' : `${sinFoto.length}: ${sinFoto.map((p) => p.id).join(', ')}`);
+
+    const planes = planesVisibles(c.services).length;
+    const proyectos = proyectosVisibles(c.projects).length;
+    linea(
+      'Servicios',
+      planes + proyectos === 0
+        ? 'sin publicar (la página /servicios no aparece en el menú)'
+        : `${planes} planes · ${proyectos} proyectos en el portafolio`
+    );
   } catch (err) {
     linea('Catálogo', `⚠ no responde (${err.message})`);
   }

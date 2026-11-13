@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { Link } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { hayServicios, textosDeServicios } from '../lib/servicios.js';
 
 // Iconos SVG simples de cada red (trazos genéricos, sin logos con copyright).
 const SOCIAL_ICONS = {
@@ -81,7 +82,8 @@ function NewsletterForm({ newsletter }) {
 }
 
 export default function Footer() {
-  const { storeConfig } = useCatalog();
+  const catalog = useCatalog();
+  const { storeConfig } = catalog;
   const social = storeConfig.social || {};
   const newsletter = storeConfig.newsletter || {};
   const legal = storeConfig.legal || {};
@@ -128,6 +130,11 @@ export default function Footer() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs">
+          {hayServicios(catalog) && (
+            <Link to="/servicios" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
+              {textosDeServicios(storeConfig).menu}
+            </Link>
+          )}
           {(storeConfig.footer?.links || []).map((link) => (
             <Link key={link.url} to={link.url} className="text-neutral-600 hover:text-neutral-900 font-medium transition">
               {link.label}

@@ -12,6 +12,7 @@
 import { getCatalog } from './_catalog.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { SITIO } from './_sitio.js';
+import { cobroDePlan, planesVisibles } from '../src/lib/servicios.js';
 
 // Personalidad por defecto. El dueño puede reemplazarla desde el panel.
 export const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de ${NOMBRE_TIENDA}, una tienda peruana de muebles a medida.
@@ -24,7 +25,7 @@ TONO: cercano y directo, de tú, como un buen vendedor de tienda de barrio: amab
 // bot prometa cosas falsas o invente precios.
 const REGLAS_FIJAS = `
 REGLAS QUE SIEMPRE CUMPLES:
-- Usa SOLO los datos de la lista de productos de abajo. Si te preguntan por un precio, medida o color que no aparece ahí, di que lo consultas por WhatsApp. NUNCA inventes un precio ni una medida.
+- Usa SOLO los datos de las listas de productos y de servicios de abajo. Si te preguntan por un precio, medida o color que no aparece ahí, di que lo consultas por WhatsApp. NUNCA inventes un precio ni una medida.
 - Si no sabes algo, dilo claramente y pasa el WhatsApp. Es mejor eso que inventar.
 - No prometas descuentos, plazos ni garantías que no aparezcan en estos datos.
 - No pidas ni aceptes datos de tarjeta, contraseñas ni documentos por el chat.
@@ -90,10 +91,36 @@ function resumirProductos(products, sizes) {
     .join('\n\n');
 }
 
+// Los planes de servicio, con el mismo cuidado que los productos: el precio
+// de un plan que se paga en la web es EL QUE SE COBRA (sale del mismo sitio
+// que usa el cobro), y de un plan a cotizar no se da ningún número que el
+// dueño no haya escrito.
+//
+// Sin esto, a quien preguntaba por diseño de interiores el bot le decía que
+// la tienda solo vende muebles: tenía prohibido inventar y no conocía los
+// servicios.
+function resumirServicios(services, products) {
+  const planes = planesVisibles(services);
+  if (!planes.length) return '';
+  return planes
+    .map((plan) => {
+      const cobro = cobroDePlan(plan, products);
+      const precio = cobro
+        ? `S/ ${cobro.precio} (precio fijo, se paga en la web)`
+        : plan.precioTexto
+          ? `${plan.precioTexto} (se cotiza por WhatsApp)`
+          : 'se cotiza por WhatsApp';
+      const incluye = plan.incluye?.length ? ` Incluye: ${plan.incluye.join('; ')}.` : '';
+      return `- ${plan.nombre}${plan.area ? ` [${plan.area}]` : ''}: ${precio}.${incluye}`;
+    })
+    .join('\n');
+}
+
 // Arma el texto completo de instrucciones para el modelo.
 export async function construirConocimiento() {
   const catalog = await getCatalog();
-  const { products = [], colors = [], sizes = [], categories = [], storeConfig = {} } = catalog;
+  const { products = [], colors = [], sizes = [], categories = [], storeConfig = {}, services = [] } = catalog;
+  const servicios = resumirServicios(services, products);
   const bot = storeConfig.bot || {};
 
   const personalidad = String(bot.personalidad || PERSONALIDAD_POR_DEFECTO).slice(0, 3000);
@@ -134,6 +161,7 @@ TAMAÑOS DISPONIBLES: ${tamanos || 'consultar'}
 
 COLORES DE TELA: ${coloresTxt || 'consultar'}
 
+${servicios ? `SERVICIOS (además de los muebles; se ven en ${SITIO}/servicios):\n${servicios}\n` : ''}
 ${faq ? `PREGUNTAS FRECUENTES (respuestas oficiales de la tienda):\n${faq}\n` : ''}
 ${extra ? `INDICACIONES ADICIONALES DEL DUEÑO:\n${extra}\n` : ''}
 ═══ FIN DE LOS DATOS ═══

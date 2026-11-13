@@ -67,7 +67,10 @@ export default async function handler(req, res) {
           (p.costo != null && p.costo !== '') ||
           Object.values(p.costoPorMedida || {}).some((c) => c != null && c !== '')
       ).length,
-      productosTotales: (catalog.products || []).length,
+      // Sin los productos ocultos con los que se cobran los planes de
+      // servicio: no tienen dónde ponerles costo, y contarlos dejaría al
+      // dueño persiguiendo un «faltan 2» que no puede completar.
+      productosTotales: (catalog.products || []).filter((p) => !p.esServicio).length,
     });
   } catch (err) {
     console.error('impuestos:', err?.message);

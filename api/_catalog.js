@@ -4,7 +4,8 @@
 // estático de src/data/catalog.js como respaldo — la tienda nunca se rompe.
 import { hasDB, redisCmd } from './_store.js';
 import { respaldar } from './_respaldos.js';
-import { categories, colors, products, showcase, sizes, storeConfig } from '../src/data/catalog.js';
+import { categories, colors, products, projects, services, showcase, sizes, storeConfig } from '../src/data/catalog.js';
+import { sincronizarProductos } from '../src/lib/servicios.js';
 
 const KEYS = {
   products: 'catalog:products',
@@ -13,6 +14,10 @@ const KEYS = {
   sizes: 'catalog:sizes',
   showcase: 'catalog:showcase',
   config: 'catalog:config',
+  // Servicios (planes) y portafolio (proyectos realizados). Listas aparte de
+  // los productos: un servicio no tiene tallas ni colores.
+  services: 'catalog:services',
+  projects: 'catalog:projects',
 };
 
 // Distingue "la base dice que no hay nada" de "la base no respondió".
@@ -31,7 +36,7 @@ async function setJSON(key, value) {
 // `paraEditar: true` cuando lo que sigue es GUARDAR. En ese caso, si la base
 // no respondió se lanza un error en vez de devolver el catálogo de fábrica:
 // es preferible que el panel diga "no se pudo guardar" a que borre la tienda.
-// Las seis partes del catálogo, en una sola petición a Redis.
+// Todas las partes del catálogo, en una sola petición a Redis.
 //
 // Antes eran seis GET sueltos, así que CADA visita a la tienda gastaba seis
 // comandos del plan gratuito de Upstash (500.000 al mes). Con MGET es uno:
@@ -43,7 +48,7 @@ async function setJSON(key, value) {
 // el catálogo COMPLETO cuando lleva la clave de administrador, y una caché
 // compartida podría acabar sirviéndole a un cliente la respuesta del panel,
 // con los tokens de integraciones dentro.
-const ORDEN = ['products', 'categories', 'colors', 'sizes', 'showcase', 'config'];
+const ORDEN = ['products', 'categories', 'colors', 'sizes', 'showcase', 'config', 'services', 'projects'];
 
 async function leerTodo() {
   if (!hasDB) return ORDEN.map(() => null);
@@ -78,8 +83,8 @@ export async function getCatalog({ paraEditar = false } = {}) {
 
   // Para MOSTRAR la tienda sí se usa el catálogo de fábrica si la base falla:
   // una tienda con productos de ejemplo es mejor que una página rota.
-  const [dbProducts, dbCategories, dbColors, dbSizes, dbShowcase, dbConfig] = leidos.map((x) =>
-    x === FALLO ? null : x
+  const [dbProducts, dbCategories, dbColors, dbSizes, dbShowcase, dbConfig, dbServices, dbProjects] = leidos.map(
+    (x) => (x === FALLO ? null : x)
   );
 
   return {
@@ -89,10 +94,20 @@ export async function getCatalog({ paraEditar = false } = {}) {
     sizes: dbSizes ?? sizes,
     showcase: dbShowcase ?? showcase,
     storeConfig: dbConfig ? { ...storeConfig, ...dbConfig } : storeConfig,
+    services: dbServices ?? services,
+    projects: dbProjects ?? projects,
   };
 }
 
-const LIST_RESOURCES = { product: 'products', category: 'categories', color: 'colors', size: 'sizes', showcase: 'showcase' };
+const LIST_RESOURCES = {
+  product: 'products',
+  category: 'categories',
+  color: 'colors',
+  size: 'sizes',
+  showcase: 'showcase',
+  service: 'services',
+  project: 'projects',
+};
 
 export function listKeyFor(resource) {
   return LIST_RESOURCES[resource] || null;
@@ -131,12 +146,20 @@ export async function restaurarCatalogo(foto) {
   // dueño restaura por error, lo de ahora tampoco se pierde.
   await respaldar(await getCatalog({ paraEditar: true }), { forzar: true });
 
-  const aLista = { products: 'products', categories: 'categories', colors: 'colors', sizes: 'sizes', showcase: 'showcase' };
-  for (const [parte, listKey] of Object.entries(aLista)) {
-    if (Array.isArray(foto[parte])) await saveList(listKey, foto[parte]);
+  // Las listas se llaman igual en la copia y en la base.
+  for (const parte of Object.values(LIST_RESOURCES)) {
+    if (Array.isArray(foto[parte])) await saveList(parte, foto[parte]);
   }
   if (foto.storeConfig && typeof foto.storeConfig === 'object') {
     await saveConfig(foto.storeConfig);
   }
+
+  // Una copia anterior a la sección de servicios trae productos pero no
+  // planes: los planes de hoy se quedan, y sus productos de cobro (que no
+  // estaban en la copia) habrían desaparecido. Se vuelven a dejar de acuerdo.
+  const restaurado = await getCatalog({ paraEditar: true });
+  const alDia = sincronizarProductos(restaurado.products, restaurado.services);
+  if (alDia.cambio) await saveList('products', alDia.products);
+
   return getCatalog();
 }

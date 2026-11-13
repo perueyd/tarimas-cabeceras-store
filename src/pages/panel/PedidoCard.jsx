@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { NOMBRE_TIENDA, urlOpinion, urlSeguimiento } from '../../data/sitio.js';
 import { etiquetaComprobante } from '../../lib/documento.js';
 import { separarIGV } from '../../lib/igv.js';
+import { esLineaDeServicio } from '../../lib/servicios.js';
 import { calendarUrl } from './descargas.js';
 
 // Campo "Referencia (WSP)" de cada pedido.
@@ -187,9 +188,18 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
             <ul className="mt-3 space-y-1 border-t border-neutral-100 pt-3 text-xs text-neutral-600">
               {o.items.map((i, idx) => (
                 <li key={idx}>
-                  • {i.productName} x{i.qty} — {getSizeById(i.sizeId)?.label || i.sizeId},{' '}
-                  {getColorById(i.colorId)?.label || i.colorId}
-                  {i.colorId2 && ` + ${getColorById(i.colorId2)?.label || i.colorId2}`}
+                  • {i.productName} x{i.qty} —{' '}
+                  {/* Un plan de servicio no tiene medida ni color: que el
+                      dueño lea "servicio" y no "servicio, " con un hueco. */}
+                  {esLineaDeServicio(i) ? (
+                    'servicio'
+                  ) : (
+                    <>
+                      {getSizeById(i.sizeId)?.label || i.sizeId},{' '}
+                      {getColorById(i.colorId)?.label || i.colorId}
+                      {i.colorId2 && ` + ${getColorById(i.colorId2)?.label || i.colorId2}`}
+                    </>
+                  )}
                   {i.opciones?.length > 0 && `, ${i.opciones.map((x) => `${x.label}: ${x.valor}`).join(', ')}`}
                   {' — '}{currencyFormatter.format(i.unitPrice * i.qty)}
                 </li>

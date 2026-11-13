@@ -20,10 +20,12 @@ import ThankYou from './pages/ThankYou.jsx';
 const Orders = lazy(() => import('./pages/Orders.jsx'));
 
 // Por la misma razón, estos dos tampoco viajan en el paquete inicial:
-//   · el armador de dormitorio es una página entera que la mayoría no abre;
+//   · el armador de dormitorio y la página de servicios son páginas enteras
+//     que la mayoría no abre;
 //   · el chat aparece abajo a la derecha, pero quien no lo toca no necesita
 //     su código para ver la portada.
 const ArmarDormitorio = lazy(() => import('./pages/ArmarDormitorio.jsx'));
+const Servicios = lazy(() => import('./pages/Servicios.jsx'));
 const ChatbotWidget = lazy(() => import('./components/ChatbotWidget.jsx'));
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
@@ -98,6 +100,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/tienda" element={<Home />} />
           <Route path="/arma-tu-dormitorio" element={<ArmarDormitorio />} />
+          <Route path="/servicios" element={<Servicios />} />
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />

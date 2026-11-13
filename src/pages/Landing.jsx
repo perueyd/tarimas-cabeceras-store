@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import RecentOrdersSection from '../components/RecentOrdersSection.jsx';
 import ProductImage from '../components/ProductImage.jsx';
+import ServiciosEnPortada from '../components/ServiciosEnPortada.jsx';
 import { resolveProductImage, useCatalog } from '../context/CatalogContext.jsx';
 import { getEffectivePrice } from '../lib/pricing.js';
 import { datosDelNegocio, useMeta } from '../lib/meta.js';
@@ -366,6 +367,9 @@ export default function Landing() {
           })}
         </div>
       </section>
+
+      {/* ================= SERVICIOS Y PORTAFOLIO ================= */}
+      <ServiciosEnPortada />
 
       {/* ================= CÓMO FUNCIONA ================= */}
       <section className="border-t border-neutral-100 bg-white">

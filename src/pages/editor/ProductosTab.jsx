@@ -56,6 +56,10 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
   const normaliza = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const q = normaliza(busqueda.trim());
   const visibles = catalog.products.filter((p) => {
+    // Los productos ocultos con los que se cobran los planes de servicio se
+    // crean y se actualizan solos desde la pestaña Servicios. Aquí no se
+    // enseñan: editarlos a mano los dejaría distintos de su plan.
+    if (p.esServicio) return false;
     if (catFiltro !== 'todos' && p.category !== catFiltro) return false;
     if (!q) return true;
     const catLabel = catalog.categories.find((c) => c.id === p.category)?.label || p.category;

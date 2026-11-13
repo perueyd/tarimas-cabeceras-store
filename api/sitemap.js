@@ -10,6 +10,7 @@
 
 import { getCatalog } from './_catalog.js';
 import { SITIO } from './_sitio.js';
+import { hayServicios } from '../src/lib/servicios.js';
 
 const FIJAS = [
   { url: '/', prioridad: '1.0', frecuencia: 'weekly' },
@@ -28,7 +29,14 @@ export default async function handler(req, res) {
   let entradas = [...FIJAS];
 
   try {
-    const { products = [], categories = [] } = await getCatalog();
+    const catalog = await getCatalog();
+    const { products = [], categories = [] } = catalog;
+
+    // La página de servicios solo se le enseña a Google si tiene algo
+    // publicado: una página vacía en el mapa del sitio le resta valor al resto.
+    if (hayServicios(catalog)) {
+      entradas.push({ url: '/servicios', prioridad: '0.8', frecuencia: 'weekly' });
+    }
 
     for (const c of categories.filter((x) => x.active !== false)) {
       entradas.push({ url: `/tienda?categoria=${c.id}`, prioridad: '0.7', frecuencia: 'weekly' });
