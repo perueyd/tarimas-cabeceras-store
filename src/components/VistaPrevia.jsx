@@ -18,6 +18,7 @@ const TAMANOS = {
 const PAGINAS = [
   { url: '/', label: 'Portada' },
   { url: '/tienda', label: 'Tienda' },
+  { url: '/servicios', label: 'Servicios' },
   { url: '/carrito', label: 'Carrito' },
 ];
 

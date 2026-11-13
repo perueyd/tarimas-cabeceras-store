@@ -13,6 +13,7 @@
 // La dirección sale del mismo sitio que usa la tienda: al mudarse de dominio
 // (octubre 2026) este script siguió revisando el viejo sin que nadie lo notara.
 import { SITIO_URL } from '../src/data/sitio.js';
+import { planesVisibles, proyectosVisibles, textosDeServicios } from '../src/lib/servicios.js';
 
 const BASE = (process.argv[2] || SITIO_URL).replace(/\/$/, '');
 const TIEMPO_LIMITE = 20000;
@@ -94,6 +95,17 @@ function fotosDe(p) {
   return [p.baseImage, ...Object.values(p.sizeImages || {}), ...(p.gallery || [])].filter(Boolean);
 }
 
+// Las fotos de la página de servicios: la de cada plan, las de cada proyecto
+// del portafolio y la de portada. Un portafolio con una foto rota es peor que
+// no tener portafolio, así que se vigilan igual que las de los productos.
+function fotosDeServicios(c) {
+  return [
+    ...planesVisibles(c.services).map((p) => p.foto),
+    ...proyectosVisibles(c.projects).flatMap((p) => p.fotos),
+    textosDeServicios(c.storeConfig).fotoPortada,
+  ].filter(Boolean);
+}
+
 // Las fotos de las opciones (tipo de pata, de botón…): también se ven en la ficha.
 function fotosDeOpciones(p) {
   return (p.opciones || []).flatMap((g) => (g.valores || []).map((v) => v.img)).filter(Boolean);
@@ -116,7 +128,12 @@ await revisar('Todos los productos visibles tienen foto', async () => {
 // revisión decía "15 bien" mientras los clientes veían tres imágenes rotas.
 await revisar('Todas las fotos existen y son imágenes', async () => {
   if (!catalogo) throw new Error('no se pudo leer el catálogo');
-  const urls = [...new Set(catalogo.products.filter((p) => !p.oculto).flatMap((p) => [...fotosDe(p), ...fotosDeOpciones(p)]))];
+  const urls = [
+    ...new Set([
+      ...catalogo.products.filter((p) => !p.oculto).flatMap((p) => [...fotosDe(p), ...fotosDeOpciones(p)]),
+      ...fotosDeServicios(catalogo),
+    ]),
+  ];
 
   const rotas = [];
   async function probar(url) {

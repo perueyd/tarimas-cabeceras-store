@@ -220,6 +220,14 @@ export const showcase = [
   { id: 'melamina', label: 'Melamina', img: '/images/ropero-base.svg', color: '#b08a5a', cat: 'melamina' },
 ];
 
+// ---------- SERVICIOS Y PORTAFOLIO ----------
+// Planes de servicio y proyectos realizados. Se crean desde el panel →
+// Editar página → Servicios / Portafolio. Nacen VACÍOS a propósito: aquí no
+// puede haber un plan ni un proyecto de ejemplo, porque lo que se publica
+// tiene que ser trabajo real del negocio.
+export const services = [];
+export const projects = [];
+
 // ---------- PRODUCTOS ----------
 // Campos de cada producto:
 //   id              texto único, sin espacios (se usa en la URL)

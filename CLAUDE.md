@@ -183,6 +183,33 @@ Si añades una lista nueva al catálogo, añádela también a `PARTES` en
 `api/_respaldos.js` o las copias quedarán incompletas sin avisar (hay una
 prueba que lo comprueba).
 
+## Servicios y portafolio: `src/lib/servicios.js`
+
+La página `/servicios` muestra planes de servicio y proyectos realizados. Son
+dos listas más del catálogo (`services` y `projects`, recursos `service` y
+`project` de `/api/catalog`) y se editan en Editar página → Servicios /
+Portafolio. Los textos de la página viven en `storeConfig.servicios`.
+
+**Nacen vacías y la sección está oculta** hasta que el dueño publique algo:
+el enlace del menú, la franja de la portada y el mapa del sitio dependen de
+`hayServicios()`. No añadas planes ni proyectos de ejemplo (ver «Legal»).
+
+**Un plan de precio fijo se cobra con un producto oculto** (`esServicio: true`,
+`oculto: true`, id `servicio-<plan>`, tamaño `servicio`) que el servidor crea,
+actualiza y borra solo al guardar el plan (`sincronizarProductos`). Así el pago
+pasa por el carrito y el cobro de siempre y no hay un segundo camino de cobro.
+Tres consecuencias:
+
+- El precio que enseña la tarjeta sale de ese PRODUCTO (`cobroDePlan`), no del
+  número guardado en el plan: es lo que el servidor cobra.
+- `sincronizarProductos` escribe en la lista de productos. Solo puede tocar los
+  marcados `esServicio`; hay pruebas que lo vigilan (`pruebas/servicios.test.js`).
+- Esos productos no se enseñan en la pestaña Productos ni tienen ficha
+  (`/producto/servicio-…` lleva a `/servicios`).
+
+La arquitectura NO está en el objeto social de la empresa y es una profesión
+regulada (Ley 28966): el panel avisa al escribir esa área, pero no la bloquea.
+
 ## Vencimientos: `src/lib/vencimiento.js`
 
 `vencida()` vive ahí porque el servidor Y el navegador necesitan la misma

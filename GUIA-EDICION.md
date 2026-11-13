@@ -455,6 +455,42 @@ Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
   responderla o tocar "Ahora no". Las respuestas las ves en la pestaña
   **📊 Encuestas** del panel.
 
+## Servicios y portafolio (/servicios)
+
+Además de muebles, la tienda puede mostrar tus **servicios** (diseño de
+interiores, tapicería, instalación…) y tus **proyectos realizados**, con fotos.
+Todo se maneja desde `/pedidos` → **Mi tienda** → **Editar página** → grupo
+**Qué vendo**:
+
+- **Servicios** → los planes. En cada plan pones nombre, área, descripción,
+  la lista de «qué incluye», una foto y **cómo se contrata**:
+  - *Se cotiza por WhatsApp*: el cliente toca el botón y te llega un mensaje ya
+    escrito con el nombre del plan. Puedes poner un precio de referencia
+    («Desde S/ 350 por ambiente») o dejarlo vacío.
+  - *Precio fijo, se paga en la web*: escribes el precio en soles (con IGV) y
+    el cliente lo paga como una compra más: carrito, Yape, transferencia o
+    tarjeta. El pedido te llega al panel igual que el de un mueble.
+- En esa misma pestaña, arriba, **Textos y foto de portada de la página**:
+  el título, la descripción, la foto de fondo, los pasos de «cómo trabajamos»
+  y la franja final. Lo que dejes vacío no se muestra.
+- **Portafolio** → los proyectos. Título, área, lugar, año, descripción y
+  hasta 12 fotos (la primera es la portada; se reordenan con ◀ ▶).
+
+Cosas que conviene saber:
+
+- La página **no aparece** en el menú ni en la portada hasta que publiques al
+  menos un plan o un proyecto con foto. El aviso de arriba de la pestaña te
+  dice si ya está publicada.
+- Cada plan y cada proyecto tiene su casilla **Publicado**: desmárcala para
+  esconderlo sin borrarlo. Un plan de precio fijo oculto tampoco se puede
+  comprar.
+- Publica solo trabajos **tuyos y reales**. Un proyecto o un testimonio
+  inventado es publicidad engañosa (INDECOPI). Si en una foto se reconoce la
+  casa de un cliente o sale una persona, pídele permiso antes.
+- Escribe los precios **con IGV incluido**, también el «desde».
+- El chat de la web (CHAT-ED) conoce tus planes y sus precios: si cambias un
+  precio aquí, el chat lo dice al momento.
+
 ## Seguimiento de pedido para el cliente (/seguimiento)
 
 - Cualquier cliente puede entrar a `tudominio.vercel.app/seguimiento`, poner

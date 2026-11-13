@@ -185,8 +185,24 @@ test('catálogo: no se guarda sin haberlo leído con la versión protegida', () 
       'getCatalogParaEditar(), que falla si la base no respondió y guarda una copia antes.'
   );
 
+  // ponerAlDiaProductosDeServicios() también escribe (la lista de productos,
+  // al guardar un plan de servicio), pero no es un camino aparte: no lee nada,
+  // trabaja sobre los productos que le pasa quien la llama. Lo que hay que
+  // vigilar es que SIEMPRE le pasen los que se acaban de leer con la versión
+  // protegida (`catalog.products`), nunca otros.
+  const sincroniza = /async function ponerAlDiaProductosDeServicios\(/.test(src);
+  const llamadas = [...src.matchAll(/await ponerAlDiaProductosDeServicios\(([^)]*)\)/g)].map((m) => m[1]);
+  for (const argumentos of llamadas) {
+    assert.match(
+      argumentos,
+      /^catalog\.products,/,
+      'ponerAlDiaProductosDeServicios() reescribe la lista de productos: solo puede recibir ' +
+        '`catalog.products` leído con getCatalogParaEditar() en ese mismo camino.'
+    );
+  }
+
   // Y cada camino que escribe tiene que haber pasado por la versión protegida.
-  const escrituras = [...src.matchAll(/await save(List|Config)\(/g)].length;
+  const escrituras = [...src.matchAll(/await save(List|Config)\(/g)].length - (sincroniza ? 1 : 0);
   const protegidas = [...src.matchAll(/await getCatalogParaEditar\(\)/g)].length;
   assert.ok(
     protegidas >= escrituras,

@@ -2,11 +2,12 @@ import { getCatalog, getCatalogParaEditar, listKeyFor, saveConfig, saveList } fr
 import { hasDB } from './_store.js';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
+import { limpiarPlan, limpiarProyecto, sincronizarProductos } from '../src/lib/servicios.js';
 
 // GET     -> catálogo completo (público, lo usa la tienda para mostrarse).
-// POST    -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase   body: el objeto (crea o edita por id)
+// POST    -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase|service|project   body: el objeto (crea o edita por id)
 //         -> ?resource=config                                                                body: cambios parciales de storeConfig
-// DELETE  -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase&id=xxx
+// DELETE  -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase|service|project&id=xxx
 // Partes de la configuración que NO pueden salir a la web pública.
 //
 // /api/catalog es público (la tienda lo necesita para pintarse), y devolvía el
@@ -30,6 +31,22 @@ const PRIVADO = ['integrations', 'ownerEmail'];
 // configuración de la tienda, así que los costos habrían viajado al navegador
 // de cada visitante. No llegó a pasar porque todavía no había ninguno puesto.
 const PRIVADO_PRODUCTO = ['costo', 'costoPorMedida'];
+
+// Los planes de servicio y los proyectos del portafolio se guardan con una
+// forma fija y revisada. El resto del catálogo se guarda tal como llega del
+// panel (así nació), pero estas dos listas son nuevas y de ellas sale un
+// precio que se cobra: mejor que el servidor no dependa de que el panel haya
+// validado bien.
+const LIMPIAR = { service: limpiarPlan, project: limpiarProyecto };
+
+// Un plan de precio fijo se cobra con un producto oculto. Cada vez que
+// cambian los planes se deja la lista de productos de acuerdo con ellos.
+// Solo escribe si de verdad hay algo que cambiar: la lista de productos es lo
+// más valioso de la tienda y no se toca sin motivo.
+async function ponerAlDiaProductosDeServicios(productos, planes) {
+  const { products, cambio } = sincronizarProductos(productos, planes);
+  if (cambio) await saveList('products', products);
+}
 
 function sinCampos(objeto, campos) {
   const limpio = {};
@@ -79,7 +96,7 @@ export default async function handler(req, res) {
     }
 
     const listKey = listKeyFor(resource);
-    if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color, size, showcase o config).' });
+    if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color, size, showcase, service, project o config).' });
 
     // Reordenar: el body trae { ids: [...] } con el nuevo orden. No cambia los
     // datos de cada elemento, solo su posición (el orden del array = orden en
@@ -103,14 +120,18 @@ export default async function handler(req, res) {
     const id = s(item?.id, 60).trim();
     if (!id) return res.status(400).json({ error: 'Falta el id del elemento.' });
 
+    const revisado = LIMPIAR[resource] ? LIMPIAR[resource]({ ...item, id }) : { item: { ...item, id } };
+    if (revisado.error) return res.status(400).json({ error: revisado.error });
+    const clean = revisado.item;
+
     const catalog = await getCatalogParaEditar();
     const list = [...catalog[listKey]];
-    const idx = list.findIndex((x) => x.id === id);
-    const clean = { ...item, id };
+    const idx = list.findIndex((x) => x.id === clean.id);
     if (idx >= 0) list[idx] = clean;
     else list.push(clean);
 
     await saveList(listKey, list);
+    if (listKey === 'services') await ponerAlDiaProductosDeServicios(catalog.products, list);
     return res.status(200).json({ ok: true, [listKey]: list });
   }
 
@@ -123,6 +144,7 @@ export default async function handler(req, res) {
     const catalog = await getCatalogParaEditar();
     const list = catalog[listKey].filter((x) => x.id !== id);
     await saveList(listKey, list);
+    if (listKey === 'services') await ponerAlDiaProductosDeServicios(catalog.products, list);
     return res.status(200).json({ ok: true, [listKey]: list });
   }
 

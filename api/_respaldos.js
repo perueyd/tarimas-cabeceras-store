@@ -36,7 +36,7 @@ export { diaLima } from '../src/lib/lima.js';
 // Las partes del catálogo que se respaldan. Es TODO lo que vive en Redis: si
 // mañana se añade otra lista al catálogo, hay que añadirla aquí también, o la
 // copia quedará incompleta sin avisar.
-const PARTES = ['products', 'categories', 'colors', 'sizes', 'showcase', 'storeConfig'];
+const PARTES = ['products', 'categories', 'colors', 'sizes', 'showcase', 'storeConfig', 'services', 'projects'];
 
 function resumir(catalog) {
   const cuenta = {};

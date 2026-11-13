@@ -12,6 +12,7 @@ import { vencida } from '../lib/vencimiento.js';
 import { revisarComprobante } from '../lib/documento.js';
 import { billetera, metodosActivos } from '../lib/metodosPago.js';
 import { useMeta } from '../lib/meta.js';
+import { esLineaDeServicio } from '../lib/servicios.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -61,6 +62,11 @@ export default function Checkout() {
   // criterio que se usa para no ignorar un catálogo real que quedó vacío).
   const confianza = Array.isArray(storeConfig.landing?.confianza) ? storeConfig.landing.confianza : CONFIANZA_DEFAULT;
   const [zona, setZona] = useState('lima'); // 'lima' | 'provincia'
+  // Un plan de servicio se paga por este mismo camino, pero no es un mueble:
+  // ni se fabrica ni se "entrega". Estas dos marcas solo cambian los textos
+  // que serían falsos para un servicio; el precio y el cobro no las miran.
+  const hayServicio = items.some(esLineaDeServicio);
+  const soloServicios = hayServicio && items.every(esLineaDeServicio);
   const [form, setForm] = useState({
     nombre: '',
     email: '',
@@ -518,7 +524,10 @@ export default function Checkout() {
       const size = getSizeById(i.sizeId);
       const color = getColorById(i.colorId);
       const ops = (i.opcionesDetalle || []).map((d) => `${d.grupoLabel}: ${d.valorLabel}`).join(', ');
-      return `• ${i.productName} x${i.qty} (${size?.label || i.sizeId}, ${color?.label || i.colorId}${ops ? `, ${ops}` : ''}) — ${currencyFormatter.format(i.unitPrice * i.qty)}`;
+      const detalle = esLineaDeServicio(i)
+        ? 'servicio'
+        : `${size?.label || i.sizeId}, ${color?.label || i.colorId}${ops ? `, ${ops}` : ''}`;
+      return `• ${i.productName} x${i.qty} (${detalle}) — ${currencyFormatter.format(i.unitPrice * i.qty)}`;
     });
     const destino = [form.distrito, form.provincia, form.departamento].filter(Boolean).join(', ');
     return encodeURIComponent(
@@ -540,9 +549,13 @@ export default function Checkout() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-4 text-2xl font-semibold tracking-tight">Datos de envío y pago</h1>
+      <h1 className="mb-4 text-2xl font-semibold tracking-tight">
+        {soloServicios ? 'Datos del servicio y pago' : 'Datos de envío y pago'}
+      </h1>
 
-      {confianza.length > 0 && (
+      {/* La fila de confianza habla de la entrega del mueble ("Entrega a tu
+          casa"): en la compra de un servicio no aplica, así que no se pinta. */}
+      {!soloServicios && confianza.length > 0 && (
         <div className="mb-6 grid grid-cols-1 gap-2 rounded-lg bg-neutral-50 p-3 text-xs text-neutral-600 sm:grid-cols-3">
           {confianza.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -553,7 +566,9 @@ export default function Checkout() {
         </div>
       )}
 
-      <p className="mb-2 text-sm font-medium text-neutral-700">¿Dónde entregamos?</p>
+      <p className="mb-2 text-sm font-medium text-neutral-700">
+        {soloServicios ? '¿Dónde será el servicio?' : '¿Dónde entregamos?'}
+      </p>
       <div className="mb-6 flex gap-3">
         {zonaBtn('lima', 'Lima Metropolitana')}
         {zonaBtn('provincia', 'Provincia')}
@@ -662,20 +677,28 @@ export default function Checkout() {
             <div className="sm:col-span-2">
               <MapPicker onChange={setUbicacion} onGeoDistrict={handleGeoDistrito} />
               <p className="mt-2 text-xs text-neutral-500">
-                💡 Si estás en el lugar de entrega, usa «Usar mi ubicación actual» y el pin se colocará solo.
+                💡 Si estás en el lugar {soloServicios ? 'del servicio' : 'de entrega'}, usa «Usar mi ubicación actual» y el pin se colocará solo.
               </p>
             </div>
 
             <div className="sm:col-span-2 mt-2 rounded-lg border border-neutral-200 bg-white p-4">
-              <p className="text-sm font-medium">Entrega</p>
-              <p className="mt-1 text-xs text-neutral-500">
-                Cada mueble se fabrica a pedido: el tiempo de fabricación y entrega es de{' '}
-                <span className="font-medium text-neutral-700">{storeConfig.leadTime}</span>.
-                Elige desde cuándo podemos entregarte y en qué horario estarás en casa.
-              </p>
+              <p className="text-sm font-medium">{soloServicios ? 'Primera visita' : 'Entrega'}</p>
+              {soloServicios ? (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Elige desde cuándo podemos ir y en qué horario te encontramos. La fecha exacta te la
+                  confirmamos por WhatsApp.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-neutral-500">
+                  Cada mueble se fabrica a pedido: el tiempo de fabricación y entrega es de{' '}
+                  <span className="font-medium text-neutral-700">{storeConfig.leadTime}</span>.
+                  Elige desde cuándo podemos entregarte y en qué horario estarás en casa.
+                  {hayServicio && ' El servicio que contrataste lo coordinamos contigo por WhatsApp.'}
+                </p>
+              )}
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
-                  label="Fecha de entrega preferida"
+                  label={soloServicios ? 'Fecha preferida' : 'Fecha de entrega preferida'}
                   name="entregaFecha"
                   type="date"
                   value={form.entregaFecha}
@@ -830,8 +853,9 @@ export default function Checkout() {
                     />
                   )}
                   <p className="mt-2 text-xs text-emerald-800">
-                    Tu pedido entra a fabricación en cuanto confirmemos el adelanto. El resto lo
-                    pagas al recibirlo — ten el monto listo, el repartidor puede no llevar cambio.
+                    {soloServicios
+                      ? 'Confirmamos tu servicio en cuanto verifiquemos el adelanto. El resto lo pagas el día que lo recibes.'
+                      : 'Tu pedido entra a fabricación en cuanto confirmemos el adelanto. El resto lo pagas al recibirlo — ten el monto listo, el repartidor puede no llevar cambio.'}
                   </p>
                 </>
               ) : (

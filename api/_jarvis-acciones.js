@@ -31,6 +31,8 @@ export const SUBPESTANAS = {
   branding: 'Marca: logo, nombre y colores',
   productos: 'Productos: crear, editar precios y fotos',
   categorias: 'Categorías de la tienda',
+  servicios: 'Servicios: planes, precios y textos de la página de servicios',
+  portafolio: 'Portafolio: proyectos realizados y sus fotos',
   colores: 'Colores de tela',
   tamanos: 'Tamaños disponibles',
   config: 'Datos de la tienda: WhatsApp, RUC, dirección',

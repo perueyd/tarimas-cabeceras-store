@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
 import ProductZoomModal from '../components/ProductZoomModal.jsx';
@@ -304,6 +304,11 @@ export default function ProductDetail() {
       </main>
     );
   }
+
+  // El producto oculto con el que se cobra un plan de servicio no tiene ficha
+  // propia: esta página habla de tamaños, telas y «ver en mi pared». Quien
+  // llegue aquí (por un enlace del carrito, por ejemplo) va a su sitio.
+  if (product.esServicio) return <Navigate to="/servicios" replace />;
 
   function handleAddToCart() {
     // Se guarda la imagen ya resuelta para el color elegido, así el carrito

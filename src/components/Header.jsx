@@ -2,11 +2,16 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { logoEsImagen } from '../data/sitio.js';
+import { hayServicios, textosDeServicios } from '../lib/servicios.js';
 
 export default function Header() {
   const { totalItems } = useCart();
-  const { storeConfig } = useCatalog();
+  const catalog = useCatalog();
+  const { storeConfig } = catalog;
   const branding = storeConfig.branding || {};
+  // El enlace a Servicios existe solo si hay algo publicado: un menú que
+  // lleva a una página vacía hace parecer la tienda a medio hacer.
+  const conServicios = hayServicios(catalog);
 
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white/80 backdrop-blur-md shadow-sm">
@@ -34,13 +39,23 @@ export default function Header() {
             )}
           </span>
         </Link>
-        <nav className="flex items-center gap-6 text-sm sm:gap-8">
+        {/* Con el enlace de Servicios son cuatro cosas en fila: en un celular
+            angosto solo caben si se juntan un poco más. */}
+        <nav className={`flex items-center text-sm sm:gap-8 ${conServicios ? 'gap-4' : 'gap-6'}`}>
           <Link
             to="/tienda"
             className="text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"
           >
             Tienda
           </Link>
+          {conServicios && (
+            <Link
+              to="/servicios"
+              className="text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"
+            >
+              {textosDeServicios(storeConfig).menu}
+            </Link>
+          )}
           <Link
             to="/seguimiento"
             className="text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"

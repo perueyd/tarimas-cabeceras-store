@@ -14,6 +14,7 @@ import VistaPrevia from '../components/VistaPrevia.jsx';
 import { CategoriasTab, ColoresTab, TamanosTab } from './editor/BasicosTab.jsx';
 import { PortadaTab, VitrinaTab } from './editor/PortadaTab.jsx';
 import { ProductosTab } from './editor/ProductosTab.jsx';
+import { PortafolioTab, ServiciosTab } from './editor/ServiciosTab.jsx';
 import { ConfigTab, EncuestaTab, FaqTab, LegalTab } from './editor/TextosTab.jsx';
 
 export default function CatalogEditor({ adminKey, irA }) {
@@ -99,10 +100,14 @@ export default function CatalogEditor({ adminKey, irA }) {
             id: 'catalogo',
             label: 'Qué vendo',
             items: [
-              { id: 'productos', label: 'Productos', aviso: catalog.products.length },
+              // Sin los productos ocultos con los que se cobran los planes
+              // de servicio: esos se cuentan en su propia pestaña.
+              { id: 'productos', label: 'Productos', aviso: catalog.products.filter((p) => !p.esServicio).length },
               { id: 'categorias', label: 'Categorías' },
               { id: 'colores', label: 'Colores' },
               { id: 'tamanos', label: 'Tamaños' },
+              { id: 'servicios', label: 'Servicios', aviso: catalog.services.length || undefined },
+              { id: 'portafolio', label: 'Portafolio', aviso: catalog.projects.length || undefined },
             ],
           },
           {
@@ -143,6 +148,8 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'branding' && <BrandingTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
+      {sub === 'servicios' && <ServiciosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
+      {sub === 'portafolio' && <PortafolioTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'tamanos' && <TamanosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}

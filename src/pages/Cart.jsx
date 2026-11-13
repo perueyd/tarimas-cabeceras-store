@@ -6,6 +6,7 @@ import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import { getUnitPrice } from '../lib/pricing.js';
 import { fotoChica } from '../lib/fotoChica.js';
 import { useMeta } from '../lib/meta.js';
+import { esLineaDeServicio } from '../lib/servicios.js';
 
 export default function Cart() {
   useMeta({ titulo: 'Tu carrito', descripcion: 'Revisa los muebles que elegiste antes de completar tu compra.' });
@@ -49,9 +50,17 @@ export default function Cart() {
           const priceInfo = product ? getUnitPrice(product, item.sizeId, item.opciones) : null;
           return (
             <div key={lineKey(item)} className="flex gap-4 p-4">
-              {/* La versión liviana: esta foto se ve a 96 px y se estaba
-                  descargando entera (unos 130 KB para una miniatura). Es la
-                  misma que ya usan las tarjetas del catálogo. */}
+              {/* Un plan de servicio puede no tener foto, y entonces el recuadro
+                  de «Foto próximamente» (pensado para un mueble) no viene a
+                  cuento: se pinta un recuadro que dice lo que es. */}
+              {esLineaDeServicio(item) && !item.baseImage ? (
+                <div className="flex h-20 w-24 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-[10px] font-semibold uppercase tracking-[0.2em] text-white">
+                  Servicio
+                </div>
+              ) : (
+              /* La versión liviana: esta foto se ve a 96 px y se estaba
+                 descargando entera (unos 130 KB para una miniatura). Es la
+                 misma que ya usan las tarjetas del catálogo. */
               <ProductImage
                 baseImage={fotoChica(item.baseImage)}
                 colorHex={color?.hex}
@@ -64,13 +73,22 @@ export default function Cart() {
                 zonasManual={product?.zonasFoto?.[item.baseImage]}
                 invertirTelas={product?.invertirTelas}
               />
+              )}
               <div className="flex flex-1 flex-col justify-between">
                 <div className="flex justify-between gap-2">
                   <div>
                     <p className="font-medium">{item.productName}</p>
+                    {/* Un plan de servicio no tiene tamaño ni color: sin esta
+                        rama su renglón diría «servicio · » y nada más. */}
                     <p className="text-sm text-neutral-500">
-                      {size?.label || item.sizeId} · {color?.label || item.colorId}
-                      {item.colorId2 && ` + ${getColorById(item.colorId2)?.label || item.colorId2}`}
+                      {esLineaDeServicio(item) ? (
+                        'Servicio'
+                      ) : (
+                        <>
+                          {size?.label || item.sizeId} · {color?.label || item.colorId}
+                          {item.colorId2 && ` + ${getColorById(item.colorId2)?.label || item.colorId2}`}
+                        </>
+                      )}
                     </p>
                     {item.opcionesDetalle?.length > 0 && (
                       <p className="text-xs text-neutral-400">
