@@ -91,8 +91,24 @@ await revisar('Todos los productos visibles tienen precio', async () => {
 
 // Las fotos de un producto pueden venir por tres caminos distintos: la de
 // portada (baseImage), una por medida (sizeImages) o la galería.
+//
+// Una foto de galería puede ser una dirección suelta o una ficha con
+// variantes: una foto por medida (`porTamano`) y otras según la opción elegida
+// (`segunOpcion`, por ejemplo la cabecera aérea). Se sacan TODAS, porque el
+// cliente ve una u otra según lo que elija. Cuando solo se esperaban
+// direcciones sueltas, la primera ficha con variantes hacía fallar la revisión
+// entera con un error de programa en vez de decir qué foto faltaba.
+function fotosDeGaleria(item) {
+  if (typeof item === 'string') return [item];
+  if (!item || typeof item !== 'object') return [];
+  const deUna = (x) => [x?.url, ...Object.values(x?.porTamano || {})];
+  return [...deUna(item), ...(Array.isArray(item.segunOpcion) ? item.segunOpcion.flatMap(deUna) : [])];
+}
+
 function fotosDe(p) {
-  return [p.baseImage, ...Object.values(p.sizeImages || {}), ...(p.gallery || [])].filter(Boolean);
+  return [p.baseImage, ...Object.values(p.sizeImages || {}), ...(p.gallery || []).flatMap(fotosDeGaleria)].filter(
+    (url) => typeof url === 'string' && url
+  );
 }
 
 // Las fotos de la página de servicios: la de cada plan, las de cada proyecto
