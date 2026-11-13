@@ -9,6 +9,7 @@ import { NOMBRE_TIENDA, urlOpinion, urlSeguimiento } from '../../data/sitio.js';
 import { etiquetaComprobante } from '../../lib/documento.js';
 import { separarIGV } from '../../lib/igv.js';
 import { esLineaDeServicio } from '../../lib/servicios.js';
+import { useCatalog } from '../../context/CatalogContext.jsx';
 import { calendarUrl } from './descargas.js';
 
 // Campo "Referencia (WSP)" de cada pedido.
@@ -81,6 +82,7 @@ function fechaCorta(iso) {
 }
 
 export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorById, getSizeById }) {
+  const { partners } = useCatalog();
   // Los pedidos que esperan una decisión se abren solos; los ya resueltos
   // empiezan plegados. Antes TODOS enseñaban sus ocho bloques a la vez, y con
   // veinte pedidos en pantalla encontrar el que importaba era un ejercicio de
@@ -181,6 +183,17 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
           {o.referencia && (
             <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
               <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
+            </div>
+          )}
+
+          {/* El cliente llegó por el enlace de un profesional aliado: el dueño
+              necesita verlo en el pedido para liquidarle su comisión. */}
+          {o.referido && (
+            <div className="mt-3 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
+              <p className="text-xs text-sky-800">
+                🤝 <strong>Llegó por el enlace de:</strong>{' '}
+                {partners.find((a) => a.id === o.referido)?.nombre || o.referido}
+              </p>
             </div>
           )}
 

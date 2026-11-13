@@ -17,6 +17,7 @@ export function CatalogProvider({ children }) {
     storeConfig: staticCatalog.storeConfig,
     services: staticCatalog.services,
     projects: staticCatalog.projects,
+    partners: staticCatalog.partners,
     loaded: false,
   });
 
@@ -35,6 +36,7 @@ export function CatalogProvider({ children }) {
           storeConfig: d.storeConfig || staticCatalog.storeConfig,
           services: Array.isArray(d.services) ? d.services : staticCatalog.services,
           projects: Array.isArray(d.projects) ? d.projects : staticCatalog.projects,
+          partners: Array.isArray(d.partners) ? d.partners : staticCatalog.partners,
           loaded: true,
         });
       })
@@ -47,7 +49,7 @@ export function CatalogProvider({ children }) {
   }, []);
 
   const value = useMemo(() => {
-    const { products, categories, colors, sizes, showcase, storeConfig, services, projects, loaded } = state;
+    const { products, categories, colors, sizes, showcase, storeConfig, services, projects, partners, loaded } = state;
     return {
       products,
       categories,
@@ -57,6 +59,7 @@ export function CatalogProvider({ children }) {
       storeConfig,
       services,
       projects,
+      partners,
       currencyFormatter: staticCatalog.currencyFormatter,
       loaded,
       getProductById: (id) => products.find((p) => p.id === id),
@@ -75,6 +78,7 @@ export function CatalogProvider({ children }) {
               storeConfig: d.storeConfig || staticCatalog.storeConfig,
               services: d.services || [],
               projects: d.projects || [],
+              partners: d.partners || [],
               loaded: true,
             })
           ),

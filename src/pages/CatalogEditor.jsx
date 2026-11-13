@@ -15,6 +15,7 @@ import { CategoriasTab, ColoresTab, TamanosTab } from './editor/BasicosTab.jsx';
 import { PortadaTab, VitrinaTab } from './editor/PortadaTab.jsx';
 import { ProductosTab } from './editor/ProductosTab.jsx';
 import { PortafolioTab, ServiciosTab } from './editor/ServiciosTab.jsx';
+import { AliadosTab } from './editor/AliadosTab.jsx';
 import { ConfigTab, EncuestaTab, FaqTab, LegalTab } from './editor/TextosTab.jsx';
 
 export default function CatalogEditor({ adminKey, irA }) {
@@ -108,6 +109,7 @@ export default function CatalogEditor({ adminKey, irA }) {
               { id: 'tamanos', label: 'Tamaños' },
               { id: 'servicios', label: 'Servicios', aviso: catalog.services.length || undefined },
               { id: 'portafolio', label: 'Portafolio', aviso: catalog.projects.length || undefined },
+              { id: 'aliados', label: 'Aliados', aviso: catalog.partners.length || undefined },
             ],
           },
           {
@@ -150,6 +152,7 @@ export default function CatalogEditor({ adminKey, irA }) {
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'servicios' && <ServiciosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'portafolio' && <PortafolioTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
+      {sub === 'aliados' && <AliadosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'colores' && <ColoresTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'tamanos' && <TamanosTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'config' && <ConfigTab catalog={catalog} api={api} flash={flash} />}

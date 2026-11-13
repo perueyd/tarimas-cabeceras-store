@@ -19,6 +19,7 @@ const PARTES = [
   ['showcase', 'vitrina'],
   ['services', 'planes de servicio'],
   ['projects', 'proyectos'],
+  ['partners', 'aliados'],
 ];
 
 function fechaBonita(iso) {

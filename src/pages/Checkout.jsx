@@ -12,7 +12,7 @@ import { vencida } from '../lib/vencimiento.js';
 import { revisarComprobante } from '../lib/documento.js';
 import { billetera, metodosActivos } from '../lib/metodosPago.js';
 import { useMeta } from '../lib/meta.js';
-import { esLineaDeServicio } from '../lib/servicios.js';
+import { esLineaDeServicio, referidoActual } from '../lib/servicios.js';
 import { codigoDelLive } from '../lib/live.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
@@ -426,6 +426,9 @@ export default function Checkout() {
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
           promoCode: promo?.code,
+          // Si llegó por el enlace de un profesional aliado, se anota en el
+          // pedido. El servidor comprueba que ese aliado exista.
+          referido: referidoActual() || undefined,
           // El servidor recalcula el total por su cuenta; esto solo le sirve
           // para comprobar que coincide con lo que se mostró en pantalla y
           // negarse a cobrar de más si no cuadra.
@@ -485,6 +488,9 @@ export default function Checkout() {
           entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
           items,
           promoCode: promo?.code,
+          // Si llegó por el enlace de un profesional aliado, se anota en el
+          // pedido. El servidor comprueba que ese aliado exista.
+          referido: referidoActual() || undefined,
           docTipo: form.docTipo,
           docNumero: form.docNumero,
           razonSocial: form.razonSocial,

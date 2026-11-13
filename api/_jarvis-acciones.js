@@ -34,6 +34,7 @@ export const SUBPESTANAS = {
   categorias: 'Categorías de la tienda',
   servicios: 'Servicios: planes, precios y textos de la página de servicios',
   portafolio: 'Portafolio: proyectos realizados y sus fotos',
+  aliados: 'Aliados: profesionales externos (arquitectos, ingenieros, diseñadores), sus enlaces y las ventas que traen',
   colores: 'Colores de tela',
   tamanos: 'Tamaños disponibles',
   config: 'Datos de la tienda: WhatsApp, RUC, dirección',

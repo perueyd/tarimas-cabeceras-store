@@ -2,10 +2,10 @@ import { getCatalog, getCatalogParaEditar, listKeyFor, saveConfig, saveList } fr
 import { hasDB } from './_store.js';
 import { s } from './_pricing.js';
 import { checkAdminAuth } from './_auth.js';
-import { limpiarPlan, limpiarProyecto, sincronizarProductos } from '../src/lib/servicios.js';
+import { aliadoPublico, limpiarAliado, limpiarPlan, limpiarProyecto, sincronizarProductos } from '../src/lib/servicios.js';
 
 // GET     -> catálogo completo (público, lo usa la tienda para mostrarse).
-// POST    -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase|service|project   body: el objeto (crea o edita por id)
+// POST    -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase|service|project|partner   body: el objeto (crea o edita por id)
 //         -> ?resource=config                                                                body: cambios parciales de storeConfig
 // DELETE  -> Authorization: Bearer <admin>, ?resource=product|category|color|size|showcase|service|project&id=xxx
 // Partes de la configuración que NO pueden salir a la web pública.
@@ -37,7 +37,7 @@ const PRIVADO_PRODUCTO = ['costo', 'costoPorMedida'];
 // panel (así nació), pero estas dos listas son nuevas y de ellas sale un
 // precio que se cobra: mejor que el servidor no dependa de que el panel haya
 // validado bien.
-const LIMPIAR = { service: limpiarPlan, project: limpiarProyecto };
+const LIMPIAR = { service: limpiarPlan, project: limpiarProyecto, partner: limpiarAliado };
 
 // Un plan de precio fijo se cobra con un producto oculto. Cada vez que
 // cambian los planes se deja la lista de productos de acuerdo con ellos.
@@ -60,6 +60,10 @@ function soloPublico(catalog) {
   return {
     ...catalog,
     storeConfig: sinCampos(catalog.storeConfig, PRIVADO),
+    // De cada aliado solo sale lo que el dueño quiso mostrar. Su teléfono, su
+    // comisión y las notas son del dueño; y si eligió no nombrarlo, tampoco
+    // sale su nombre.
+    partners: (catalog.partners || []).map(aliadoPublico),
     products: (catalog.products || []).map((p) => sinCampos(p, PRIVADO_PRODUCTO)),
   };
 }
@@ -96,7 +100,7 @@ export default async function handler(req, res) {
     }
 
     const listKey = listKeyFor(resource);
-    if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color, size, showcase, service, project o config).' });
+    if (!listKey) return res.status(400).json({ error: 'Recurso inválido (product, category, color, size, showcase, service, project, partner o config).' });
 
     // Reordenar: el body trae { ids: [...] } con el nuevo orden. No cambia los
     // datos de cada elemento, solo su posición (el orden del array = orden en

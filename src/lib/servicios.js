@@ -92,6 +92,8 @@ export function limpiarPlan(crudo) {
       precio: modo === 'pagar' ? precio : null,
       // Texto libre para los planes a cotizar: "Desde S/ 350 por ambiente".
       precioTexto: modo === 'cotizar' ? texto(crudo?.precioTexto, 60) : '',
+      // El profesional externo que lo ejecuta, si lo hay (ver "aliados").
+      aliado: aIdentificador(crudo?.aliado),
       activo: crudo?.activo !== false,
     },
   };
@@ -114,9 +116,113 @@ export function limpiarProyecto(crudo) {
       lugar: texto(crudo?.lugar, 60),
       anio: String(crudo?.anio ?? '').replace(/\D/g, '').slice(0, 4),
       fotos,
+      // De quién es el trabajo, si lo hizo un profesional aliado.
+      aliado: aIdentificador(crudo?.aliado),
       activo: crudo?.activo !== false,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// ALIADOS: profesionales externos que venden a través de la tienda
+//
+// El dueño suma arquitectos, ingenieros o diseñadores de fuera. Ellos traen
+// público desde sus redes con un enlace propio (/servicios?de=su-codigo); la
+// tienda vende, cobra y responde ante el cliente con su marca, y cada pedido
+// o consulta queda anotado con quién lo trajo.
+//
+// Dos límites que el código hace respetar:
+//
+// 1. Lo del aliado que es PRIVADO (su teléfono, su comisión, las notas del
+//    dueño) no sale nunca por /api/catalog, que es público.
+// 2. El dueño decide si se muestra el nombre del profesional. Para
+//    arquitectura e ingeniería conviene mostrarlo con su colegiatura: son
+//    profesiones reguladas (Leyes 28966 y 28858) y la experiencia que se
+//    anuncia tiene que ser de quien la tiene (D. Leg. 1044, art. 8).
+// ---------------------------------------------------------------------------
+export function limpiarAliado(crudo) {
+  const id = aIdentificador(crudo?.id);
+  const nombre = texto(crudo?.nombre, 80);
+  if (!id) return { error: 'Falta el código del aliado (sale en su enlace).' };
+  if (!nombre) return { error: 'Escribe el nombre del profesional.' };
+  return {
+    item: {
+      id,
+      nombre,
+      titulo: texto(crudo?.titulo, 40),
+      colegiatura: texto(crudo?.colegiatura, 30),
+      mostrar: crudo?.mostrar !== false,
+      activo: crudo?.activo !== false,
+      // Solo para el dueño. soloPublico() los quita antes de publicar.
+      telefono: texto(crudo?.telefono, 30),
+      comision: texto(crudo?.comision, 60),
+      notas: parrafo(crudo?.notas, 400),
+    },
+  };
+}
+
+// Lo que cualquiera puede ver de un aliado. Se arma campo por campo: si mañana
+// se le añade un dato privado, no sale publicado por descuido. Del que el
+// dueño prefiere no nombrar solo queda el código de su enlace.
+export function aliadoPublico(aliado) {
+  const base = { id: aliado.id, activo: aliado.activo !== false, mostrar: aliado.mostrar !== false };
+  if (!base.mostrar) return base;
+  return { ...base, nombre: aliado.nombre, titulo: aliado.titulo || '', colegiatura: aliado.colegiatura || '' };
+}
+
+export function aliadoActivo(id, partners) {
+  if (!id) return null;
+  return (Array.isArray(partners) ? partners : []).find((a) => a?.id === id && a.activo !== false) || null;
+}
+
+// "Arquitecta Ana Pérez · CAP 12345": la línea de crédito que se pinta junto
+// a un plan o un proyecto. Devuelve '' si no hay aliado o no se muestra.
+export function creditoDe(id, partners) {
+  const aliado = aliadoActivo(id, partners);
+  if (!aliado || aliado.mostrar === false || !aliado.nombre) return '';
+  const quien = [aliado.titulo, aliado.nombre].filter(Boolean).join(' ');
+  return [quien, aliado.colegiatura].filter(Boolean).join(' · ');
+}
+
+// Arquitectura e ingeniería: profesiones reguladas. Solo decide avisos del
+// panel; no bloquea nada.
+export function areaRegulada(area) {
+  return /arquitect|ingenier/i.test(String(area || ''));
+}
+
+// De parte de quién llegó el visitante. Se recuerda durante la visita (la
+// memoria de la pestaña) para anotarlo en la consulta por WhatsApp y en el
+// pedido. Solo guarda el código del aliado: nada del visitante.
+const CLAVE_REFERIDO = 'ed-referido';
+
+export function recordarReferido(id) {
+  try {
+    sessionStorage.setItem(CLAVE_REFERIDO, aIdentificador(id));
+  } catch {
+    // Sin almacenamiento, la visita funciona igual; solo no se anota el origen.
+  }
+}
+
+export function referidoActual() {
+  try {
+    return aIdentificador(sessionStorage.getItem(CLAVE_REFERIDO) || '');
+  } catch {
+    return '';
+  }
+}
+
+// El código del aliado que trajo al cliente, tal como lo guarda el servidor en
+// el pedido: solo si corresponde a un aliado que existe y está activo. Lo que
+// manda el navegador no se anota sin comprobar — si no, cualquiera podría
+// atribuirse ventas ajenas escribiendo un código en la dirección.
+export function referidoValido(valor, partners) {
+  return aliadoActivo(aIdentificador(valor), partners)?.id || '';
+}
+
+// Añade la referencia al mensaje de WhatsApp, para que el dueño vea en el
+// chat quién le mandó a ese cliente.
+export function conReferencia(mensaje, referido) {
+  return referido ? `${mensaje} (Ref.: ${referido})` : mensaje;
 }
 
 export function planesVisibles(services) {

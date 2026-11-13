@@ -491,6 +491,41 @@ Cosas que conviene saber:
 - El chat de la web (CHAT-ED) conoce tus planes y sus precios: si cambias un
   precio aquí, el chat lo dice al momento.
 
+## Aliados: profesionales que venden a través de tu página
+
+Para ofrecer **arquitectura, ingeniería civil o diseño** con profesionales que
+no son de tu empresa. Ellos traen público desde sus redes; tú vendes, cobras y
+emites el comprobante.
+
+En `/pedidos` → Mi tienda → Editar página → Qué vendo → **Aliados**:
+
+1. **+ Nuevo aliado**: nombre, profesión, número de colegiatura y un código
+   corto (ej. `arq-ana`). También puedes anotar, solo para ti, su teléfono y
+   la comisión que acordaron.
+2. En **Servicios** y **Portafolio**, al crear o editar un plan o un proyecto,
+   elige a ese profesional en «Profesional a cargo».
+3. Pásale **su enlace** (botón «Copiar su enlace»). Quien entra por ahí ve sus
+   servicios, y lo que consulte o compre queda anotado a su nombre:
+   - las consultas por WhatsApp te llegan con «(Ref.: arq-ana)» al final;
+   - los pedidos muestran «Llegó por el enlace de: …»;
+   - en la pestaña Aliados ves cuántos pedidos trajo cada uno y por cuánto.
+
+Lo que tienes que cuidar:
+
+- **Muestra el nombre y la colegiatura** del arquitecto o ingeniero. Los
+  planos y expedientes los firma un profesional colegiado y habilitado, y el
+  cliente lo va a ver de todos modos. Puedes desmarcar esa opción, pero el
+  panel te recordará por qué no conviene.
+- **El portafolio**: un proyecto que hizo el aliado por su cuenta no debe
+  presentarse como experiencia de tu empresa. Asígnalo a su nombre y saldrá
+  como «Proyecto de …».
+- **Antes de vender arquitectura o ingeniería**, consulta con tu notario si
+  conviene añadirlas al objeto social, y con tu contador cómo te factura el
+  profesional y qué detracción lleva tu factura al cliente.
+- **Transporte de carga** sí está en tu objeto social: lo publicas como un
+  plan más (área «Transporte de carga»). Pregunta a tu contador por el permiso
+  del MTC si llevarás mercadería de terceros.
+
 ## El live: registro y oferta al instante (/live)
 
 Para cuando haces una transmisión en vivo (TikTok, Instagram, Facebook). Tú
@@ -499,6 +534,9 @@ entra deja su nombre y su WhatsApp y ve al momento el código de descuento.
 
 Se maneja en `/pedidos` → **Promociones** → **Live**:
 
+0. **Si transmites por TikTok:** los enlaces que dices o escribes en el live
+   no se pueden tocar. Pon la dirección `…/live` en el enlace de tu perfil
+   antes de empezar, y dila en voz alta.
 1. **Elige el código** que vas a regalar. Si no tienes uno, toca «Crear un
    código nuevo para este live»: le pones el nombre (ej. `LIVE15`), cuánto
    descuenta, hasta qué día vale y el máximo de compras.

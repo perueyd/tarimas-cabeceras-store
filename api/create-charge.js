@@ -6,6 +6,7 @@ import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { agregarAlHistorial } from './_historial.js';
 import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
+import { referidoValido } from '../src/lib/servicios.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { avisarError } from './_alertas.js';
@@ -42,8 +43,10 @@ export default async function handler(req, res) {
   }
 
   // SEGURIDAD: el monto se recalcula aquí desde el catálogo ACTUAL; se ignora el del navegador.
-  const { products } = await getCatalog();
+  const { products, partners } = await getCatalog();
   const priced = priceOrder(products, body.items);
+  // Qué profesional aliado trajo a este cliente, si vino por su enlace.
+  const referido = referidoValido(body.referido, partners);
   if (!priced) {
     return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
   }
@@ -143,6 +146,7 @@ export default async function handler(req, res) {
         ...leerDatosComprobante(body),
         promoCode,
         promoDescuento,
+        ...(referido ? { referido } : {}),
         nombre,
         email,
         telefono,

@@ -10,6 +10,7 @@ import { separarIGV } from './_impuestos.js';
 import { partirPago } from '../src/lib/pedidos.js';
 import { avisarError } from './_alertas.js';
 import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
+import { referidoValido } from '../src/lib/servicios.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 // 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
@@ -87,6 +88,8 @@ export default async function handler(req, res) {
     // Datos del comprobante, revisados otra vez: lo que llega del navegador no
     // se cree sin comprobar (ver leerDatosComprobante).
     const datosComprobante = leerDatosComprobante(body);
+    // Qué profesional aliado trajo a este cliente, si vino por su enlace.
+    const referido = referidoValido(body.referido, catalog.partners);
 
     const order = {
       code: newOrderCode(),
@@ -109,6 +112,7 @@ export default async function handler(req, res) {
       ...(metodo === 'Contra entrega' ? adelantoDelPedido(montoFinal, catalog.storeConfig) : {}),
       // Lo que hace falta para emitir la boleta o la factura en SUNAT.
       ...datosComprobante,
+      ...(referido ? { referido } : {}),
       nombre,
       email: s(body.email, 120),
       telefono,
