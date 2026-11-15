@@ -245,6 +245,28 @@ export function localRedisCmd(command) {
       delete db[key];
       break;
 
+    // Cambiar una clave de nombre, con todo lo que tenga dentro. Lo usa el
+    // reinicio de la tienda para apartar los datos sin copiarlos. Como en
+    // Redis, falla si la clave no existe.
+    case 'RENAME': {
+      if (!entry) throw new Error('[db local] RENAME: no existe la clave ' + key);
+      db[String(args[0])] = entry;
+      delete db[key];
+      result = 'OK';
+      break;
+    }
+
+    // Las claves que calzan con un patrón ("visitas:*"). Solo se entiende el
+    // comodín "*", que es el único que usa el código.
+    case 'KEYS': {
+      const patron = new RegExp(
+        '^' + String(key).split('*').map((t) => t.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$'
+      );
+      result = Object.keys(db).filter((k) => patron.test(k) && vivo(db, k));
+      mutado = false;
+      break;
+    }
+
     default:
       throw new Error(`[db local] comando no soportado: ${cmd}`);
   }

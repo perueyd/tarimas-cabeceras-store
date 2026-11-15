@@ -610,6 +610,29 @@ Cómo se usa:
   aparece en la constancia y así ves de un vistazo qué pedidos ya tienen su
   comprobante.
 
+## Reiniciar la tienda (dejarla en cero)
+
+Para cuando termines de hacer pruebas y quieras empezar a vender con el panel
+limpio. Está al final de `/pedidos` → **Resumen** → «Reiniciar la tienda».
+
+- **Deja en cero:** pedidos y ventas, carritos abandonados, visitas, historial
+  de códigos, las veces que se usó cada cupón, reseñas, suscriptores, encuestas
+  y registrados del live.
+- **No toca:** tus productos, precios, fotos y textos; servicios, portafolio y
+  aliados; los cupones y ofertas; ni el Libro de Reclamaciones.
+- Te muestra antes cuánto hay de cada cosa. Para ejecutarlo tienes que escribir
+  la palabra `REINICIAR` y tu clave de administrador otra vez.
+- **Guarda una copia** y, si hay pedidos, descarga su hoja a tu equipo. En la
+  misma pantalla, en «Copias guardadas», puedes **Restaurar** (vuelve todo como
+  estaba) o **Borrar copia**. Se conservan las tres últimas.
+- Si restauras después de haber vendido algo, eso nuevo no se pierde: queda en
+  otra copia.
+
+Ojo: esto es para datos de prueba. Los pedidos reales son parte de tus
+registros del negocio; antes de reiniciar con ventas de verdad, asegúrate de
+tener su boleta o factura emitida en el facturador y la hoja de pedidos
+guardada.
+
 ## Seguimiento de pedido para el cliente (/seguimiento)
 
 - Cualquier cliente puede entrar a `tudominio.vercel.app/seguimiento`, poner
