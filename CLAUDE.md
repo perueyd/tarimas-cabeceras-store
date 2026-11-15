@@ -86,6 +86,24 @@ el panel del facturador. No vuelvas a conectarlos sin que el dueño lo pida.
   `src/lib/metodosPago.js` mantiene válida la configuración antigua `yapePlin`.
 - Los pagos (métodos, números, QR) se editan SOLO en la pestaña Pagos.
 
+**La constancia de pedido** (`src/components/Constancia.jsx`,
+`src/lib/constancia.js`) es el documento PROPIO de la tienda: el dueño usa dos
+papeles, esta constancia y la boleta o factura del facturador (decisión del
+14/11/2026). No es un comprobante de pago y no puede parecerlo — entregar un
+documento «no previsto como comprobante de pago» en lugar de la boleta es una
+infracción (Código Tributario, art. 174 num. 1). Por eso:
+
+- No se llama boleta, factura ni comprobante; no lleva serie ni correlativo
+  (su número es el código del pedido); y pinta SIEMPRE la leyenda
+  `LEYENDA_CONSTANCIA`. Hay pruebas que lo vigilan (`pruebas/constancia.test.js`).
+- La pública (`/constancia?codigo=…`) sale del seguimiento por código, que
+  **no devuelve datos personales**: la lista de campos es cerrada. La completa
+  (nombre, DNI, dirección) solo se ve en el panel.
+- El dueño anota en el pedido el número del comprobante que emitió en el
+  facturador (`order.comprobante`, ej. `B001-00000123`): así se ve qué pedidos
+  ya tienen su boleta. La tienda sigue sin llamar al facturador.
+- Se imprime con `HojaImprimible` (una copia colgada de `<body>`).
+
 ## Los dos asistentes
 
 - **CHAT-ED** (`api/chatbot.js`) — público, para clientes. Conoce el catálogo

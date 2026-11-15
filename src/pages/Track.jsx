@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { rutaDeConstancia } from '../lib/constancia.js';
 import { currencyFormatter } from '../data/catalog.js';
 import { useMeta } from '../lib/meta.js';
 
@@ -114,7 +115,13 @@ export default function Track() {
                 {order.items.map((i) => `${i.productName} x${i.qty}`).join(', ')}
               </p>
             )}
+            {order.comprobante && (
+              <p><span className="text-neutral-500">Comprobante electrónico:</span> {order.comprobante}</p>
+            )}
           </div>
+          <Link to={rutaDeConstancia(order.code)} className="mt-5 text-sm text-sky-700 underline">
+            Ver la constancia de este pedido
+          </Link>
         </div>
       )}
     </main>

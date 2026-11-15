@@ -586,6 +586,30 @@ Cosas que conviene saber:
   menciona el live: ve a Editar página → Ajustes delicados → Legal y pulsa el
   botón para usar el texto recomendado.
 
+## Constancia de pedido (el papel de la tienda)
+
+Vas a usar **dos documentos** por cada venta:
+
+1. **La constancia de pedido**, que da la tienda: qué se pidió, cuánto, cómo se
+   pagó y en qué estado está. **No es un comprobante de pago** y lo dice bien
+   claro arriba.
+2. **La boleta o factura electrónica**, que emites en tu facturador. Esa es la
+   que vale ante SUNAT y la que **siempre** tienes que entregar: la constancia
+   la acompaña, nunca la reemplaza (dar solo la constancia es una infracción).
+
+Cómo se usa:
+
+- **El cliente** la ve solo: al terminar su compra y en la página de
+  seguimiento tiene el enlace «Ver la constancia de mi pedido». Esa versión no
+  muestra su nombre ni su DNI, porque se abre solo con el código del pedido.
+- **Tú**, en `/pedidos` → Pedidos, abre el pedido y toca **🧾 Constancia**:
+  ahí sale completa (con nombre, DNI y dirección). Puedes imprimirla, guardarla
+  en PDF o mandarle el enlace por WhatsApp.
+- Cuando emitas la boleta o factura en el facturador, escribe su número en
+  **«Boleta/factura emitida»** (ej. `B001-123`). Queda anotado en el pedido,
+  aparece en la constancia y así ves de un vistazo qué pedidos ya tienen su
+  comprobante.
+
 ## Seguimiento de pedido para el cliente (/seguimiento)
 
 - Cualquier cliente puede entrar a `tudominio.vercel.app/seguimiento`, poner
