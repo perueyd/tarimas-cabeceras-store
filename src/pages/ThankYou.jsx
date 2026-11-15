@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { rutaDeConstancia } from '../lib/constancia.js';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { currencyFormatter } from '../data/catalog.js';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
@@ -71,6 +72,15 @@ export default function ThankYou() {
           >
             Ver el estado de mi pedido
           </Link>
+          {/* La constancia es de la tienda; la boleta o factura llega aparte,
+              del facturador. Se dice aquí para que el cliente no la espere en
+              este enlace. */}
+          <Link to={rutaDeConstancia(state.orderCode)} className="ml-4 mt-2 inline-block text-sm text-sky-700 underline">
+            Ver la constancia de mi pedido
+          </Link>
+          <p className="mt-1 text-xs text-neutral-400">
+            Tu boleta o factura electrónica te la enviamos aparte.
+          </p>
         </>
       )}
       {state?.chargeId && (

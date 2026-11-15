@@ -156,3 +156,26 @@ html {
   outline: 2px solid rgb(59 130 246);
   background: rgb(59 130 246 / 0.08);
 }
+
+/* Imprimir la constancia de pedido: sale SOLO la constancia.
+   La hoja que se imprime es una copia aparte, colgada directamente de <body>
+   (ver HojaImprimible.jsx): en pantalla no existe, y al imprimir es lo único
+   que queda. Antes se escondía el resto con "visibility", pero lo escondido
+   seguía ocupando su sitio y desde el panel salían hojas en blanco detrás.
+   Solo actúa cuando hay una hoja que imprimir: el resto de la tienda se
+   imprime como siempre. */
+.solo-imprimir {
+  display: none;
+}
+@media print {
+  body:has(.solo-imprimir) > *:not(.solo-imprimir) {
+    display: none !important;
+  }
+  .solo-imprimir {
+    display: block;
+  }
+  .solo-imprimir .constancia {
+    max-width: none;
+    padding: 0;
+  }
+}

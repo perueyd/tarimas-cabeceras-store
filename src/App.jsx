@@ -28,6 +28,8 @@ const ArmarDormitorio = lazy(() => import('./pages/ArmarDormitorio.jsx'));
 const Servicios = lazy(() => import('./pages/Servicios.jsx'));
 // La página del live solo la abre quien viene de una transmisión.
 const Live = lazy(() => import('./pages/Live.jsx'));
+// La constancia de un pedido: solo la abre quien acaba de comprar.
+const ConstanciaPage = lazy(() => import('./pages/ConstanciaPage.jsx'));
 const ChatbotWidget = lazy(() => import('./components/ChatbotWidget.jsx'));
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
@@ -115,6 +117,7 @@ export default function App() {
           <Route path="/gracias" element={<ThankYou />} />
           <Route path="/pedidos" element={<Orders />} />
           <Route path="/seguimiento" element={<Track />} />
+          <Route path="/constancia" element={<ConstanciaPage />} />
           <Route path="/libro-de-reclamaciones" element={<ComplaintsBook />} />
           <Route path="/politica-privacidad" element={<LegalPage which="privacidad" />} />
           <Route path="/terminos-condiciones" element={<LegalPage which="terminos" />} />

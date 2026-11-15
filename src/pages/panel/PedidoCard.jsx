@@ -5,11 +5,14 @@
 // tiene su propio archivo en vez de vivir perdida en medio de la página.
 
 import { useEffect, useState } from 'react';
-import { NOMBRE_TIENDA, urlOpinion, urlSeguimiento } from '../../data/sitio.js';
+import { NOMBRE_TIENDA, SITIO_URL, urlOpinion, urlSeguimiento } from '../../data/sitio.js';
 import { etiquetaComprobante } from '../../lib/documento.js';
 import { separarIGV } from '../../lib/igv.js';
 import { esLineaDeServicio } from '../../lib/servicios.js';
 import { useCatalog } from '../../context/CatalogContext.jsx';
+import Constancia from '../../components/Constancia.jsx';
+import HojaImprimible from '../../components/HojaImprimible.jsx';
+import { numeroDeComprobante, rutaDeConstancia } from '../../lib/constancia.js';
 import { calendarUrl } from './descargas.js';
 
 // Campo "Referencia (WSP)" de cada pedido.
@@ -57,6 +60,58 @@ export function CampoReferencia({ o, onUpdate }) {
   );
 }
 
+// El número de la boleta o factura que el dueño emitió en su facturador.
+//
+// La tienda no emite comprobantes: da su constancia, y el comprobante legal
+// sale del facturador. Anotar aquí su número deja a la vista, pedido por
+// pedido, cuáles ya tienen su boleta y cuáles no — que es justo lo que hay que
+// vigilar cuando se usan dos documentos.
+export function CampoComprobanteEmitido({ o, onUpdate }) {
+  const [valor, setValor] = useState(o.comprobante || '');
+  const [mal, setMal] = useState(false);
+
+  useEffect(() => {
+    setValor(o.comprobante || '');
+  }, [o.comprobante]);
+
+  function guardar() {
+    const limpio = numeroDeComprobante(valor);
+    if (limpio === false) {
+      setMal(true);
+      return;
+    }
+    setMal(false);
+    if (limpio === (o.comprobante || '')) {
+      setValor(limpio);
+      return;
+    }
+    onUpdate(o, { comprobante: limpio });
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input
+        type="text"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onBlur={guardar}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); }
+          if (e.key === 'Escape') setValor(o.comprobante || '');
+        }}
+        placeholder="Ej: B001-123"
+        maxLength="14"
+        title="El número de la boleta o factura que emitiste en el facturador. Se guarda al salir del campo."
+        className={`w-32 rounded-lg border bg-white px-2 py-1.5 text-xs outline-none focus:border-ink ${
+          mal ? 'border-red-400' : 'border-neutral-300'
+        }`}
+      />
+      {mal && <span className="text-[11px] text-red-600">Serie-número, ej. B001-123</span>}
+      {!mal && o.comprobante && <span className="text-xs text-green-600">✓</span>}
+    </span>
+  );
+}
+
 // Colores del estado de un pedido. Fuera del componente para no rehacerlos
 // en cada dibujado, y en un solo sitio para que la línea plegada y la abierta
 // no acaben enseñando colores distintos del mismo estado.
@@ -88,6 +143,7 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
   // veinte pedidos en pantalla encontrar el que importaba era un ejercicio de
   // paciencia.
   const [abierto, setAbierto] = useState(o.estado === 'Pago por verificar');
+  const [verConstancia, setVerConstancia] = useState(false);
 
   const cal = calendarUrl(o, currencyFormatter);
   const tel = (o.telefono || '').replace(/\D/g, '');
@@ -254,6 +310,17 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
               <span className="text-neutral-500">Referencia (WSP):</span>
               <CampoReferencia o={o} onUpdate={onUpdate} />
             </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-neutral-500">Boleta/factura emitida:</span>
+              <CampoComprobanteEmitido o={o} onUpdate={onUpdate} />
+            </label>
+            <button
+              type="button"
+              onClick={() => setVerConstancia(true)}
+              className="rounded-lg border border-neutral-300 px-3 py-1.5 font-medium hover:border-ink"
+            >
+              🧾 Constancia
+            </button>
             {wa && (
               <a href={wa} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-3 py-1.5 font-medium text-white hover:opacity-90">
                 WhatsApp al cliente
@@ -287,6 +354,53 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
               Eliminar
             </button>
           </div>
+        </div>
+      )}
+
+      {/* La constancia del pedido, con los datos completos del cliente (aquí
+          sí están: es el panel). La que abre el cliente con su código no trae
+          datos personales. */}
+      {verConstancia && (
+        <div
+          className="fixed inset-0 z-[70] overflow-y-auto bg-black/60 p-3 sm:p-6"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setVerConstancia(false);
+          }}
+        >
+          <div className="mx-auto max-w-2xl">
+            <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+              {tel && (
+                <a
+                  href={`https://wa.me/${tel.startsWith('51') ? tel : '51' + tel}?text=${encodeURIComponent(
+                    `Hola ${o.nombre}, esta es la constancia de tu pedido *${o.code}* en ${NOMBRE_TIENDA}:\n${SITIO_URL}${rutaDeConstancia(o.code)}\n\nTu boleta o factura electrónica te la enviamos aparte.`
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg bg-[#25D366] px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                >
+                  Enviar enlace por WhatsApp
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
+              >
+                Imprimir o guardar en PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => setVerConstancia(false)}
+                className="rounded-lg border border-white/50 px-3 py-2 text-sm font-medium text-white hover:bg-white/10"
+              >
+                Cerrar
+              </button>
+            </div>
+            <Constancia pedido={o} />
+          </div>
+          <HojaImprimible>
+            <Constancia pedido={o} />
+          </HojaImprimible>
         </div>
       )}
     </div>

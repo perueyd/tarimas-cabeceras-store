@@ -11,6 +11,7 @@ import { partirPago } from '../src/lib/pedidos.js';
 import { avisarError } from './_alertas.js';
 import { leerDatosComprobante, revisarComprobante } from '../src/lib/documento.js';
 import { referidoValido } from '../src/lib/servicios.js';
+import { numeroDeComprobante } from '../src/lib/constancia.js';
 
 const ESTADOS_VALIDOS = ['Pago por verificar', 'Pagado', 'Entregado', 'Cancelado'];
 // 'Yape/Plin' queda solo para los pedidos antiguos: ahora se distinguen, porque
@@ -162,6 +163,11 @@ export default async function handler(req, res) {
       // Busca por indice: no depende de cuantos pedidos haya acumulados.
       const found = await buscarPedido(code);
       if (!found) return res.status(404).json({ error: 'No encontramos un pedido con ese código.' });
+      // Con el código se ve el pedido (qué se pidió, cuánto y en qué estado
+      // está), que es lo que hace falta para el seguimiento y para la
+      // constancia. NUNCA lo personal: ni nombre, ni teléfono, ni dirección, ni
+      // DNI. Se arma campo por campo para que un dato nuevo del pedido no
+      // salga publicado por descuido.
       return res.status(200).json({
         order: {
           code: found.code,
@@ -169,7 +175,20 @@ export default async function handler(req, res) {
           fecha: found.fecha,
           entrega: found.entrega,
           monto: found.monto,
-          items: (found.items || []).map((i) => ({ productName: i.productName, qty: i.qty })),
+          metodo: found.metodo,
+          promoDescuento: found.promoDescuento || 0,
+          adelanto: found.adelanto,
+          saldo: found.saldo,
+          comprobante: found.comprobante || '',
+          items: (found.items || []).map((i) => ({
+            productName: i.productName,
+            qty: i.qty,
+            unitPrice: i.unitPrice,
+            sizeId: i.sizeId,
+            colorId: i.colorId,
+            colorId2: i.colorId2,
+            opciones: i.opciones,
+          })),
         },
       });
     }
@@ -206,8 +225,15 @@ export default async function handler(req, res) {
     const metodo = b.metodo != null ? s(b.metodo, 40) : null;
     const referencia = b.referencia != null ? s(b.referencia, 60) : null;
     const cambiaDocumento = b.docNumero != null;
-    if (!code || (!estado && !metodo && referencia === null && !cambiaDocumento)) {
-      return res.status(400).json({ error: 'Datos inválidos (code y estado, metodo, referencia o documento).' });
+    // El número de la boleta o factura que el dueño emitió en su facturador
+    // (la tienda no emite: solo lo apunta para saber que ese pedido ya tiene
+    // su comprobante legal). Vacío lo borra.
+    const comprobante = b.comprobante != null ? numeroDeComprobante(b.comprobante) : null;
+    if (comprobante === false) {
+      return res.status(400).json({ error: 'Escribe el número como sale en el comprobante: serie, guion y número. Por ejemplo B001-123.' });
+    }
+    if (!code || (!estado && !metodo && referencia === null && !cambiaDocumento && comprobante === null)) {
+      return res.status(400).json({ error: 'Datos inválidos (code y estado, metodo, referencia, documento o comprobante).' });
     }
     if (estado && !ESTADOS_VALIDOS.includes(estado)) {
       return res.status(400).json({ error: 'Estado inválido.' });
@@ -228,6 +254,10 @@ export default async function handler(req, res) {
       if (estado) o.estado = estado;
       if (metodo) o.metodo = metodo;
       if (referencia !== null) o.referencia = referencia;
+      if (comprobante !== null) {
+        if (comprobante) o.comprobante = comprobante;
+        else delete o.comprobante;
+      }
       if (cambiaDocumento) {
         delete o.razonSocial;
         Object.assign(o, documento);
