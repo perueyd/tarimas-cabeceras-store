@@ -201,6 +201,25 @@ Si añades una lista nueva al catálogo, añádela también a `PARTES` en
 `api/_respaldos.js` o las copias quedarán incompletas sin avisar (hay una
 prueba que lo comprueba).
 
+## Reiniciar la tienda: `api/_rutas/reiniciar.js`
+
+Botón al final del Resumen del panel (`src/pages/panel/ReiniciarDatos.jsx`):
+deja en cero todo lo de clientes para empezar limpio — pedidos, carritos,
+visitas, historial de códigos, usos de cupones, reseñas, suscriptores,
+encuestas y registrados del live.
+
+- **No borra: cambia de nombre.** Cada clave se aparta con `RENAME` a
+  `reinicio:<fecha>:…`. Restaurar es devolverle el nombre. Se guardan las tres
+  últimas copias; las que sobran se borran de verdad (son datos personales).
+- **Lo que se reinicia está en una lista cerrada (`SE_REINICIA`)**. Nunca el
+  catálogo, los cupones (solo su contador de usos), el Libro de Reclamaciones
+  ni las solicitudes ARCO. Si añades una clave nueva de clientes, añádela ahí;
+  si añades un patrón, la prueba comprueba que no alcance nada protegido.
+- **El nombre de cada copia tiene que ser único**: `RENAME` pisa el destino sin
+  avisar. Dos copias en el mismo instante se pisaban (lo cazó una prueba).
+- Restaurar aparta primero lo que haya ahora en otra copia: nada se pierde.
+- Exige la clave, la palabra REINICIAR y, en el panel, la clave otra vez.
+
 ## Servicios y portafolio: `src/lib/servicios.js`
 
 La página `/servicios` muestra planes de servicio y proyectos realizados. Son

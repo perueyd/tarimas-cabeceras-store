@@ -8,6 +8,7 @@ import HistorialCodigosTab from './HistorialCodigosTab.jsx';
 import AnalyticsOfertasTab from './AnalyticsOfertasTab.jsx';
 import PromoEditor from './PromoEditor.jsx';
 import LiveTab from './LiveTab.jsx';
+import ReiniciarDatos from './panel/ReiniciarDatos.jsx';
 import DescuentosAutoEditor from './DescuentosAutoEditor.jsx';
 import JarvisVoice from '../components/JarvisVoice.jsx';
 import QueHacerHoy from '../components/QueHacerHoy.jsx';
@@ -459,6 +460,7 @@ export default function Orders() {
           <GraficaVentasPorDia orders={orders} currencyFormatter={currencyFormatter} />
           <GraficaVentasPorProducto orders={orders} currencyFormatter={currencyFormatter} />
         </div>
+        <ReiniciarDatos adminKey={key} orders={orders} onHecho={() => cargar(key)} />
         </>
       )}
 
