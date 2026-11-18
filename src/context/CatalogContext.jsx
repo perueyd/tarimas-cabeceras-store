@@ -7,6 +7,10 @@ import * as staticCatalog from '../data/catalog.js';
 // página" se refleja al instante en toda la tienda, sin deploy.
 const CatalogContext = createContext(null);
 
+// Hasta que responda el servidor (o si falla), el menú no enseña el live:
+// mejor no anunciarlo un momento que anunciar uno que no está pasando.
+const SIN_LIVE = { enVivo: false, anunciado: false };
+
 export function CatalogProvider({ children }) {
   const [state, setState] = useState({
     products: staticCatalog.products,
@@ -18,6 +22,7 @@ export function CatalogProvider({ children }) {
     services: staticCatalog.services,
     projects: staticCatalog.projects,
     partners: staticCatalog.partners,
+    live: SIN_LIVE,
     loaded: false,
   });
 
@@ -37,6 +42,7 @@ export function CatalogProvider({ children }) {
           services: Array.isArray(d.services) ? d.services : staticCatalog.services,
           projects: Array.isArray(d.projects) ? d.projects : staticCatalog.projects,
           partners: Array.isArray(d.partners) ? d.partners : staticCatalog.partners,
+          live: d.live || SIN_LIVE,
           loaded: true,
         });
       })
@@ -49,7 +55,7 @@ export function CatalogProvider({ children }) {
   }, []);
 
   const value = useMemo(() => {
-    const { products, categories, colors, sizes, showcase, storeConfig, services, projects, partners, loaded } = state;
+    const { products, categories, colors, sizes, showcase, storeConfig, services, projects, partners, live, loaded } = state;
     return {
       products,
       categories,
@@ -60,6 +66,7 @@ export function CatalogProvider({ children }) {
       services,
       projects,
       partners,
+      live,
       currencyFormatter: staticCatalog.currencyFormatter,
       loaded,
       getProductById: (id) => products.find((p) => p.id === id),
@@ -79,6 +86,7 @@ export function CatalogProvider({ children }) {
               services: d.services || [],
               projects: d.projects || [],
               partners: d.partners || [],
+              live: d.live || SIN_LIVE,
               loaded: true,
             })
           ),

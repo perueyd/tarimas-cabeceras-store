@@ -30,6 +30,7 @@ globalThis.fetch = async (url, opts = {}) => {
   let result = null;
   switch (cmd) {
     case 'GET': result = db.get(key) ?? null; break;
+    case 'MGET': result = [key, ...args].map((k) => (typeof db.get(k) === 'string' ? db.get(k) : null)); break;
     case 'SET': db.set(key, args[0]); result = 'OK'; break;
     case 'DEL': db.delete(key); result = 1; break;
     case 'INCR': { const n = Number(db.get(key) || 0) + 1; db.set(key, String(n)); result = n; break; }
@@ -59,9 +60,10 @@ globalThis.fetch = async (url, opts = {}) => {
 };
 
 const { default: live } = await import('../api/_rutas/live.js');
+const { default: catalogo } = await import('../api/catalog.js');
 const { validatePromo } = await import('../api/_promo.js');
 const { PRIVACIDAD } = await import('../src/data/textosLegales.js');
-const { normalizarWhatsApp, normalizarNombre, textoDeOferta } = await import('../src/lib/live.js');
+const { liveParaElMenu, normalizarWhatsApp, normalizarNombre, textoDeOferta } = await import('../src/lib/live.js');
 
 // --- Ayudantes ---------------------------------------------------------------
 const MANANA = new Date(Date.now() + 36 * 3600 * 1000).toISOString().slice(0, 10);
@@ -117,6 +119,40 @@ test('la consulta pública nunca trae el código, ni con el live encendido', asy
   assert.equal(res.cuerpo.titulo, 'Live de hoy');
   assert.ok(!JSON.stringify(res.cuerpo).includes('LIVE15'), 'el código de descuento sale sin registrarse');
   assert.deepEqual(Object.keys(res.cuerpo).sort(), ['activo', 'descripcion', 'liveId', 'proximo', 'titulo']);
+});
+
+// El dueño quiso el live en el menú de la tienda (18/11/2026). El menú sabe
+// si enseñarlo porque el estado viaja dentro de /api/catalog, que descarga
+// CUALQUIERA: por ahí no puede salir el código, o registrarse sobraría.
+async function catalogoPublico() {
+  const res = { codigo: 0, cuerpo: null, status(c) { this.codigo = c; return this; }, json(x) { this.cuerpo = x; return this; } };
+  ip += 1;
+  await catalogo({ method: 'GET', query: {}, headers: { 'x-real-ip': `10.0.1.${ip}` }, socket: {} }, res);
+  return res;
+}
+
+test('el menú sabe si hay live por el catálogo, sin que el código viaje en él', async () => {
+  tienda();
+  assert.deepEqual((await catalogoPublico()).cuerpo.live, { enVivo: false, anunciado: false }, 'sin live no debe salir en el menú');
+
+  await encender({ proximo: '' });
+  const encendido = await catalogoPublico();
+  assert.equal(encendido.codigo, 200);
+  assert.deepEqual(encendido.cuerpo.live, { enVivo: true, anunciado: false });
+  assert.ok(!JSON.stringify(encendido.cuerpo).includes('LIVE15'), 'el código del live sale en el catálogo público');
+
+  // Apagado pero con el próximo anunciado: sale como «Live», sin código.
+  await llamar('POST', { query: { accion: 'config' }, admin: true, body: { activo: false, codigo: 'LIVE15', proximo: 'Sábado 8 pm por TikTok' } });
+  const anunciado = await catalogoPublico();
+  assert.deepEqual(anunciado.cuerpo.live, { enVivo: false, anunciado: true });
+  assert.ok(!JSON.stringify(anunciado.cuerpo).includes('LIVE15'));
+});
+
+test('el estado del menú se arma solo con dos sí/no, venga lo que venga guardado', () => {
+  const guardado = { activo: true, codigo: 'SECRETO', liveId: 'x', titulo: 't', proximo: '  ', encendido: 'hoy' };
+  assert.deepEqual(liveParaElMenu(guardado), { enVivo: true, anunciado: false });
+  assert.deepEqual(liveParaElMenu(null), { enVivo: false, anunciado: false });
+  assert.deepEqual(liveParaElMenu({ activo: 'si', proximo: 'Lunes' }), { enVivo: false, anunciado: true });
 });
 
 test('con el live apagado nadie se registra ni recibe código', async () => {

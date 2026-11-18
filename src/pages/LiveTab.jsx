@@ -224,8 +224,12 @@ export default function LiveTab({ adminKey, onIr }) {
           </p>
           <p className="mt-1 text-sm text-neutral-600">
             {config.activo
-              ? `Quien entra a la página se registra y ve el código ${config.codigo}. Van ${delLive.length} ${delLive.length === 1 ? 'registrado' : 'registrados'} en este live.`
-              : 'La página dice «ahora no estamos en vivo» y no entrega ningún código.'}
+              ? `En el menú de la tienda sale «🔴 En vivo». Quien entra se registra y ve el código ${config.codigo}. Van ${delLive.length} ${delLive.length === 1 ? 'registrado' : 'registrados'} en este live.`
+              : `La página dice «ahora no estamos en vivo» y no entrega ningún código. ${
+                  config.proximo?.trim()
+                    ? 'En el menú de la tienda sale «Live», porque escribiste cuándo es el próximo.'
+                    : 'En el menú de la tienda no sale.'
+                }`}
           </p>
         </div>
         {config.activo ? (
@@ -391,6 +395,10 @@ export default function LiveTab({ adminKey, onIr }) {
           </label>
           <label className="text-sm sm:col-span-2">
             <span className="mb-1 block font-medium text-neutral-700">Qué decir cuando NO hay live (opcional)</span>
+            <span className="mb-1 block text-xs text-neutral-500">
+              Si lo escribes, «Live» aparece en el menú de la tienda aunque no estés transmitiendo. Déjalo vacío para
+              que solo aparezca mientras el live está encendido.
+            </span>
             <input
               value={form.proximo}
               onChange={(e) => setForm({ ...form, proximo: e.target.value })}

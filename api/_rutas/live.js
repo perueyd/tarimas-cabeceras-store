@@ -23,6 +23,7 @@
 
 import { createHash, randomBytes } from 'crypto';
 import { hasDB, redisCmd } from '../_store.js';
+import { CLAVE_LIVE } from '../_catalog.js';
 import { s } from '../_pricing.js';
 import { checkAdminAuth } from '../_auth.js';
 import { clientIp, rateLimitRequest } from '../_ratelimit.js';
@@ -30,7 +31,8 @@ import { listPromoCodes, usosDe } from '../_promo.js';
 import { vencida } from '../_ofertas-auto.js';
 import { normalizarNombre, normalizarWhatsApp, textoDeOferta } from '../../src/lib/live.js';
 
-const CLAVE_CONFIG = 'live:config';
+// La misma clave que lee el catálogo para el menú de la tienda.
+const CLAVE_CONFIG = CLAVE_LIVE;
 const CLAVE_LISTA = 'live:registrados';
 const PREFIJO_VISTOS = 'live:vistos:';
 const MAX_REGISTRADOS = 5000;

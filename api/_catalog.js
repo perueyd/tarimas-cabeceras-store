@@ -6,6 +6,7 @@ import { hasDB, redisCmd } from './_store.js';
 import { respaldar } from './_respaldos.js';
 import { categories, colors, partners, products, projects, services, showcase, sizes, storeConfig } from '../src/data/catalog.js';
 import { sincronizarProductos } from '../src/lib/servicios.js';
+import { liveParaElMenu } from '../src/lib/live.js';
 
 const KEYS = {
   products: 'catalog:products',
@@ -52,30 +53,37 @@ async function setJSON(key, value) {
 // con los tokens de integraciones dentro.
 const ORDEN = ['products', 'categories', 'colors', 'sizes', 'showcase', 'config', 'services', 'projects', 'partners'];
 
-async function leerTodo() {
-  if (!hasDB) return ORDEN.map(() => null);
+// La configuración del live (la escribe api/_rutas/live.js). No es parte del
+// catálogo ni de sus copias, pero se lee en el MISMO MGET para que el menú
+// sepa si enseñar «🔴 En vivo»: pedirla aparte costaría un comando más de
+// Upstash en cada visita.
+export const CLAVE_LIVE = 'live:config';
+
+function leerJson(crudo) {
+  if (crudo == null) return null;
   try {
-    const data = await redisCmd(['MGET', ...ORDEN.map((k) => KEYS[k])]);
+    return JSON.parse(crudo) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function leerTodo() {
+  if (!hasDB) return { partes: ORDEN.map(() => null), live: null };
+  try {
+    const data = await redisCmd(['MGET', ...ORDEN.map((k) => KEYS[k]), CLAVE_LIVE]);
     const valores = Array.isArray(data?.result) ? data.result : [];
-    return ORDEN.map((_, i) => {
-      const crudo = valores[i];
-      if (crudo == null) return null;
-      try {
-        return JSON.parse(crudo) ?? null;
-      } catch {
-        return null;
-      }
-    });
+    return { partes: ORDEN.map((_, i) => leerJson(valores[i])), live: leerJson(valores[ORDEN.length]) };
   } catch (err) {
     console.error('No se pudo leer el catálogo de Redis:', err?.message);
     // Un fallo de lectura es distinto de "no hay nada": si se confundieran,
     // la siguiente escritura guardaría el catálogo de fábrica encima del real.
-    return ORDEN.map(() => FALLO);
+    return { partes: ORDEN.map(() => FALLO), live: null };
   }
 }
 
 export async function getCatalog({ paraEditar = false } = {}) {
-  const leidos = await leerTodo();
+  const { partes: leidos, live } = await leerTodo();
 
   if (paraEditar && leidos.some((x) => x === FALLO)) {
     throw new Error(
@@ -99,6 +107,7 @@ export async function getCatalog({ paraEditar = false } = {}) {
     services: dbServices ?? services,
     projects: dbProjects ?? projects,
     partners: dbPartners ?? partners,
+    live: liveParaElMenu(live),
   };
 }
 
