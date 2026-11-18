@@ -140,6 +140,13 @@ export default function Footer() {
               {link.label}
             </Link>
           ))}
+          {/* En celulares muy angostos, con Servicios y el live en el menú,
+              «Rastrear» se esconde arriba (ver Header.jsx): aquí sigue a mano. */}
+          {!(storeConfig.footer?.links || []).some((link) => link.url === '/seguimiento') && (
+            <Link to="/seguimiento" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
+              Rastrear mi pedido
+            </Link>
+          )}
           {legal.privacidadActiva && (
             <Link to="/politica-privacidad" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
               {legal.privacidadTitulo || 'Privacidad'}

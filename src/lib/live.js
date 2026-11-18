@@ -24,6 +24,18 @@ export function normalizarNombre(valor) {
     .slice(0, 60);
 }
 
+// Lo que el menú de la tienda necesita saber del live: si está encendido
+// («🔴 En vivo») o si el dueño escribió cuándo es el próximo («Live»). Viaja
+// dentro del catálogo, que descarga cualquiera, así que son solo dos sí/no
+// armados a mano: el código de descuento NUNCA puede salir por aquí (el
+// registro dejaría de hacer falta).
+export function liveParaElMenu(config) {
+  return {
+    enVivo: config?.activo === true,
+    anunciado: typeof config?.proximo === 'string' && config.proximo.trim() !== '',
+  };
+}
+
 // "15% de descuento" o "S/ 50 de descuento": lo que da el cupón, dicho como
 // lo diría el dueño en el live.
 export function textoDeOferta(promo) {

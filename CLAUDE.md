@@ -307,6 +307,12 @@ donde también está la lista de registrados.
   fuera a media audiencia.
 - El código viaja al pago por `sessionStorage` (`src/lib/live.js`): el campo
   del cupón aparece ya relleno, aunque esté oculto para el resto.
+- **El menú enseña el live** (pedido del dueño, 18/11/2026): «🔴 En vivo»
+  mientras está encendido, «Live» si hay texto en `proximo`. El estado viaja
+  en `/api/catalog` como `live: { enVivo, anunciado }`, leído en el MISMO
+  `MGET` del catálogo (clave `CLAVE_LIVE` de `api/_catalog.js`) para no gastar
+  otro comando de Upstash por visita. Lo arma `liveParaElMenu()` con dos sí/no:
+  **nunca añadas ahí el código** (hay prueba en `pruebas/live.test.js`).
 
 ## Vencimientos: `src/lib/vencimiento.js`
 

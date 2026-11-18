@@ -569,6 +569,14 @@ Se maneja en `/pedidos` → **Promociones** → **Live**:
    estamos en vivo» y ya no entrega el código. Quien ya lo tiene puede seguir
    usándolo hasta que venza o se acaben los usos.
 
+**En el menú de la tienda:**
+
+- Mientras el live está encendido, arriba sale **«🔴 En vivo»** en rojo.
+- Con el live apagado, sale **«Live»** solo si escribiste algo en «Qué decir
+  cuando NO hay live» (ej. «Próximo live: sábado 8 pm por TikTok»). Déjalo
+  vacío y el live desaparece del menú hasta que lo vuelvas a encender.
+- Quien ya tenía la tienda abierta lo ve al entrar de nuevo o recargar.
+
 Cosas que conviene saber:
 
 - El código **no se ve** hasta registrarse, ni siquiera mirando «por dentro»
