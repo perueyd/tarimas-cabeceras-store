@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
 import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
@@ -15,10 +16,13 @@ export default function Cart() {
   const { currencyFormatter, getColorById, getSizeById, getProductById: getProductByIdSafe, storeConfig } = useCatalog();
   const navigate = useNavigate();
 
-  // El plazo que el dueño escribió en el panel, el mismo que enseña la ficha
-  // del producto. Así el carrito no añade una versión más del plazo: ya hay
-  // cuatro textos distintos repartidos por la tienda.
-  const leadTime = storeConfig?.leadTime || '';
+  // El plazo sale de la MISMA regla que la ficha y el pago (src/lib/entrega.js),
+  // con lo que hay en el carrito: con una cabecera y una tarima manda la más
+  // exigente. Los servicios se coordinan aparte y no cuentan.
+  const productosDelCarrito = items.filter((i) => !esLineaDeServicio(i));
+  const plazo = productosDelCarrito.length
+    ? textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), productosDelCarrito.map((i) => getProductByIdSafe(i.productId)?.category)))
+    : '';
   const envioTexto = storeConfig?.envioTexto || '';
 
   // La garantía solo se enseña si TODOS los productos del carrito dicen la
@@ -158,9 +162,9 @@ export default function Cart() {
         </p>
       )}
 
-      {(leadTime || garantia) && (
+      {(plazo || garantia) && (
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-neutral-500">
-          {leadTime && <span>🚚 Fabricado a pedido — entrega en {leadTime}</span>}
+          {plazo && <span>🚚 {plazo}</span>}
           {garantia && <span>🛡️ Garantía {garantia}</span>}
         </div>
       )}

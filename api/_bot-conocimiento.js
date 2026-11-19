@@ -13,6 +13,40 @@ import { getCatalog } from './_catalog.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { SITIO } from './_sitio.js';
 import { cobroDePlan, planesVisibles } from '../src/lib/servicios.js';
+import { plazosPorCategoria, reglasDeEntrega } from '../src/lib/entrega.js';
+import { metodosActivos } from '../src/lib/metodosPago.js';
+
+// Cómo se llama cada forma de pago para el cliente.
+const NOMBRES_DE_PAGO = {
+  culqi: 'tarjeta de crédito o débito (Culqi)',
+  yape: 'Yape',
+  plin: 'Plin',
+  transferencia: 'transferencia bancaria',
+  contraEntrega: 'pago contra entrega (en efectivo, al recibir)',
+};
+
+// Plazos y formas de pago salen de la MISMA configuración que usa el pago, no
+// de un texto escrito a mano. El 19/11/2026 CHAT-ED le prometía a una tarima
+// la regla de las cabeceras («pide hasta las 8 y te llega hoy desde las 5»)
+// porque la sacaba de una pregunta frecuente antigua; y una pregunta
+// frecuente seguía diciendo «aceptamos tarjeta» con la tarjeta apagada.
+function plazosYPagos(catalog) {
+  const { products = [], categories = [], storeConfig = {} } = catalog;
+  const aLaVenta = new Set(products.filter((p) => !p.oculto && !p.esServicio).map((p) => p.category));
+  const tipos = categories.filter((c) => aLaVenta.has(c.id)).map((c) => ({ id: c.id, label: c.label || c.name || c.id }));
+  const plazos = plazosPorCategoria(reglasDeEntrega(storeConfig), tipos)
+    .map((p) => `- ${p.nombre}: ${p.texto}`)
+    .join('\n');
+  const pagos = Object.entries(metodosActivos(storeConfig.paymentMethods))
+    .filter(([clave, activo]) => activo && NOMBRES_DE_PAGO[clave])
+    .map(([clave]) => NOMBRES_DE_PAGO[clave])
+    .join(', ');
+  return `PLAZOS DE ENTREGA EN LIMA (regla oficial: si una pregunta frecuente dice otra cosa, vale ESTA):
+${plazos}
+Si el pedido junta productos de varios tipos, vale el plazo más exigente. Lo que dice «según la disponibilidad del taller» NO es seguro: no lo prometas, di que se confirma por WhatsApp. A provincias, el tiempo depende de la agencia de envío.
+
+FORMAS DE PAGO QUE SE ACEPTAN HOY (no ofrezcas ninguna otra): ${pagos || 'consultar por WhatsApp'}.`;
+}
 
 // Personalidad por defecto. El dueño puede reemplazarla desde el panel.
 export const PERSONALIDAD_POR_DEFECTO = `Eres el asistente de ${NOMBRE_TIENDA}, una tienda peruana de muebles a medida.
@@ -160,6 +194,8 @@ ${resumirProductos(products, sizes)}
 TAMAÑOS DISPONIBLES: ${tamanos || 'consultar'}
 
 COLORES DE TELA: ${coloresTxt || 'consultar'}
+
+${plazosYPagos(catalog)}
 
 ${servicios ? `SERVICIOS (además de los muebles; se ven en ${SITIO}/servicios):\n${servicios}\n` : ''}
 ${faq ? `PREGUNTAS FRECUENTES (respuestas oficiales de la tienda):\n${faq}\n` : ''}

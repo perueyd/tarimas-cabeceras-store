@@ -8,7 +8,8 @@ import { PRIVACIDAD, TERMINOS } from './textosLegales.js';
 // ---------- DATOS DE LA TIENDA ----------
 // whatsapp: tu número con código de país, sin espacios ni "+" (ej. '51987654321').
 //           Si lo dejas vacío, el botón de WhatsApp no se muestra.
-// leadTime: texto del tiempo de fabricación/entrega que ve el cliente.
+// El plazo de entrega ya no es un texto: sale de las reglas de src/lib/entrega.js
+// (panel → Entrega), para que la ficha, el pago y CHAT-ED digan lo mismo.
 // deliveryMinDays: días mínimos desde hoy para elegir fecha de entrega en el checkout.
 export const storeConfig = {
   // ---------- BRANDING (Logo, nombre, identidad) ----------
@@ -53,7 +54,6 @@ export const storeConfig = {
   // carritos abandonados — más que el precio en sí. Se edita en Panel →
   // Entrega; vacío, no se muestra nada.
   envioTexto: 'Envío incluido en Lima Metropolitana',
-  leadTime: '3 a 4 días hábiles',
   deliveryMinDays: 4,
   deliverySlots: [
     { id: 'manana', label: 'Mañana (9:00 a.m. – 1:00 p.m.)' },
@@ -82,10 +82,10 @@ export const storeConfig = {
   // Preguntas frecuentes (editable desde el panel). Se muestran en la portada.
   // Deja la lista vacía para no mostrar la sección.
   faq: [
-    { q: '¿Cuánto demora la entrega?', a: 'Fabricamos a pedido y entregamos en 3 a 4 días hábiles en Lima. A provincias, el tiempo depende de la agencia de envío.' },
+    { q: '¿Cuánto demora la entrega?', a: 'Depende del producto: en cada ficha y al finalizar la compra ves el plazo exacto y eliges la fecha. A provincias, el tiempo depende de la agencia de envío.' },
     { q: '¿El color real es igual al de la foto?', a: 'Es muy parecido, pero el tono puede variar un poco según tu pantalla, la luz y el lote de la tela. Si tienes dudas, escríbenos y te enviamos una foto real de la tela.' },
     { q: '¿Puedo pedir una medida distinta?', a: 'Sí, trabajamos a medida. Escríbenos por WhatsApp con la medida que necesitas y te cotizamos.' },
-    { q: '¿Cómo puedo pagar?', a: 'Aceptamos Yape/Plin, transferencia bancaria y tarjeta. Verás todas las opciones al finalizar tu compra.' },
+    { q: '¿Cómo puedo pagar?', a: 'Verás todas las formas de pago disponibles al finalizar tu compra, en soles.' },
   ],
   // Textos y vínculos de la página principal (editables desde el panel).
   landing: {
@@ -106,7 +106,7 @@ export const storeConfig = {
       titulo: 'Comprar es simple',
       pasos: [
         { titulo: 'Elige y personaliza', texto: 'Selecciona el modelo, el tamaño y el color que combine con tu espacio.' },
-        { titulo: 'Paga seguro', texto: 'Con tarjeta o Yape a través de Culqi, en soles y sin complicaciones.' },
+        { titulo: 'Paga seguro', texto: 'Eliges cómo pagar al finalizar tu compra: en soles y sin complicaciones.' },
         { titulo: 'Recíbelo en casa', texto: 'Coordinamos la entrega e instalación según tu distrito.' },
       ],
     },

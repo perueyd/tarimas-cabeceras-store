@@ -114,7 +114,7 @@ export default function Footer() {
 
         <div className="space-y-2 text-xs sm:text-sm text-neutral-600">
           <p className="font-medium">{storeConfig.footer?.copyright || `© ${new Date().getFullYear()} ${NOMBRE_TIENDA}. Todos los derechos reservados.`}</p>
-          <p>{storeConfig.footer?.paymentText || '🔒 Pagos seguros con Culqi | Precios en Soles (S/)'}</p>
+          <p>{storeConfig.footer?.paymentText || '🔒 Pagos seguros | Precios en Soles (S/)'}</p>
           {/* Quién vende, visible en TODA la web. La Ley 29571 obliga a
               identificar al proveedor; hasta ahora el RUC solo salía dentro del
               Libro de Reclamaciones y de las páginas legales, que es donde casi

@@ -27,3 +27,28 @@ export function billetera(cfg = {}, tipo) {
   }
   return { nombre: 'Yape', numero: cfg.yape, titular: cfg.yapeTitular, qr: cfg.yapeQr };
 }
+
+/**
+ * Textos guardados que todavía mencionan la tarjeta (o Culqi), para avisar
+ * cuando el pago con tarjeta está apagado. El dueño la apagó y la tienda la
+ * seguía prometiendo en el pie de página, en la portada, en una pregunta
+ * frecuente y en las condiciones de compra (revisado el 19/11/2026).
+ * Devuelve dónde se edita cada uno, como se ve en el panel.
+ */
+export function textosQueMencionanTarjeta(cfg = {}) {
+  const menciona = (texto) => /tarjeta|culqi/i.test(String(texto || ''));
+  const hallados = [];
+  if (menciona(cfg.footer?.paymentText)) hallados.push({ donde: 'Cómo se ve → Branding (pie de página)', texto: cfg.footer.paymentText });
+  for (const paso of cfg.landing?.comoFunciona?.pasos || []) {
+    if (menciona(paso?.texto)) hallados.push({ donde: 'Cómo se ve → Página principal («Cómo funciona»)', texto: paso.texto });
+  }
+  for (const f of cfg.faq || []) {
+    if (menciona(f?.a || f?.respuesta)) hallados.push({ donde: `Cómo funciona → Preguntas («${f.q || f.pregunta}»)`, texto: f.a || f.respuesta });
+  }
+  if (cfg.cuotasNumero > 1 && menciona(cfg.cuotasTexto)) hallados.push({ donde: 'Cómo funciona → Datos de la tienda (cuotas)', texto: cfg.cuotasTexto });
+  if (menciona(cfg.legal?.terminosTexto)) {
+    const frase = String(cfg.legal.terminosTexto).split(/\n|(?<=\.)\s/).find(menciona) || '';
+    hallados.push({ donde: 'Ajustes delicados → Legal (Términos y condiciones)', texto: frase.trim() });
+  }
+  return hallados;
+}

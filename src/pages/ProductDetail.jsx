@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import { reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
 import { lazyConRecarga } from '../lib/cargarPieza.js';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -655,8 +656,8 @@ export default function ProductDetail() {
           </div>
 
           <p className="mt-4 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
-            🚚 Fabricado a pedido — entrega en <span className="font-medium">{storeConfig.leadTime}</span>.
-            Al pagar eliges la fecha y el rango de horario que te acomode.
+            🚚 Fabricado a pedido. {textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), [product.category]))} Al
+            pagar eliges la fecha y el rango de horario que te acomode.
           </p>
 
           {specs.length > 0 && (

@@ -1,3 +1,4 @@
+import { limpiarObservaciones } from '../src/lib/observaciones.js';
 import { newOrderCode, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
@@ -33,6 +34,8 @@ export default async function handler(req, res) {
   const direccion = s(body.direccion, 300);
   const ubicacion = s(body.ubicacion, 200);
   const entrega = s(body.entrega, 120);
+  // Lo que el cliente quiso decirnos al comprar (opcional).
+  const observaciones = limpiarObservaciones(body.observaciones);
   const secretKey = process.env.CULQI_SECRET_KEY;
 
   if (!secretKey) {
@@ -147,6 +150,7 @@ export default async function handler(req, res) {
         promoCode,
         promoDescuento,
         ...(referido ? { referido } : {}),
+        ...(observaciones ? { observaciones } : {}),
         nombre,
         email,
         telefono,

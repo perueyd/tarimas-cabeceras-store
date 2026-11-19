@@ -184,7 +184,6 @@ export function ConfigTab({ catalog, api, flash }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="WhatsApp (con 51, sin espacios)" value={cfg.whatsapp} onChange={(v) => set('whatsapp', v)} placeholder="51987654321" />
         <Field label="Tu correo (aviso de pedido nuevo)" value={cfg.ownerEmail ?? ''} onChange={(v) => set('ownerEmail', v)} placeholder="tucorreo@gmail.com" />
-        <Field label="Tiempo de fabricación/entrega" value={cfg.leadTime} onChange={(v) => set('leadTime', v)} placeholder="3 a 4 días hábiles" />
         <Field
           label="Cuotas a mostrar (0 = no mostrar)"
           value={cfg.cuotasNumero ?? 0}

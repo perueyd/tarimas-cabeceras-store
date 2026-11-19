@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
-import { alcanzaParaHoy, horariosDeReparto, primerDiaDeEntrega } from '../lib/entrega.js';
+import { horariosDeReparto, primerDiaDeEntrega, reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
+import { diaLima } from '../lib/lima.js';
+import { MAX_OBSERVACIONES } from '../lib/observaciones.js';
 import { partirPago } from '../lib/pedidos.js';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
@@ -47,8 +49,9 @@ const CONFIANZA_DEFAULT = [
   { icono: '💬', texto: 'Ayuda por WhatsApp' },
 ];
 
-// La fecha mínima de entrega ya no es "hoy + N días": la decide la regla de
-// corte de las 8 de la mañana, que vive en src/lib/entrega.js.
+// La fecha mínima y los horarios de hoy los decide la regla de entrega de lo
+// que hay en el carrito (src/lib/entrega.js): no es la misma para una
+// cabecera que para una tarima.
 
 export default function Checkout() {
   useMeta({ titulo: 'Finalizar compra', descripcion: 'Completa tus datos de envío y elige cómo pagar.' });
@@ -73,6 +76,11 @@ export default function Checkout() {
   // que serían falsos para un servicio; el precio y el cobro no las miran.
   const hayServicio = items.some(esLineaDeServicio);
   const soloServicios = hayServicio && items.every(esLineaDeServicio);
+  // Los servicios se coordinan por WhatsApp: no cuentan para la fecha de entrega.
+  const reglaEntrega = reglaDelPedido(
+    reglasDeEntrega(storeConfig),
+    items.filter((i) => !esLineaDeServicio(i)).map((i) => getProductById(i.productId)?.category)
+  );
   const [form, setForm] = useState({
     nombre: '',
     email: '',
@@ -80,6 +88,7 @@ export default function Checkout() {
     direccion: '',
     distrito: '',
     referencia: '',
+    observaciones: '',
     departamento: '',
     provincia: '',
     entregaFecha: '',
@@ -430,6 +439,7 @@ export default function Checkout() {
           // Si llegó por el enlace de un profesional aliado, se anota en el
           // pedido. El servidor comprueba que ese aliado exista.
           referido: referidoActual() || undefined,
+          observaciones: form.observaciones.trim() || undefined,
           // El servidor recalcula el total por su cuenta; esto solo le sirve
           // para comprobar que coincide con lo que se mostró en pantalla y
           // negarse a cobrar de más si no cuadra.
@@ -492,6 +502,7 @@ export default function Checkout() {
           // Si llegó por el enlace de un profesional aliado, se anota en el
           // pedido. El servidor comprueba que ese aliado exista.
           referido: referidoActual() || undefined,
+          observaciones: form.observaciones.trim() || undefined,
           docTipo: form.docTipo,
           docNumero: form.docNumero,
           razonSocial: form.razonSocial,
@@ -509,7 +520,7 @@ export default function Checkout() {
               ? `Hola, soy ${form.nombre}. Acabo de hacer mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)} y ya envié el adelanto de ${currencyFormatter.format(adelanto)}. Aquí va mi comprobante; el saldo de ${currencyFormatter.format(saldo)} lo pago al recibirlo.`
               : `Hola, soy ${form.nombre}. Acabo de hacer mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}, para pagar al recibirlo. Quedo atento a la coordinación de la entrega.`
             : `Hola, soy ${form.nombre}. Acabo de pagar por ${metodoLabel} mi pedido *${data.code}* por ${currencyFormatter.format(montoFinal)}. Aquí envío mi comprobante:`
-        );
+        ) + (form.observaciones.trim() ? encodeURIComponent(`\n\nObservaciones: ${form.observaciones.trim()}`) : '');
         window.open(`https://wa.me/${storeConfig.whatsapp}?text=${msg}`, '_blank');
       }
       clearCart();
@@ -702,9 +713,7 @@ export default function Checkout() {
                 </p>
               ) : (
                 <p className="mt-1 text-xs text-neutral-500">
-                  Cada mueble se fabrica a pedido: el tiempo de fabricación y entrega es de{' '}
-                  <span className="font-medium text-neutral-700">{storeConfig.leadTime}</span>.
-                  Elige desde cuándo podemos entregarte y en qué horario estarás en casa.
+                  {textoDePlazo(reglaEntrega)} Elige desde cuándo podemos entregarte y en qué horario estarás en casa.
                   {hayServicio && ' El servicio que contrataste lo coordinamos contigo por WhatsApp.'}
                 </p>
               )}
@@ -715,7 +724,7 @@ export default function Checkout() {
                   type="date"
                   value={form.entregaFecha}
                   onChange={handleChange}
-                  min={primerDiaDeEntrega()}
+                  min={primerDiaDeEntrega(new Date(), reglaEntrega)}
                 />
                 <label className="text-sm">
                   <span className="mb-1 block text-neutral-700">Rango de horario</span>
@@ -727,13 +736,41 @@ export default function Checkout() {
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
                   >
                     <option value="">Selecciona un horario</option>
-                    {horariosDeReparto(storeConfig.deliverySlots, form.entregaFecha).map((s) => (
+                    {horariosDeReparto(storeConfig.deliverySlots, form.entregaFecha, new Date(), reglaEntrega).map((s) => (
                       <option key={s.id} value={s.id}>{s.label}</option>
                     ))}
                   </select>
                 </label>
               </div>
+              {/* Una tarima para hoy depende de que el taller tenga hueco: se
+                  dice ANTES de pagar, no después. */}
+              {!soloServicios && !reglaEntrega.seguro && form.entregaFecha === diaLima() && (
+                <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  ⏱️ Para hoy depende de la disponibilidad del taller: te lo confirmamos por WhatsApp. Si no
+                  alcanza, coordinamos contigo otra fecha.
+                </p>
+              )}
             </div>
+
+            {/* Peticiones del cliente («llamar antes de llegar», «dejarlo con el
+                portero»…): viajan con el pedido y el dueño las ve en el panel. */}
+            <label className="sm:col-span-2 block text-sm">
+              <span className="mb-1 block text-neutral-700">
+                Observaciones o pedidos especiales <span className="text-neutral-400">(opcional)</span>
+              </span>
+              <textarea
+                name="observaciones"
+                value={form.observaciones}
+                onChange={handleChange}
+                rows={3}
+                maxLength={MAX_OBSERVACIONES}
+                placeholder="Ej.: llamar antes de llegar, dejarlo con el portero, una duda sobre el color…"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
+              />
+              <span className="mt-1 block text-xs text-neutral-500">
+                Si pides algún cambio en el producto que cambie el precio, te escribimos por WhatsApp antes de fabricarlo.
+              </span>
+            </label>
           </form>
 
           {/* ===== Código de descuento =====

@@ -323,6 +323,26 @@ donde también está la lista de registrados.
   otro comando de Upstash por visita. Lo arma `liveParaElMenu()` con dos sí/no:
   **nunca añadas ahí el código** (hay prueba en `pruebas/live.test.js`).
 
+## Plazos de entrega: `src/lib/entrega.js`
+
+**Una regla por tipo de producto** (el dueño, 19/11/2026), editable en el
+panel → Entrega y guardada en `storeConfig.reglasEntrega`. De fábrica:
+cabeceras hasta las 8 a. m. → hoy desde las 5 p. m., con posible demora de
+1 a 3 días; tarimas hasta las 9 a. m. → hoy SEGÚN DISPONIBILIDAD (no se
+promete), desde las 11 a. m.; lo demás, la regla general (8 a. m. / 5 p. m.).
+
+- Pago, ficha, carrito, armador de dormitorio y CHAT-ED usan las MISMAS
+  funciones (`reglaDelPedido`, `textoDePlazo`, `plazosPorCategoria`). No
+  escribas el plazo a mano en ningún texto: antes había un `leadTime` libre y
+  una pregunta frecuente que se contradecían con el pago, y CHAT-ED le
+  prometía a una tarima la regla de las cabeceras.
+- Con varios tipos en el carrito manda la regla más exigente.
+- CHAT-ED recibe los plazos y las formas de pago activas como sección
+  «oficial», que manda sobre las preguntas frecuentes (`api/_bot-conocimiento.js`).
+- **Observaciones del cliente** (`src/lib/observaciones.js`): texto libre del
+  pago, limpio y con tope en el servidor; se ve en el panel y NO en el
+  seguimiento público (lista cerrada de campos).
+
 ## Vencimientos: `src/lib/vencimiento.js`
 
 `vencida()` vive ahí porque el servidor Y el navegador necesitan la misma
