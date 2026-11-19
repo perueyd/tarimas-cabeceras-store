@@ -76,7 +76,10 @@ export default async function handler(req, res) {
         messages: [{ role: 'system', content: conocimiento }, ...limpios],
         model: modelo,
         max_tokens: 512,
-        temperature: 0.6,
+        // Bajo a propósito: contesta precios y plazos, donde «creativo» es
+        // sinónimo de inventar. Con 0.6 mezclaba las reglas de entrega de
+        // cabeceras y tarimas (prueba real del 19/11/2026).
+        temperature: 0.3,
         top_p: 0.9,
       })
     );

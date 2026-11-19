@@ -13,7 +13,7 @@ import { getCatalog } from './_catalog.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { SITIO } from './_sitio.js';
 import { cobroDePlan, planesVisibles } from '../src/lib/servicios.js';
-import { plazosPorCategoria, reglasDeEntrega } from '../src/lib/entrega.js';
+import { plazosPorCategoria, reglaParaElAsistente, reglasDeEntrega } from '../src/lib/entrega.js';
 import { metodosActivos } from '../src/lib/metodosPago.js';
 
 // «¿Cuánto demora la entrega?», «¿En cuánto tiempo llega?»… (no «¿Cuánto cuesta el envío?»).
@@ -37,8 +37,8 @@ function plazosYPagos(catalog) {
   const { products = [], categories = [], storeConfig = {} } = catalog;
   const aLaVenta = new Set(products.filter((p) => !p.oculto && !p.esServicio).map((p) => p.category));
   const tipos = categories.filter((c) => aLaVenta.has(c.id)).map((c) => ({ id: c.id, label: c.label || c.name || c.id }));
-  const plazos = plazosPorCategoria(reglasDeEntrega(storeConfig), tipos)
-    .map((p) => `- ${p.nombre}: ${p.texto}`)
+  const plazos = plazosPorCategoria(reglasDeEntrega(storeConfig), tipos, reglaParaElAsistente)
+    .map((p) => `- ${p.nombre.toUpperCase()}: ${p.texto}`)
     .join('\n');
   const pagos = Object.entries(metodosActivos(storeConfig.paymentMethods))
     .filter(([clave, activo]) => activo && NOMBRES_DE_PAGO[clave])
@@ -46,7 +46,12 @@ function plazosYPagos(catalog) {
     .join(', ');
   return `PLAZOS DE ENTREGA EN LIMA (regla oficial: si una pregunta frecuente dice otra cosa, vale ESTA):
 ${plazos}
-Si el pedido junta productos de varios tipos, vale el plazo más exigente. Lo que dice «según la disponibilidad del taller» NO es seguro: no lo prometas, di que se confirma por WhatsApp. A provincias, el tiempo depende de la agencia de envío.
+Cómo usarlos:
+- «¿En cuánto llega…?», «¿cuándo llega…?» o «¿demora?» preguntan por el TIEMPO de entrega, no por el precio.
+- Contesta con la línea del tipo de producto que preguntan y SOLO con ella: no mezcles las reglas de un tipo con las de otro. Si no dicen cuál, pregúntalo.
+- Si el pedido junta productos de varios tipos, vale el plazo más exigente.
+- Lo que dice «NO es seguro» no se promete: di que se confirma por WhatsApp.
+- A provincias, el tiempo depende de la agencia de envío.
 
 FORMAS DE PAGO QUE SE ACEPTAN HOY (no ofrezcas ninguna otra): ${pagos || 'consultar por WhatsApp'}.`;
 }
