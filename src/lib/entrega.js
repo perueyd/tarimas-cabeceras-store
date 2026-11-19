@@ -187,18 +187,40 @@ function diaEnLima(ahora) {
  * propia van juntos con la general.
  * @param categorias  [{ id, label }] de los tipos que tienen productos a la venta
  */
-export function plazosPorCategoria(reglas, categorias = []) {
+export function plazosPorCategoria(reglas, categorias = [], decir = textoDePlazo) {
   const propias = categorias.filter((c) => c.id !== 'general' && reglas?.[c.id]);
   const resto = categorias.filter((c) => !reglas?.[c.id]);
-  const lista = propias.map((c) => ({ nombre: c.label || c.id, texto: textoDePlazo(reglas[c.id]) }));
+  const lista = propias.map((c) => ({ nombre: c.label || c.id, texto: decir(reglas[c.id]) }));
   if (resto.length || !propias.length) {
     const nombres = resto.map((c) => c.label || c.id);
     lista.push({
       nombre: nombres.length ? nombres.join(', ') : 'Todos los productos',
-      texto: textoDePlazo(reglas?.general || REGLA_GENERAL),
+      texto: decir(reglas?.general || REGLA_GENERAL),
     });
   }
   return lista;
+}
+
+/**
+ * La misma regla escrita para CHAT-ED: corta, con mayúsculas en lo que no
+ * puede confundir. Con la frase pensada para el cliente, el modelo mezclaba
+ * los tipos (a una cabecera le añadía el «según disponibilidad» de la tarima).
+ */
+export function reglaParaElAsistente(regla = REGLA_GENERAL) {
+  const partes = [];
+  if (regla.corte === null) {
+    partes.push('NO hay entrega el mismo día');
+  } else if (regla.seguro) {
+    partes.push(`pedido hasta las ${horaLegible(regla.corte)} → se entrega HOY desde las ${horaLegible(regla.desde)} (seguro)`);
+  } else {
+    partes.push(
+      `pedido hasta las ${horaLegible(regla.corte)} → PUEDE salir hoy desde las ${horaLegible(regla.desde)} SOLO si el taller` +
+        ' tiene disponibilidad (NO es seguro: se confirma por WhatsApp)'
+    );
+  }
+  partes.push('pedido después → desde el día siguiente, a la hora que elija el cliente');
+  partes.push(regla.demora ? `puede demorar de ${regla.demora} más según la cantidad de pedidos (díselo)` : 'sin aviso de demora');
+  return partes.join(' · ');
 }
 
 // Lo de provincia no lo decide la tienda sino la agencia: se dice tal cual.
