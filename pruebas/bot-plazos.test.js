@@ -34,14 +34,18 @@ test('CHAT-ED dice el plazo de cada tipo de producto y solo las formas de pago a
   db.set('catalog:sizes', JSON.stringify([{ id: 's', label: '2 plazas' }]));
   db.set('catalog:config', JSON.stringify({
     paymentMethods: { culqi: false, yapePlin: true, transferencia: true, contraEntrega: true },
-    faq: [{ q: '¿Cuánto demora la entrega?', a: 'Si pides hasta las 8 a. m. te lo llevamos hoy desde las 5 p. m.' }],
+    faq: [
+      { q: '¿Cuánto demora la entrega?', a: 'Si pides hasta las 8 a. m. te lo llevamos hoy desde las 5 p. m.' },
+      { q: '¿Cómo puedo pagar?', a: 'Aceptamos Yape/Plin, transferencia bancaria y tarjeta.' },
+      { q: '¿Cuánto cuesta el envío?', a: 'Gratis en Lima Metropolitana.' },
+    ],
   }));
 
   const texto = await construirConocimiento();
   const plazos = texto.slice(texto.indexOf('PLAZOS DE ENTREGA'), texto.indexOf('FORMAS DE PAGO'));
   assert.match(plazos, /vale ESTA/, 'tiene que mandar sobre una pregunta frecuente antigua');
   assert.match(plazos, /- Cabeceras: Pídelo hasta las 8 a\. m\..*de 1 a 3 días más/);
-  assert.match(plazos, /- Tarimas: Pídelo hasta las 9 a\. m\. y, según la disponibilidad del taller/);
+  assert.match(plazos, /- Tarimas: Pídelo hasta las 9 a\. m\. y, según la disponibilidad del taller, puede salir hoy mismo desde las 11 a\. m\./);
   assert.match(plazos, /- Colchones: /, 'lo que no tiene regla propia sale con la general');
   assert.doesNotMatch(plazos, /Salas/, 'un tipo sin productos a la venta no se menciona');
 
@@ -49,4 +53,10 @@ test('CHAT-ED dice el plazo de cada tipo de producto y solo las formas de pago a
   assert.doesNotMatch(pagos, /tarjeta/i, 'con la tarjeta apagada, CHAT-ED no puede ofrecerla');
   assert.match(pagos, /Yape, Plin/);
   assert.match(pagos, /contra entrega/);
+
+  // Las preguntas frecuentes viejas no pueden contradecir lo oficial: en la
+  // prueba real, CHAT-ED le dio a una tarima «desde las 5 p. m.» por esto.
+  assert.doesNotMatch(texto, /te lo llevamos hoy desde las 5 p\. m\./, 'la pregunta frecuente vieja de plazos sigue llegando a CHAT-ED');
+  assert.doesNotMatch(texto, /Aceptamos Yape\/Plin, transferencia bancaria y tarjeta/, 'con la tarjeta apagada, la pregunta que la ofrece sigue llegando');
+  assert.match(texto, /¿Cuánto cuesta el envío\?/, 'las demás preguntas frecuentes se quedan');
 });

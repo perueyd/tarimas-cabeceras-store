@@ -160,7 +160,8 @@ export function textoDePlazo(regla = REGLA_GENERAL) {
   } else {
     partes.push(
       `Pídelo hasta las ${horaLegible(regla.corte)} y, según la disponibilidad del taller, puede salir hoy mismo` +
-        ' (te lo confirmamos por WhatsApp); si no, desde el día siguiente en el horario que elijas.'
+        `${regla.desde ? ` desde las ${horaLegible(regla.desde)}` : ''} (te lo confirmamos por WhatsApp);` +
+        ' si no, desde el día siguiente en el horario que elijas.'
     );
   }
   if (regla.demora) partes.push(`Según la cantidad de pedidos, puede demorar de ${regla.demora} más; si pasa, te avisamos por WhatsApp.`);
