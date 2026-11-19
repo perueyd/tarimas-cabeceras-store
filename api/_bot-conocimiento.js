@@ -16,6 +16,9 @@ import { cobroDePlan, planesVisibles } from '../src/lib/servicios.js';
 import { plazosPorCategoria, reglasDeEntrega } from '../src/lib/entrega.js';
 import { metodosActivos } from '../src/lib/metodosPago.js';
 
+// «¿Cuánto demora la entrega?», «¿En cuánto tiempo llega?»… (no «¿Cuánto cuesta el envío?»).
+const PREGUNTA_DE_PLAZO = /demora|tarda|cu[aá]nto tiempo|cu[aá]ndo (llega|entregan)|plazo/i;
+
 // Cómo se llama cada forma de pago para el cliente.
 const NOMBRES_DE_PAGO = {
   culqi: 'tarjeta de crédito o débito (Culqi)',
@@ -172,8 +175,15 @@ export async function construirConocimiento() {
     ? `+51 ${digitos.slice(2, 5)} ${digitos.slice(5, 8)} ${digitos.slice(8)}`
     : `+${digitos}`;
 
+  // Las preguntas frecuentes son texto libre y pueden haberse quedado viejas.
+  // Las de PLAZOS se quitan siempre (ya van, al día, en la sección oficial), y
+  // con la tarjeta apagada, las que la mencionan. En una prueba real CHAT-ED
+  // mezclaba las dos versiones: a una tarima le daba la hora de las cabeceras.
+  const sinTarjeta = !metodosActivos(storeConfig.paymentMethods).culqi;
   const faq = Array.isArray(storeConfig.faq)
     ? storeConfig.faq
+        .filter((f) => !PREGUNTA_DE_PLAZO.test(f.q || f.pregunta || ''))
+        .filter((f) => !(sinTarjeta && /tarjeta|culqi/i.test(f.a || f.respuesta || '')))
         .slice(0, 12)
         .map((f) => `P: ${f.q || f.pregunta}\nR: ${f.a || f.respuesta}`)
         .join('\n\n')
