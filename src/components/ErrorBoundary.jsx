@@ -27,6 +27,9 @@ export default class ErrorBoundary extends Component {
 
   render() {
     if (!this.state.fallo) return this.props.children;
+    // Para piezas que sobran (el chat, «Ver en mi pared»): si fallan,
+    // desaparecen y el resto de la página sigue. El aviso llega igual.
+    if (this.props.silencioso) return null;
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
         <div className="max-w-md rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-sm">

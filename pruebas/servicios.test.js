@@ -376,7 +376,7 @@ test('la página de servicios no arrastra los formularios del panel', async () =
   }
   assert.match(
     pagina,
-    /lazy\(\(\) => import\('\.\/servicios\/EdicionModal\.jsx'\)\)/,
+    /lazyConRecarga\(\(\) => import\('\.\/servicios\/EdicionModal\.jsx'\)\)/,
     'los formularios del modo edición tienen que cargarse aparte, solo cuando el dueño los abre'
   );
   // Y sin la sesión del panel no hay modo edición que valga.

@@ -1,4 +1,6 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { lazyConRecarga } from '../lib/cargarPieza.js';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import ColorPicker from '../components/ColorPicker.jsx';
@@ -15,7 +17,7 @@ import { fotoDeGaleria, avisoDeVariante } from '../lib/variantesFoto.js';
 // La cámara de realidad aumentada pesa, y la mayoría de visitas no la abre.
 // Se descarga sola la primera vez que alguien pulsa "Ver en mi pared", en
 // vez de viajar en el paquete que descarga todo el que entra a la tienda.
-const VerEnMiPared = lazy(() => import('../components/VerEnMiPared.jsx'));
+const VerEnMiPared = lazyConRecarga(() => import('../components/VerEnMiPared.jsx'));
 
 
 // Las especificaciones han llegado a guardarse de TRES formas distintas:
@@ -685,16 +687,19 @@ export default function ProductDetail() {
           devolviendo nada), su código se descargaría igualmente al entrar a
           la ficha, y entonces diferirlo no habría servido de nada. */}
       {enMiPared && (
-        <Suspense fallback={null}>
-          <VerEnMiPared
-            abierto={enMiPared}
-            onCerrar={() => setEnMiPared(false)}
-            imagenSrc={vistaActiva.url}
-            colorHex={selectedColor?.hex}
-            tintable={vistaActiva.tintable}
-            nombre={product.name}
-          />
-        </Suspense>
+        // Si la cámara no se puede cargar, no se abre; la ficha sigue en pie.
+        <ErrorBoundary silencioso>
+          <Suspense fallback={null}>
+            <VerEnMiPared
+              abierto={enMiPared}
+              onCerrar={() => setEnMiPared(false)}
+              imagenSrc={vistaActiva.url}
+              colorHex={selectedColor?.hex}
+              tintable={vistaActiva.tintable}
+              nombre={product.name}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       <ProductZoomModal

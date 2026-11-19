@@ -179,6 +179,15 @@ fallidos o sin pedido guardado, y el navegador (`src/lib/reportarError.js` +
 añades un camino donde se cobra o se pierde un pedido, avisa desde ahí.
 **Nunca metas datos personales en el mensaje.**
 
+**Piezas que se cargan a pedido: `lazyConRecarga()` (`src/lib/cargarPieza.js`),
+nunca `lazy()` a secas.** Al publicar, las piezas cambian de nombre y las viejas
+desaparecen; quien tenía la tienda abierta pedía una vieja y la página se caía
+con «Importing a module script failed» (dos veces en noviembre de 2026). Con
+la ayuda, la página se recarga sola una vez y trae la versión nueva. El chat y
+«Ver en mi pared» van además dentro de `<ErrorBoundary silencioso>`: si fallan,
+desaparecen sin tumbar la página. `pruebas/piezas.test.js` avisa si queda un
+`import()` sin la ayuda.
+
 ## Cupones: reservar y devolver
 
 El uso de un cupón se reserva ANTES de cobrar (`reservaDeCupon()` en

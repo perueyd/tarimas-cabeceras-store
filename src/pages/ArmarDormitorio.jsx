@@ -1,4 +1,6 @@
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
+import { lazyConRecarga } from '../lib/cargarPieza.js';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCatalog, resolveProductImage } from '../context/CatalogContext.jsx';
 import ProductImage from '../components/ProductImage.jsx';
@@ -12,7 +14,7 @@ import { useMeta } from '../lib/meta.js';
 // La cámara de realidad aumentada pesa, y la mayoría de visitas no la abre.
 // Se descarga sola la primera vez que alguien pulsa "Ver en mi pared", en
 // vez de viajar en el paquete que descarga todo el que entra a la tienda.
-const VerEnMiPared = lazy(() => import('../components/VerEnMiPared.jsx'));
+const VerEnMiPared = lazyConRecarga(() => import('../components/VerEnMiPared.jsx'));
 
 // "Arma tu dormitorio": elegir cabecera + tarima + colchón de una sola vez.
 //
@@ -508,16 +510,18 @@ export default function ArmarDormitorio() {
       {/* Igual que en la ficha de producto: se monta solo al abrir, para que
           su código no viaje con la página. */}
       {cabeceraElegida && enMiPared && (
-        <Suspense fallback={null}>
-          <VerEnMiPared
-            abierto={enMiPared}
-            onCerrar={() => setEnMiPared(false)}
-            imagenSrc={fotoCabecera.src}
-            colorHex={colorDe(cabeceraElegida)?.hex}
-            tintable={fotoCabecera.tintable}
-            nombre={cabeceraElegida.name}
-          />
-        </Suspense>
+        <ErrorBoundary silencioso>
+          <Suspense fallback={null}>
+            <VerEnMiPared
+              abierto={enMiPared}
+              onCerrar={() => setEnMiPared(false)}
+              imagenSrc={fotoCabecera.src}
+              colorHex={colorDe(cabeceraElegida)?.hex}
+              tintable={fotoCabecera.tintable}
+              nombre={cabeceraElegida.name}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* Cómo encajan las tres piezas. Va aquí porque es justo la duda que
