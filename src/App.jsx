@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
+import { lazyConRecarga } from './lib/cargarPieza.js';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { initAnalytics, trackPageView } from './lib/analytics.js';
 import { contarVisita } from './lib/visitas.js';
@@ -17,20 +19,20 @@ import ThankYou from './pages/ThankYou.jsx';
 // descargaba las ~20 pestañas del panel, el asistente de voz y la vista previa
 // antes de poder ver la portada. Con datos móviles en Perú eso son segundos de
 // espera por código que un comprador nunca ejecuta.
-const Orders = lazy(() => import('./pages/Orders.jsx'));
+const Orders = lazyConRecarga(() => import('./pages/Orders.jsx'));
 
 // Por la misma razón, estos dos tampoco viajan en el paquete inicial:
 //   · el armador de dormitorio y la página de servicios son páginas enteras
 //     que la mayoría no abre;
 //   · el chat aparece abajo a la derecha, pero quien no lo toca no necesita
 //     su código para ver la portada.
-const ArmarDormitorio = lazy(() => import('./pages/ArmarDormitorio.jsx'));
-const Servicios = lazy(() => import('./pages/Servicios.jsx'));
+const ArmarDormitorio = lazyConRecarga(() => import('./pages/ArmarDormitorio.jsx'));
+const Servicios = lazyConRecarga(() => import('./pages/Servicios.jsx'));
 // La página del live solo la abre quien viene de una transmisión.
-const Live = lazy(() => import('./pages/Live.jsx'));
+const Live = lazyConRecarga(() => import('./pages/Live.jsx'));
 // La constancia de un pedido: solo la abre quien acaba de comprar.
-const ConstanciaPage = lazy(() => import('./pages/ConstanciaPage.jsx'));
-const ChatbotWidget = lazy(() => import('./components/ChatbotWidget.jsx'));
+const ConstanciaPage = lazyConRecarga(() => import('./pages/ConstanciaPage.jsx'));
+const ChatbotWidget = lazyConRecarga(() => import('./components/ChatbotWidget.jsx'));
 import Track from './pages/Track.jsx';
 import ComplaintsBook from './pages/ComplaintsBook.jsx';
 import LegalPage from './pages/LegalPage.jsx';
@@ -132,9 +134,13 @@ export default function App() {
           {!enElLive && (
             <>
               <WhatsAppButton />
-              <Suspense fallback={null}>
-                <ChatbotWidget />
-              </Suspense>
+              {/* Si el chat no se puede cargar, se queda sin chat; el resto de
+                  la página sigue en pie (antes se caía la página entera). */}
+              <ErrorBoundary silencioso>
+                <Suspense fallback={null}>
+                  <ChatbotWidget />
+                </Suspense>
+              </ErrorBoundary>
             </>
           )}
           <AvisoCookies />

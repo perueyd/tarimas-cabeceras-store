@@ -1,4 +1,5 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazyConRecarga } from '../lib/cargarPieza.js';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -30,7 +31,7 @@ import {
 } from './servicios/edicion.jsx';
 
 // Los formularios del modo edición solo los descarga el dueño, al abrirlos.
-const EdicionModal = lazy(() => import('./servicios/EdicionModal.jsx'));
+const EdicionModal = lazyConRecarga(() => import('./servicios/EdicionModal.jsx'));
 
 // Página de servicios y portafolio.
 //

@@ -14,13 +14,14 @@ import { billetera, metodosActivos } from '../lib/metodosPago.js';
 import { useMeta } from '../lib/meta.js';
 import { esLineaDeServicio, referidoActual } from '../lib/servicios.js';
 import { codigoDelLive } from '../lib/live.js';
+import { conRecarga } from '../lib/cargarPieza.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
 function useUbigeo() {
   const [data, setData] = useState(null);
   useEffect(() => {
-    import('../data/ubigeoPeru.js').then(setData).catch(() => {});
+    conRecarga(() => import('../data/ubigeoPeru.js'))().then(setData).catch(() => {});
   }, []);
   return data;
 }
