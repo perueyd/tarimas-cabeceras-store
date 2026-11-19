@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { UploadButton } from './editor/comunes.jsx';
-import { metodosActivos } from '../lib/metodosPago.js';
+import { metodosActivos, textosQueMencionanTarjeta } from '../lib/metodosPago.js';
 
 // Número, titular y QR de una billetera (Yape o Plin).
 function Billetera({ nombre, campo, data, setData, adminKey }) {
@@ -66,6 +66,7 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
     mostrarCupon: cfg.mostrarCupon !== false,
   });
   const [saving, setSaving] = useState(false);
+  const textosConTarjeta = textosQueMencionanTarjeta(cfg);
 
   async function guardar() {
     const pm = data.paymentMethods;
@@ -132,6 +133,24 @@ export default function PagosTab({ catalog, api, flash, adminKey }) {
             </label>
           ))}
         </div>
+        {/* Apagar la tarjeta aquí la quita del pago, pero los textos libres
+            (pie de página, portada, preguntas, condiciones) siguen diciendo
+            lo que se escribió en su día: prometer un medio de pago que no
+            existe confunde al cliente (Ley 29571). Se listan para corregirlos. */}
+        {!data.paymentMethods.culqi && textosConTarjeta.length > 0 && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <p className="font-medium">
+              La tarjeta está apagada, pero {textosConTarjeta.length === 1 ? 'este texto todavía la menciona' : `estos ${textosConTarjeta.length} textos todavía la mencionan`}:
+            </p>
+            <ul className="mt-2 space-y-1.5 text-xs">
+              {textosConTarjeta.map((t, i) => (
+                <li key={i}>
+                  <strong>{t.donde}:</strong> «{t.texto.length > 140 ? `${t.texto.slice(0, 140)}…` : t.texto}»
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* El adelanto solo tiene sentido con el contra entrega encendido.
             POR QUÉ SE PIDE: el mueble se fabrica a medida. Si el cliente no

@@ -87,10 +87,10 @@ Todos los precios se muestran en soles (S/) e INCLUYEN el IGV. El precio que ves
 El contrato queda cerrado cuando confirmas tu pedido y recibimos tu pago o su comprobante. Te enviamos un código de seguimiento para consultar el estado en cualquier momento.
 
 5. FORMAS DE PAGO
-Aceptamos tarjeta y Yape a través de Culqi, y también Yape/Plin directo y transferencia bancaria. En los pagos directos, tu pedido queda como "pago por verificar" hasta que confirmemos la operación.
+Las formas de pago disponibles son las que ves al finalizar tu compra (por ejemplo Yape, Plin, transferencia bancaria o pago contra entrega, según las tengamos activas). En los pagos directos, tu pedido queda como "pago por verificar" hasta que confirmemos la operación.
 
 6. ENTREGA
-Fabricamos a pedido: el plazo habitual es de 3 a 4 días hábiles en Lima Metropolitana. Coordinamos contigo la fecha y el rango horario. Si por algún motivo no pudiéramos cumplir el plazo, te avisaremos y podrás elegir entre esperar o que te devolvamos el importe completo.
+Fabricamos a pedido. El plazo de entrega en Lima Metropolitana depende del producto: lo indicamos en su ficha y al finalizar la compra, donde eliges la fecha y el rango horario. Cuando la entrega del mismo día depende de la disponibilidad del taller, te la confirmamos por WhatsApp. Si por algún motivo no pudiéramos cumplir el plazo, te avisaremos y podrás elegir entre esperar o que te devolvamos el importe completo.
 
 7. DERECHO A DEVOLVER TU COMPRA
 Si el producto llega con un defecto de fabricación, no corresponde a lo que pediste o está dañado por el transporte, escríbenos dentro de los 7 días calendario siguientes a la entrega con fotos. Lo cambiamos, lo reparamos o te devolvemos el dinero, según prefieras, sin costo para ti.

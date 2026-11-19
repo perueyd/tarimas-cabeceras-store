@@ -1,3 +1,4 @@
+import { limpiarObservaciones } from '../src/lib/observaciones.js';
 import { actualizarPedido, deleteOrder, hasDB, buscarPedido, listOrders, newOrderCode, notifySheet, redisCmd, saveOrder } from './_store.js';
 import { priceOrder, s } from './_pricing.js';
 import { getCatalog } from './_catalog.js';
@@ -91,6 +92,8 @@ export default async function handler(req, res) {
     const datosComprobante = leerDatosComprobante(body);
     // Qué profesional aliado trajo a este cliente, si vino por su enlace.
     const referido = referidoValido(body.referido, catalog.partners);
+    // Lo que el cliente quiso decirnos al comprar (opcional).
+    const observaciones = limpiarObservaciones(body.observaciones);
 
     const order = {
       code: newOrderCode(),
@@ -114,6 +117,7 @@ export default async function handler(req, res) {
       // Lo que hace falta para emitir la boleta o la factura en SUNAT.
       ...datosComprobante,
       ...(referido ? { referido } : {}),
+      ...(observaciones ? { observaciones } : {}),
       nombre,
       email: s(body.email, 120),
       telefono,

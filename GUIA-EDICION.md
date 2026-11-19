@@ -12,15 +12,36 @@ Al inicio de `catalog.js` está `storeConfig`:
 ```js
 export const storeConfig = {
   whatsapp: '51987654321',        // tu número con 51 adelante, sin espacios ni +
-  leadTime: '3 a 4 días hábiles', // texto que ve el cliente
-  deliveryMinDays: 4,             // días mínimos para elegir fecha de entrega
   deliverySlots: [ ... ],         // rangos de horario que ofrece el checkout
 };
 ```
 
 - Pon tu número en `whatsapp` y aparecerá un **botón flotante de WhatsApp** en toda la web.
   El mismo número se usa para el botón **"Cotizar envío por WhatsApp"** de los pedidos a provincia.
-- Si mejoras tus tiempos de producción, cambia `leadTime` y `deliveryMinDays`.
+
+**Cuándo se entrega cada tipo de producto** (panel → Editar página → Cómo
+funciona → **Entrega**). Cada tipo tiene su regla; los que no tienen una propia
+usan la «regla general». De fábrica:
+
+- **Cabeceras:** pedido hasta las 8 a. m. → se entrega hoy desde las 5 p. m.;
+  si no, desde el día siguiente a cualquier hora. Puede demorar de 1 a 3 días
+  más según la cantidad de pedidos.
+- **Tarimas:** pedido hasta las 9 a. m. → puede salir hoy, **según la
+  disponibilidad del taller** (se le confirma al cliente por WhatsApp), desde
+  las 11 a. m.; si no, desde el día siguiente.
+- **Lo demás** (colchones, etc.): la regla general, hasta las 8 a. m. y hoy
+  desde las 5 p. m.
+
+De esas reglas salen solas la fecha más cercana del pago, la frase de cada
+ficha y del carrito, y lo que contesta CHAT-ED. Debajo de cada regla ves la
+frase exacta que lee el cliente. El botón **«Guardar las reglas y usar este
+texto en las preguntas frecuentes»** pone al día la pregunta «¿Cuánto demora
+la entrega?».
+
+**Observaciones del cliente:** al pagar, el cliente puede escribir peticiones
+(«llamar antes de llegar», «dejarlo con el portero»…). Las ves en la ficha del
+pedido, en morado, con el título «Observaciones del cliente», y también llegan
+en su mensaje de WhatsApp. No salen en el seguimiento público.
 
 **Zonas de entrega:** el checkout tiene dos flujos automáticos:
 - **Lima Metropolitana**: dirección + mapa con pin (el cliente puede usar su ubicación GPS)
@@ -29,8 +50,10 @@ export const storeConfig = {
   (el envío corre por su cuenta) y su carrito queda guardado para completar después.
 
 **Métodos de pago (editable sin tocar código):** en el panel `/pedidos` →
-Editar página → Datos de la tienda → **"Métodos de pago en el checkout"**,
-apaga el checkbox del que no uses:
+Editar página → Cómo funciona → **Pagos** → «Métodos de pago habilitados»,
+apaga la casilla del que no uses. Si apagas la tarjeta, debajo te sale la lista
+de textos que todavía la mencionan (pie de página, portada, preguntas,
+condiciones) y dónde se cambia cada uno:
 - **Tarjeta o Yape (Culqi)** — cobro automático.
 - **Yape / Plin directo** — el cliente te envía y manda su comprobante por WhatsApp.
 - **Transferencia bancaria** — igual, pero a una cuenta bancaria.

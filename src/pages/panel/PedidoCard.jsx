@@ -236,6 +236,15 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
             <p className="sm:col-span-2"><span className="text-neutral-500">Dirección:</span> {o.direccion || '—'} ({o.zona})</p>
           </div>
 
+          {/* Lo que el cliente escribió al comprar: se ve antes de fabricar. */}
+          {o.observaciones && (
+            <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
+              <p className="whitespace-pre-line text-xs text-violet-900">
+                📝 <strong>Observaciones del cliente:</strong> {o.observaciones}
+              </p>
+            </div>
+          )}
+
           {o.referencia && (
             <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
               <p className="text-xs text-amber-700">📱 <strong>Referencia:</strong> {o.referencia}</p>
