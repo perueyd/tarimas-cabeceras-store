@@ -29,6 +29,12 @@ subidas desde el panel se comprimen en el navegador
 (`src/lib/comprimirImagen.js`) antes de viajar. Comprobado el 12/11/2026: el
 catálogo apunta a 176 fotos, todas en el propio sitio.
 
+**Fichas de medidas** (`public/productos/medidas-*.webp`, 28 imágenes): son
+dibujos ya hechos, no salen de ningún programa. El 20/11/2026 se les cambió
+la marca a mano (logo de las dos cumbres + «CORPORACIÓN AGAMENÓN» arriba y
+`corporacionagamenon.vercel.app` abajo); antes decían «E|D ESPACIOS Y
+DISEÑO» y `eydperu.vercel.app`. Si se rehacen, que lleven la marca nueva.
+
 **Una foto que no existe da 404** (no la portada): `vercel.json` no reescribe
 `/productos/` ni `/assets/`. Los archivos de `/assets/` (con huella en el
 nombre) se guardan un año en el navegador y las fotos un día; si cambias una
