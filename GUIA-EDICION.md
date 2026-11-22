@@ -574,7 +574,7 @@ Lo que tienes que cuidar:
 ## El live: registro y oferta al instante (/live)
 
 Para cuando haces una transmisión en vivo (TikTok, Instagram, Facebook). Tú
-dices en el live «entren a **corporacionagamenon.vercel.app/live**»; quien
+dices en el live «entren a **corporacionagamenon.com/live**»; quien
 entra deja su nombre y su WhatsApp y ve al momento el código de descuento.
 
 Se maneja en `/pedidos` → **Promociones** → **Live**:

@@ -16,4 +16,4 @@ Disallow: /gracias
 # Todo lo demás sí: portada, tienda, fichas de producto, seguimiento y legales.
 Allow: /
 
-Sitemap: https://corporacionagamenon.vercel.app/sitemap.xml
+Sitemap: https://www.corporacionagamenon.com/sitemap.xml
