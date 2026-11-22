@@ -5,10 +5,11 @@ Tienda peruana (Lima): tarimas, cabeceras y sofás cama hechos a medida.
 jerga. Los comentarios del código están en español y explican el PORQUÉ, no el
 qué — mantén ese estilo.
 
-- Producción: https://corporacionagamenon.vercel.app (desde el 28/10/2026; la
-  dirección vive en `src/data/sitio.js`). Los dominios anteriores
-  `eydperu.vercel.app` y `tarimas-cabeceras-store.vercel.app` siguen abriendo
-  la tienda, pero ya no se usan en enlaces ni en `robots.txt`.
+- Producción: https://corporacionagamenon.com (dominio propio desde noviembre de
+  2026; la dirección vive en `src/data/sitio.js`). Las anteriores
+  `corporacionagamenon.vercel.app`, `eydperu.vercel.app` y
+  `tarimas-cabeceras-store.vercel.app` siguen abriendo la tienda, pero ya no se
+  usan en enlaces ni en `robots.txt`.
 - Stack: React + Vite · funciones serverless de Vercel en `api/` · Redis Upstash
   · Tailwind · Culqi (pagos) · Groq (los dos asistentes de IA)
 
@@ -30,10 +31,11 @@ subidas desde el panel se comprimen en el navegador
 catálogo apunta a 176 fotos, todas en el propio sitio.
 
 **Fichas de medidas** (`public/productos/medidas-*.webp`, 28 imágenes): son
-dibujos ya hechos, no salen de ningún programa. El 20/11/2026 se les cambió
-la marca a mano (logo de las dos cumbres + «CORPORACIÓN AGAMENÓN» arriba y
-`corporacionagamenon.vercel.app` abajo); antes decían «E|D ESPACIOS Y
-DISEÑO» y `eydperu.vercel.app`. Si se rehacen, que lleven la marca nueva.
+dibujos ya hechos, no salen de ningún programa. En noviembre de 2026 se les
+cambió la marca a mano (logo de las dos cumbres + «CORPORACIÓN AGAMENÓN» arriba
+y `corporacionagamenon.com` abajo); antes decían «E|D ESPACIOS Y DISEÑO» y
+`eydperu.vercel.app`. Los originales están en el historial de git (commit
+`72d5546`). Si se rehacen, que lleven la marca nueva.
 
 **Una foto que no existe da 404** (no la portada): `vercel.json` no reescribe
 `/productos/` ni `/assets/`. Los archivos de `/assets/` (con huella en el

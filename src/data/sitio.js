@@ -7,7 +7,9 @@
 //
 // Si algún día contratas un dominio propio (p. ej. eydperu.com), cambia solo
 // esta línea — y la de <index.html>, que es HTML estático y no puede leer esto.
-export const SITIO_URL = 'https://corporacionagamenon.vercel.app';
+// Dominio propio desde noviembre de 2026. Las direcciones anteriores
+// (corporacionagamenon.vercel.app, eydperu.vercel.app) siguen abriendo la tienda.
+export const SITIO_URL = 'https://corporacionagamenon.com';
 
 export function urlSeguimiento(codigo) {
   return `${SITIO_URL}/seguimiento?codigo=${encodeURIComponent(codigo)}`;
