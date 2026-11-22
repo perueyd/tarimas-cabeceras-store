@@ -3,6 +3,7 @@ import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { horariosDeReparto, primerDiaDeEntrega, reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
 import { diaLima } from '../lib/lima.js';
 import { MAX_OBSERVACIONES } from '../lib/observaciones.js';
+import { correoCorporativo, enlaceCorreoCorporativo } from '../lib/contacto.js';
 import { partirPago } from '../lib/pedidos.js';
 import { useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
@@ -693,6 +694,18 @@ export default function Checkout() {
                 />
                 Necesito factura (compra a nombre de una empresa)
               </label>
+
+              {/* Quien compra para una empresa suele querer cantidad o una
+                  cotización formal: se le ofrece el canal de ventas corporativas. */}
+              {form.docTipo === 'factura' && correoCorporativo(storeConfig) && (
+                <p className="mt-2 text-xs text-neutral-500">
+                  🏢 ¿Compras para tu empresa o en cantidad? Escríbenos a{' '}
+                  <a href={enlaceCorreoCorporativo(correoCorporativo(storeConfig))} className="break-all font-medium text-neutral-800 underline">
+                    {correoCorporativo(storeConfig)}
+                  </a>{' '}
+                  y te preparamos una cotización corporativa.
+                </p>
+              )}
 
               {errorDoc && <p className="mt-2 text-xs text-red-600">{errorDoc}</p>}
             </div>

@@ -103,7 +103,12 @@ export async function getCatalog({ paraEditar = false } = {}) {
     colors: dbColors ?? colors,
     sizes: dbSizes ?? sizes,
     showcase: dbShowcase ?? showcase,
-    storeConfig: dbConfig ? { ...storeConfig, ...dbConfig } : storeConfig,
+    // «contacto» se mezcla por dentro: el guardado trae solo los datos que
+    // existían cuando se guardó, y sin esto un dato nuevo de fábrica (como el
+    // correo de ventas corporativas) no aparecía hasta volver a guardar en el panel.
+    storeConfig: dbConfig
+      ? { ...storeConfig, ...dbConfig, contacto: { ...storeConfig.contacto, ...(dbConfig.contacto || {}) } }
+      : storeConfig,
     services: dbServices ?? services,
     projects: dbProjects ?? projects,
     partners: dbPartners ?? partners,

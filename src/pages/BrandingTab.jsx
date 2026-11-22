@@ -96,6 +96,20 @@ export default function BrandingTab({ catalog, api, flash }) {
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
             />
           </label>
+          <label className="block">
+            <span className="text-sm font-medium text-neutral-700">Correo de ventas corporativas</span>
+            <input
+              type="email"
+              value={data.contacto.correoCorporativo ?? ''}
+              onChange={(e) => setData({ ...data, contacto: { ...data.contacto, correoCorporativo: e.target.value } })}
+              placeholder="ventas@tuempresa.com"
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+            />
+            <span className="mt-1 block text-xs text-neutral-500">
+              Para empresas y compras por volumen. Sale en el pie de página, en el pago cuando piden factura, y
+              CHAT-ED se lo da a quien compra para una empresa. Déjalo vacío para no mostrarlo.
+            </span>
+          </label>
         </div>
       </section>
 

@@ -345,6 +345,12 @@ promete), desde las 11 a. m.; lo demás, la regla general (8 a. m. / 5 p. m.).
 - Con varios tipos en el carrito manda la regla más exigente.
 - CHAT-ED recibe los plazos y las formas de pago activas como sección
   «oficial», que manda sobre las preguntas frecuentes (`api/_bot-conocimiento.js`).
+- **Correo de ventas corporativas** (`src/lib/contacto.js`, pedido del dueño
+  22/11/2026): `contacto.correoCorporativo`, de fábrica
+  corporacionagamenon@gmail.com, editable en Branding → Contacto. Sale en el
+  pie de página, en el pago al marcar «Necesito factura», en CHAT-ED y en los
+  datos de Google. `contacto` se mezcla por dentro en `getCatalog`: el guardado
+  en Redis es antiguo y, mezclado de golpe, tapaba los datos nuevos de fábrica.
 - **Observaciones del cliente** (`src/lib/observaciones.js`): texto libre del
   pago, limpio y con tope en el servidor; se ve en el panel y NO en el
   seguimiento público (lista cerrada de campos).

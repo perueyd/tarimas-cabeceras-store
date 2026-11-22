@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
+import { correoCorporativo } from './contacto.js';
 
 // Título, descripción y datos estructurados de cada página.
 //
@@ -196,5 +197,8 @@ export function datosDelNegocio(storeConfig = {}) {
       : undefined,
     areaServed: { '@type': 'Country', name: 'Perú' },
     currenciesAccepted: 'PEN',
+    contactPoint: correoCorporativo(storeConfig)
+      ? { '@type': 'ContactPoint', contactType: 'sales', email: correoCorporativo(storeConfig), areaServed: 'PE', availableLanguage: 'es' }
+      : undefined,
   };
 }
