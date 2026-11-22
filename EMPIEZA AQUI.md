@@ -1,7 +1,7 @@
 # Tu tienda, en una hoja
 
-Para Enmanuel — E|D Espacios y Diseño · https://corporacionagamenon.com
-Panel: https://corporacionagamenon.com/pedidos
+Para Enmanuel — E|D Espacios y Diseño · https://www.corporacionagamenon.com
+Panel: https://www.corporacionagamenon.com/pedidos
 
 ---
 

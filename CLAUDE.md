@@ -5,8 +5,9 @@ Tienda peruana (Lima): tarimas, cabeceras y sofás cama hechos a medida.
 jerga. Los comentarios del código están en español y explican el PORQUÉ, no el
 qué — mantén ese estilo.
 
-- Producción: https://corporacionagamenon.com (dominio propio desde noviembre de
-  2026; la dirección vive en `src/data/sitio.js`). Las anteriores
+- Producción: https://www.corporacionagamenon.com (dominio propio desde
+  noviembre de 2026; sin «www» redirige aquí; la dirección vive en
+  `src/data/sitio.js`). Las anteriores
   `corporacionagamenon.vercel.app`, `eydperu.vercel.app` y
   `tarimas-cabeceras-store.vercel.app` siguen abriendo la tienda, pero ya no se
   usan en enlaces ni en `robots.txt`.
