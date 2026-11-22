@@ -15,6 +15,7 @@ import { SITIO } from './_sitio.js';
 import { cobroDePlan, planesVisibles } from '../src/lib/servicios.js';
 import { plazosPorCategoria, reglaParaElAsistente, reglasDeEntrega } from '../src/lib/entrega.js';
 import { metodosActivos } from '../src/lib/metodosPago.js';
+import { correoCorporativo } from '../src/lib/contacto.js';
 
 // «¿Cuánto demora la entrega?», «¿En cuánto tiempo llega?»… (no «¿Cuánto cuesta el envío?»).
 const PREGUNTA_DE_PLAZO = /demora|tarda|cu[aá]nto tiempo|cu[aá]ndo (llega|entregan)|plazo/i;
@@ -185,6 +186,7 @@ export async function construirConocimiento() {
   // con la tarjeta apagada, las que la mencionan. En una prueba real CHAT-ED
   // mezclaba las dos versiones: a una tarima le daba la hora de las cabeceras.
   const sinTarjeta = !metodosActivos(storeConfig.paymentMethods).culqi;
+  const correoVentas = correoCorporativo(storeConfig);
   const faq = Array.isArray(storeConfig.faq)
     ? storeConfig.faq
         .filter((f) => !PREGUNTA_DE_PLAZO.test(f.q || f.pregunta || ''))
@@ -200,7 +202,7 @@ ${REGLAS_FIJAS}
 ═══ DATOS REALES DE LA TIENDA (actualizados hoy) ═══
 
 WhatsApp para cotizar y consultar medidas: ${wa}
-Web: ${SITIO}
+${correoVentas ? `Ventas corporativas (empresas, compras por volumen, con factura): ${correoVentas}. Si alguien compra para una empresa o en cantidad, dale este correo además del WhatsApp. Escríbelo exactamente así.\n` : ''}Web: ${SITIO}
 Categorías: ${cats || 'sin categorías'}
 
 PRODUCTOS Y PRECIOS:

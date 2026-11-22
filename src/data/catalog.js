@@ -24,6 +24,9 @@ export const storeConfig = {
     whatsapp: '51951278010',
     telefonoFormato: '951 278 010',
     email: '',
+    // Ventas corporativas (empresas, por volumen, con factura): sale en el pie
+    // de página, en el pago al pedir factura y lo da CHAT-ED (src/lib/contacto.js).
+    correoCorporativo: 'corporacionagamenon@gmail.com',
   },
 
   // ---------- Datos del negocio (Libro de Reclamaciones) ----------

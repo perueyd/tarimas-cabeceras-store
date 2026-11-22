@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { correoCorporativo, enlaceCorreoCorporativo } from '../lib/contacto.js';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { Link } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
@@ -88,6 +89,7 @@ export default function Footer() {
   const newsletter = storeConfig.newsletter || {};
   const legal = storeConfig.legal || {};
   const redes = Object.keys(SOCIAL_ICONS).filter((k) => social[k]);
+  const correoVentas = correoCorporativo(storeConfig);
 
   return (
     <footer className="mt-20 border-t border-neutral-100 bg-neutral-50 py-12">
@@ -127,6 +129,14 @@ export default function Footer() {
             </p>
           )}
           {storeConfig.direccionFiscal && <p>{storeConfig.direccionFiscal}</p>}
+          {correoVentas && (
+            <p>
+              🏢 Ventas corporativas:{' '}
+              <a href={enlaceCorreoCorporativo(correoVentas)} className="break-all font-medium text-neutral-800 underline-offset-4 hover:underline">
+                {correoVentas}
+              </a>
+            </p>
+          )}
         </div>
 
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs">
