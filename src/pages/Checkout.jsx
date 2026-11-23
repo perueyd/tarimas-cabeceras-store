@@ -342,28 +342,29 @@ export default function Checkout() {
   const procesarPagoRef = useRef(procesarPago);
   useEffect(() => { procesarPagoRef.current = procesarPago; });
 
-  useEffect(() => {
-    // Callback global que Culqi invoca tras cerrar su modal con un token.
-    window.culqi = function culqiCallback() {
-      if (window.Culqi.token) {
-        procesarPagoRef.current(window.Culqi.token.id);
-      } else if (window.Culqi.order) {
-        procesarPagoRef.current(null, window.Culqi.order.id);
-      } else {
-        // Culqi rechazó los datos antes de cobrar y deja el motivo en
-        // Culqi.error. Antes se tapaba con un mensaje genérico y nadie sabía
-        // qué había pasado: ahora el cliente lee el de Culqi y el panel recibe
-        // el detalle técnico (sin datos de la tarjeta).
-        const e = window.Culqi.error || {};
-        setStatus('error');
-        setErrorMsg(e.user_message || 'No se pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.');
-        reportarError(`Culqi no generó el token: ${[e.type, e.code, e.merchant_message || e.user_message].filter(Boolean).join(' · ') || 'sin detalle'}`);
-      }
-    };
-    return () => {
-      window.culqi = undefined;
-    };
-  }, []);
+  // La ventana de pago abierta (Culqi Checkout Custom). Se crea una nueva
+  // cada vez que el cliente pulsa pagar, con el monto de ese momento.
+  const culqiRef = useRef(null);
+  useEffect(() => () => culqiRef.current?.close?.(), []);
+
+  /** Lo que Culqi devuelve al terminar: un token para cobrar, o el motivo del rechazo. */
+  function alTerminarCulqi() {
+    const c = culqiRef.current;
+    if (!c) return;
+    if (c.token) {
+      c.close();
+      procesarPagoRef.current(c.token.id);
+    } else {
+      // Culqi rechazó los datos antes de cobrar y deja el motivo en
+      // Culqi.error. Antes se tapaba con un mensaje genérico y nadie sabía
+      // qué había pasado: ahora el cliente lee el de Culqi y el panel recibe
+      // el detalle técnico (sin datos de la tarjeta).
+      const e = c.error || {};
+      setStatus('error');
+      setErrorMsg(e.user_message || 'No se pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.');
+      reportarError(`Culqi no generó el token: ${[e.type, e.code, e.merchant_message || e.user_message].filter(Boolean).join(' · ') || 'sin detalle'}`);
+    }
+  }
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -402,35 +403,44 @@ export default function Checkout() {
       setErrorMsg('Falta configurar VITE_CULQI_PUBLIC_KEY en las variables de entorno.');
       return;
     }
-    if (!window.Culqi) {
+    // Culqi Checkout Custom (https://js.culqi.com/checkout-js), según la guía
+    // de Culqi consultada el 23/11/2026: el Checkout v4 que usábamos
+    // «dejará de estar disponible pronto» y con él el pago fallaba con
+    // CCKT-408 (tiempo de espera agotado).
+    if (typeof window.CulqiCheckout !== 'function') {
       setErrorMsg('El sistema de pago aún está cargando. Espera un segundo e intenta de nuevo.');
       return;
     }
     setErrorMsg('');
     setStatus('idle');
 
-    window.Culqi.publicKey = CULQI_PUBLIC_KEY;
-    window.Culqi.settings({
-      title: NOMBRE_TIENDA,
-      currency: 'PEN',
-      amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
+    culqiRef.current?.close?.();
+    const culqi = new window.CulqiCheckout(CULQI_PUBLIC_KEY, {
+      settings: {
+        title: NOMBRE_TIENDA,
+        currency: 'PEN',
+        amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
+      },
+      // El correo ya lo escribió en nuestro formulario: no se le vuelve a pedir.
+      client: { email: form.email },
+      options: {
+        lang: 'es',
+        modal: true,
+        // Las cuotas y Cuotéalo BCP siguen APAGADOS, y encenderlos NO es cambiar
+        // este false por true. Cuotéalo y PagoEfectivo no dan un token: crean
+        // una ORDEN que se paga fuera y se confirma después. Ese camino no está
+        // hecho (api/create-charge.js solo cobra con un token de tarjeta o
+        // Yape): falta crear la orden en el servidor y atender el aviso de
+        // Culqi cuando el cliente termina de pagar.
+        installments: false,
+        paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
+        paymentMethodsSort: ['tarjeta', 'yape'],
+      },
+      appearance: { menuType: 'sidebar' },
     });
-    window.Culqi.options({
-      lang: 'es',
-      // Las cuotas y Cuotéalo BCP siguen APAGADOS, y encenderlos NO es cambiar
-      // este false por true. Cuotéalo no cobra aquí: manda al cliente a la web
-      // del BCP y el pago se confirma después. Eso llega por el otro camino de
-      // Culqi (window.Culqi.order, ver más arriba), y ese camino no está hecho:
-      // api/create-charge.js solo sabe cobrar con un token de tarjeta o Yape.
-      // Falta crear la orden en el servidor y atender el aviso de Culqi cuando
-      // el cliente termina de pagar en el BCP.
-      //
-      // Si alguien pone true aquí sin eso, el cliente llega hasta el final y el
-      // cobro se cae: se manda a crear el cargo con el token vacío.
-      installments: false,
-      paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
-    });
-    window.Culqi.open();
+    culqi.culqi = alTerminarCulqi;
+    culqiRef.current = culqi;
+    culqi.open();
   }
 
   async function procesarPago(token) {
