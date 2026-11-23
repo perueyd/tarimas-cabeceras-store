@@ -19,6 +19,7 @@ const FIJAS = [
   { url: '/libro-de-reclamaciones', prioridad: '0.3', frecuencia: 'yearly' },
   { url: '/politica-privacidad', prioridad: '0.2', frecuencia: 'yearly' },
   { url: '/terminos-condiciones', prioridad: '0.2', frecuencia: 'yearly' },
+  { url: '/cambios-y-devoluciones', prioridad: '0.2', frecuencia: 'yearly' },
 ];
 
 export default async function handler(req, res) {

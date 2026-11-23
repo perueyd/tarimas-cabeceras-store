@@ -126,6 +126,7 @@ export default function App() {
           <Route path="/libro-de-reclamaciones" element={<ComplaintsBook />} />
           <Route path="/politica-privacidad" element={<LegalPage which="privacidad" />} />
           <Route path="/terminos-condiciones" element={<LegalPage which="terminos" />} />
+          <Route path="/cambios-y-devoluciones" element={<LegalPage which="devoluciones" />} />
           {/* Cualquier otra dirección: antes quedaba una página en blanco. */}
           <Route path="*" element={<NotFound />} />
         </Routes>

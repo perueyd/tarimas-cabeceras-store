@@ -3,7 +3,8 @@
 // Normas que se tuvieron en cuenta:
 //  · Ley 29733 — Protección de Datos Personales, y su reglamento (DS 003-2013-JUS)
 //  · Ley 29571 — Código de Protección y Defensa del Consumidor
-//  · DS 006-2017-JUS — Libro de Reclamaciones
+//  · DS 011-2011-PCM — Reglamento del Libro de Reclamaciones, modificado por el
+//    DS 101-2022-PCM (respuesta en 15 días hábiles; El Peruano, revisado el 23/11/2026)
 //
 // Los marcadores {{proveedor}} y {{whatsapp}} se reemplazan con los datos
 // reales de la tienda (ver LegalPage.jsx).
@@ -101,7 +102,7 @@ Ten en cuenta que, al tratarse de bienes fabricados a tu medida y con tus especi
 Todos nuestros muebles tienen garantía legal contra defectos de fabricación conforme al Código de Protección y Defensa del Consumidor. No cubre el desgaste normal por uso, los daños por mal uso, humedad, exceso de peso o modificaciones hechas por terceros.
 
 9. LIBRO DE RECLAMACIONES
-Contamos con Libro de Reclamaciones virtual, a tu disposición en esta web. Al registrar tu reclamo o queja recibirás un número de folio y te responderemos en un plazo máximo de 30 días calendario, conforme al Decreto Supremo N.° 006-2017-JUS.
+Contamos con Libro de Reclamaciones virtual, a tu disposición en esta web. Al registrar tu reclamo o queja recibirás un número de folio y te responderemos en un plazo máximo de 15 días hábiles improrrogables, conforme al Reglamento del Libro de Reclamaciones (Decreto Supremo N.° 011-2011-PCM, modificado por el Decreto Supremo N.° 101-2022-PCM). Presentar un reclamo no te impide acudir a otras vías de solución ni es requisito previo para denunciar ante INDECOPI.
 
 10. TUS DATOS
 El tratamiento de tus datos personales se rige por nuestra Política de Privacidad, disponible en esta misma web.

@@ -1,9 +1,10 @@
+import { diasHabilesRestantes, PLAZO_RECLAMO_DIAS_HABILES } from '../lib/reclamos.js';
 // Lo primero que ve el dueño al abrir el panel: qué requiere su atención HOY.
 //
 // Antes el panel abría con dos gráficas de ventas. Bonitas, pero no dicen qué
 // hacer: para enterarse de que había un pedido sin verificar o un reclamo a
 // punto de vencer, había que ir entrando pestaña por pestaña. Y los reclamos
-// tienen plazo legal de 30 días — pasarse es sanción.
+// tienen plazo legal de 15 días hábiles — pasarse es sanción.
 //
 // Cada línea lleva de un toque a donde se resuelve. Si no hay nada urgente, no
 // se muestra nada: un panel lleno de avisos verdes enseña a ignorarlos.
@@ -65,12 +66,12 @@ export default function QueHacerHoy({
     });
   }
 
-  // 2. Reclamos: 30 días calendario por ley (DS 006-2017-JUS). Pasarse es
+  // 2. Reclamos: 15 días hábiles por ley (DS 101-2022-PCM, ver src/lib/reclamos.js). Pasarse es
   //    sanción de INDECOPI, así que manda sobre cualquier otra cosa.
   const reclamosPend = reclamos.filter((r) => r.estado === 'Pendiente');
   if (reclamosPend.length) {
-    const quedan = Math.min(...reclamosPend.map((r) => 30 - dias(r.fecha)));
-    const urgente = quedan <= 7;
+    const quedan = Math.min(...reclamosPend.map((r) => diasHabilesRestantes(r.fecha)));
+    const urgente = quedan <= 4;
     avisos.push({
       orden: urgente ? -1 : 3, // lo legal por delante de todo
       color: urgente ? 'rojo' : 'ambar',
@@ -78,8 +79,8 @@ export default function QueHacerHoy({
       titulo: `${reclamosPend.length} reclamo${reclamosPend.length > 1 ? 's' : ''} sin responder`,
       detalle:
         quedan < 0
-          ? `⚠️ Uno venció hace ${Math.abs(quedan)} día${Math.abs(quedan) > 1 ? 's' : ''} — plazo legal incumplido`
-          : `El más urgente vence en ${quedan} día${quedan !== 1 ? 's' : ''} (plazo legal: 30)`,
+          ? `⚠️ Uno venció hace ${Math.abs(quedan)} día${Math.abs(quedan) > 1 ? 's' : ''} hábil${Math.abs(quedan) > 1 ? 'es' : ''} — plazo legal incumplido`
+          : `El más urgente vence en ${quedan} día${quedan !== 1 ? 's' : ''} hábil${quedan !== 1 ? 'es' : ''} (plazo legal: ${PLAZO_RECLAMO_DIAS_HABILES} días hábiles)`,
       accion: 'Responder',
       tab: 'reclamos',
     });
