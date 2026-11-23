@@ -35,6 +35,14 @@ function useUbigeo() {
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 const CULQI_DE_PRUEBA = esLlaveDePrueba(CULQI_PUBLIC_KEY);
 
+// Solo en la versión de PRUEBA: el motivo técnico de Culqi se ve en pantalla,
+// para no tener que ir a buscarlo al panel. A un cliente real nunca se le muestra.
+function detalleDePrueba(donde, e = {}) {
+  if (!CULQI_DE_PRUEBA) return '';
+  const partes = [e?.object, e?.type, e?.code, e?.decline_code, e?.action_code, e?.merchant_message].filter(Boolean);
+  return ` [Detalle de prueba (${donde}): ${partes.join(' · ') || 'Culqi no dio detalle'}]`;
+}
+
 // Lo máximo que Yape deja pagar de una vez, según la documentación de Culqi
 // (pagos online con Yape: solo en soles y hasta S/ 2000).
 //
@@ -362,7 +370,7 @@ export default function Checkout() {
       // el detalle técnico (sin datos de la tarjeta).
       const e = c.error || {};
       setStatus('error');
-      setErrorMsg(e.user_message || 'No se pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.');
+      setErrorMsg((e.user_message || 'No se pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.') + detalleDePrueba('ventana de Culqi', e));
       reportarError(`Culqi no generó el token: ${[e.type, e.code, e.merchant_message || e.user_message].filter(Boolean).join(' · ') || 'sin detalle'}`);
     }
   }
@@ -478,7 +486,7 @@ export default function Checkout() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
+        throw new Error((data?.error || data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.') + detalleDePrueba(`cobro, ${res.status}`, data));
       }
       clearCart();
       trackPurchase(data.orderCode || data.id, totalConDescuento);
