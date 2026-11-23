@@ -11,6 +11,7 @@ import { referidoValido } from '../src/lib/servicios.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { avisarError } from './_alertas.js';
+import { esLlaveDePrueba, motivoParaNoCobrar } from '../src/lib/culqiPrueba.js';
 
 // Función serverless (Vercel) que crea el cargo en Culqi desde el backend.
 // La llave secreta NUNCA debe usarse en el frontend.
@@ -41,6 +42,13 @@ export default async function handler(req, res) {
   if (!secretKey) {
     return res.status(500).json({ error: 'CULQI_SECRET_KEY no está configurada en el servidor.' });
   }
+  // Una llave de prueba en la tienda publicada daría pedidos «pagados» sin dinero.
+  const sinCobro = motivoParaNoCobrar(secretKey, process.env.VERCEL_ENV);
+  if (sinCobro) {
+    await avisarError('cobro', 'Llave de PRUEBA de Culqi en la tienda publicada: se rechazó un pago con tarjeta.');
+    return res.status(503).json({ error: sinCobro });
+  }
+  const esPrueba = esLlaveDePrueba(secretKey);
   if (!token || !email) {
     return res.status(400).json({ error: 'Faltan datos para procesar el pago (token, email).' });
   }
@@ -138,7 +146,8 @@ export default async function handler(req, res) {
         code: orderCode,
         fecha: new Date().toISOString(),
         estado: 'Pagado',
-        metodo: 'Tarjeta/Yape (Culqi)',
+        metodo: esPrueba ? 'Tarjeta (PRUEBA de Culqi, sin cobro real)' : 'Tarjeta/Yape (Culqi)',
+        ...(esPrueba && { prueba: true }),
         chargeId: data.id,
         monto: amount / 100,
         base: separarIGV(amount / 100).base,
