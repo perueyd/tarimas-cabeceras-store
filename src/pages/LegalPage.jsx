@@ -3,6 +3,7 @@ import FormularioARCO from '../components/FormularioARCO.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { useMeta } from '../lib/meta.js';
 import { seccionesDeDevolucion } from '../lib/devoluciones.js';
+import { corregirPlazoDeReclamos } from '../lib/reclamos.js';
 
 // Reemplaza {{proveedor}} y {{whatsapp}} en el texto legal con los datos
 // reales de la tienda, así el dueño no tiene que repetirlos a mano.
@@ -17,7 +18,7 @@ function proveedorTexto(storeConfig) {
 }
 
 function sustituir(texto, storeConfig) {
-  return (texto || '')
+  return corregirPlazoDeReclamos(texto || '')
     .replaceAll('{{proveedor}}', proveedorTexto(storeConfig))
     .replaceAll('{{whatsapp}}', storeConfig.whatsapp || 'nuestro WhatsApp');
 }

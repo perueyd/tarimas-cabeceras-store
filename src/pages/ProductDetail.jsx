@@ -253,7 +253,13 @@ export default function ProductDetail() {
       const v = (g.valores || []).find((x) => x.id === opciones[g.id]);
       if (v?.specs) Object.assign(cambios, v.specs);
     }
-    return base.map((s) => (cambios[s.label] ? { ...s, value: cambios[s.label] } : s));
+    // La línea «Entrega» se escribió a mano en cada producto con la regla vieja
+    // («hoy mismo si pides hasta las 8 a. m.», también en la tarima, que tiene
+    // otra). El plazo real ya sale arriba, calculado con la regla de su tipo
+    // (src/lib/entrega.js): no se repite con un texto que puede contradecirlo.
+    return base
+      .filter((s) => !/^entrega$/i.test(String(s.label || '').trim()))
+      .map((s) => (cambios[s.label] ? { ...s, value: cambios[s.label] } : s));
   }, [product, gruposOpciones, opciones]);
 
   // Las decisiones del cliente, numeradas. Con tamaño, 21 colores, un segundo

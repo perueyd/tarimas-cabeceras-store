@@ -16,6 +16,19 @@ export const LEYENDAS_RECLAMO = [
   `El proveedor debe dar respuesta al reclamo o queja en un plazo no mayor a quince (${PLAZO_RECLAMO_DIAS_HABILES}) días hábiles improrrogables.`,
 ];
 
+/**
+ * Los Términos guardados en la tienda antes del 23/11/2026 dicen «30 días
+ * calendario, conforme al DS 006-2017-JUS»: plazo y norma equivocados. Esa
+ * frase se cambia al mostrarlos, para que la web nunca prometa un plazo que
+ * no es el de la ley aunque el dueño todavía no haya adoptado el texto nuevo.
+ */
+export function corregirPlazoDeReclamos(texto = '') {
+  return String(texto).replace(
+    /en un plazo máximo de 30 días calendario,? conforme al Decreto Supremo N\.?\s*°?\s*006-2017-JUS\./g,
+    `en un plazo máximo de ${PLAZO_RECLAMO_DIAS_HABILES} días hábiles improrrogables, conforme al Reglamento del Libro de Reclamaciones (Decreto Supremo N.° 011-2011-PCM, modificado por el Decreto Supremo N.° 101-2022-PCM).`
+  );
+}
+
 const esHabil = (d) => d.getUTCDay() !== 0 && d.getUTCDay() !== 6;
 
 /**

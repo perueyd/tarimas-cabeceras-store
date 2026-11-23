@@ -24,3 +24,15 @@ test('las leyendas y los términos dicen el plazo vigente, no el de 30 días', (
   assert.match(TERMINOS, /15 días hábiles/);
   assert.doesNotMatch(TERMINOS, /30 días calendario/);
 });
+
+// Los Términos ya guardados en la tienda traen la frase vieja: al mostrarlos
+// se corrige, sin tocar el resto del texto del dueño.
+import { corregirPlazoDeReclamos } from '../src/lib/reclamos.js';
+test('la frase vieja del plazo se corrige al mostrar los Términos guardados', () => {
+  const viejo = 'Al registrar tu reclamo recibirás un folio y te responderemos en un plazo máximo de 30 días calendario, conforme al Decreto Supremo N.° 006-2017-JUS.\n\n10. TUS DATOS';
+  const nuevo = corregirPlazoDeReclamos(viejo);
+  assert.match(nuevo, /15 días hábiles improrrogables/);
+  assert.doesNotMatch(nuevo, /30 días calendario|006-2017-JUS/);
+  assert.match(nuevo, /10\. TUS DATOS$/);
+  assert.equal(corregirPlazoDeReclamos('otro texto'), 'otro texto');
+});
