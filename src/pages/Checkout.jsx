@@ -18,6 +18,7 @@ import { useMeta } from '../lib/meta.js';
 import { esLineaDeServicio, referidoActual } from '../lib/servicios.js';
 import { codigoDelLive } from '../lib/live.js';
 import { conRecarga } from '../lib/cargarPieza.js';
+import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -30,6 +31,7 @@ function useUbigeo() {
 }
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
+const CULQI_DE_PRUEBA = esLlaveDePrueba(CULQI_PUBLIC_KEY);
 
 // Lo máximo que Yape deja pagar de una vez, según la documentación de Culqi
 // (pagos online con Yape: solo en soles y hasta S/ 2000).
@@ -107,7 +109,10 @@ export default function Checkout() {
   // Métodos de pago activos según lo que configuró el dueño en el panel
   // (ver src/lib/metodosPago.js). Yape y Plin van por separado para que la
   // boleta diga con cuál se pagó.
-  const pm = metodosActivos(storeConfig.paymentMethods);
+  // En una versión de PRUEBA (llave pk_test_) la tarjeta se ofrece aunque esté
+  // apagada en el panel: el panel lo comparten la tienda real y la de prueba, y
+  // encenderla allí la mostraría también a los clientes, sin llave para cobrar.
+  const pm = { ...metodosActivos(storeConfig.paymentMethods), ...(CULQI_DE_PRUEBA && { culqi: true }) };
   const metodosDisponibles = [
     { key: 'culqi', title: 'Tarjeta o Yape', subtitle: 'Confirmación automática (Culqi)' },
     { key: 'yape', title: 'Yape', subtitle: 'Escanea el QR o envía al número' },
@@ -992,6 +997,11 @@ export default function Checkout() {
 
           {metodosDisponibles.length > 0 && metodoPago === 'culqi' ? (
             <>
+              {CULQI_DE_PRUEBA && (
+                <p className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                  🧪 Versión de PRUEBA: usa una tarjeta de prueba de Culqi. No se cobra nada de verdad.
+                </p>
+              )}
               <button
                 onClick={abrirCulqi}
                 disabled={status === 'paying'}

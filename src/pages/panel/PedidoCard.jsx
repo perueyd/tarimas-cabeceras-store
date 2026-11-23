@@ -209,6 +209,11 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium sm:order-5 ${badge}`}>
               {o.estado}
             </span>
+            {o.prueba && (
+              <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-900 sm:order-6" title="Pago de prueba de Culqi: no entró dinero">
+                PRUEBA
+              </span>
+            )}
           </span>
         </span>
         <span className={`shrink-0 text-neutral-400 transition ${abierto ? 'rotate-180' : ''}`}>⌄</span>
