@@ -48,8 +48,14 @@ export default async function handler(req, res) {
     const bienDescripcion = s(body.bienDescripcion, 300).trim();
     const detalle = s(body.detalle, 2000).trim();
     const pedido = s(body.pedido, 1000).trim();
+    // Del formato oficial (Anexo I): monto reclamado, padre o madre si quien
+    // reclama es menor de edad, y por dónde quiere la respuesta.
+    const montoReclamado = s(body.montoReclamado, 12).replace(/[^\d.,]/g, '');
+    const menorDeEdad = body.menorDeEdad === true;
+    const padreMadre = menorDeEdad ? s(body.padreMadre, 150).trim() : '';
+    const respuestaPor = body.respuestaPor === 'Carta a mi domicilio' ? 'Carta a mi domicilio' : 'Correo electrónico';
 
-    if (!tipo || !nombre || !tipoDocumento || !numeroDocumento || !domicilio || !telefono || !email || !detalle) {
+    if (!tipo || !nombre || !tipoDocumento || !numeroDocumento || !domicilio || !telefono || !email || !detalle || (menorDeEdad && !padreMadre)) {
       return res.status(400).json({ error: 'Completa todos los campos obligatorios.' });
     }
 
@@ -57,8 +63,9 @@ export default async function handler(req, res) {
       folio: await nextFolio(),
       fecha: new Date().toISOString(),
       tipo,
-      consumidor: { nombre, tipoDocumento, numeroDocumento, domicilio, telefono, email },
-      bien: { tipo: bienTipo, descripcion: bienDescripcion },
+      consumidor: { nombre, tipoDocumento, numeroDocumento, domicilio, telefono, email, ...(menorDeEdad && { padreMadre }) },
+      bien: { tipo: bienTipo, descripcion: bienDescripcion, ...(montoReclamado && { montoReclamado }) },
+      respuestaPor,
       detalle,
       pedido,
       estado: 'Pendiente',
@@ -76,7 +83,7 @@ export default async function handler(req, res) {
       console.log('RECLAMO (BD no configurada):', JSON.stringify(reclamo));
     }
 
-    return res.status(200).json({ ok: true, folio: reclamo.folio });
+    return res.status(200).json({ ok: true, folio: reclamo.folio, fecha: reclamo.fecha });
   }
 
   if (req.method === 'GET') {

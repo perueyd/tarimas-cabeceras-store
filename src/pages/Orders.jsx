@@ -635,7 +635,7 @@ export default function Orders() {
       {tab === 'reclamos' && (
         <div className="space-y-4">
           <p className="rounded-lg bg-sky-50 px-4 py-2 text-xs text-sky-900">
-            Por ley tienes hasta 30 días calendario desde la fecha del reclamo para responder.
+            Por ley tienes hasta 15 días hábiles (de lunes a viernes) desde la fecha del reclamo para responder, por escrito: por correo o carta, como lo pidió el cliente.
             Los reclamos no se pueden eliminar — quedan como registro.
           </p>
           {reclamos.length === 0 && (
@@ -761,7 +761,7 @@ const TITULOS = {
   resumen: { titulo: 'Resumen del negocio' },
   pedidos: { titulo: 'Pedidos', descripcion: 'Confirma los pagos y marca las entregas' },
   carritos: { titulo: 'Carritos abandonados', descripcion: 'Llegaron hasta el final y no pagaron: tienes su WhatsApp' },
-  reclamos: { titulo: 'Reclamos', descripcion: 'Tienes 30 días calendario para responder cada uno (Ley 29571)' },
+  reclamos: { titulo: 'Reclamos', descripcion: 'Tienes 15 días hábiles para responder cada uno (DS 101-2022-PCM)' },
   visitas: { titulo: 'Visitas', descripcion: 'Cuánta gente entra a tu tienda y qué mira' },
   impuestos: { titulo: 'Impuestos y margen', descripcion: 'Cuánto de lo que cobras es tuyo y cuánto del Estado' },
   resenas: { titulo: 'Reseñas', descripcion: 'No se publican en la tienda hasta que las apruebes' },
@@ -815,4 +815,5 @@ function StatCard({ label, value, sub, accent = false }) {
       <p className="mt-0.5 text-xs text-neutral-500">{sub}</p>
     </div>
   );
-}
+}
+

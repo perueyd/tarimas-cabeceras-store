@@ -1,14 +1,16 @@
 // La ficha de un reclamo del Libro de Reclamaciones.
 //
-// Lleva su plazo a la vista porque la Ley 29571 da 30 días calendario para
-// responder, y pasarse no es un despiste: es una infracción.
+// Lleva su plazo a la vista porque la ley da 15 días hábiles para responder
+// (DS 101-2022-PCM, ver src/lib/reclamos.js), y pasarse no es un despiste: es
+// una infracción.
 
 import { useState } from 'react';
+import { diasHabilesRestantes } from '../../lib/reclamos.js';
 
 export function ReclamoCard({ r, onResponder }) {
   const [respuesta, setRespuesta] = useState(r.respuesta || '');
   const [guardando, setGuardando] = useState(false);
-  const diasRestantes = Math.ceil((new Date(r.fecha).getTime() + 30 * 86400000 - Date.now()) / 86400000);
+  const diasRestantes = diasHabilesRestantes(r.fecha);
 
   async function guardar() {
     if (!respuesta.trim()) return;
@@ -36,7 +38,7 @@ export function ReclamoCard({ r, onResponder }) {
 
       {r.estado === 'Pendiente' && (
         <p className={`mt-1 text-xs ${diasRestantes < 0 ? 'font-medium text-red-600' : diasRestantes <= 5 ? 'font-medium text-amber-600' : 'text-neutral-400'}`}>
-          {diasRestantes < 0 ? `⚠️ Vencido hace ${Math.abs(diasRestantes)} día(s)` : `Vence en ${diasRestantes} día(s)`}
+          {diasRestantes < 0 ? `⚠️ Vencido hace ${Math.abs(diasRestantes)} día(s) hábil(es)` : `Vence en ${diasRestantes} día(s) hábil(es)`}
         </p>
       )}
 
@@ -47,6 +49,9 @@ export function ReclamoCard({ r, onResponder }) {
         <p><span className="text-neutral-500">Correo:</span> {r.consumidor?.email}</p>
         <p className="sm:col-span-2"><span className="text-neutral-500">Domicilio:</span> {r.consumidor?.domicilio}</p>
         <p className="sm:col-span-2"><span className="text-neutral-500">Sobre:</span> {r.bien?.tipo}{r.bien?.descripcion ? ` — ${r.bien.descripcion}` : ''}</p>
+        {r.bien?.montoReclamado && <p><span className="text-neutral-500">Monto reclamado:</span> S/ {r.bien.montoReclamado}</p>}
+        {r.consumidor?.padreMadre && <p><span className="text-neutral-500">Padre o madre (menor de edad):</span> {r.consumidor.padreMadre}</p>}
+        {r.respuestaPor && <p className="sm:col-span-2 font-medium"><span className="font-normal text-neutral-500">Responder por:</span> {r.respuestaPor}</p>}
         <p className="sm:col-span-2"><span className="text-neutral-500">Fecha:</span> {new Date(r.fecha).toLocaleString('es-PE')}</p>
       </div>
 

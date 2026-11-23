@@ -4,6 +4,7 @@ import { NOMBRE_TIENDA } from '../data/sitio.js';
 import { Link } from 'react-router-dom';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { hayServicios, textosDeServicios } from '../lib/servicios.js';
+import { seccionesDeDevolucion } from '../lib/devoluciones.js';
 
 // Iconos SVG simples de cada red (trazos genéricos, sin logos con copyright).
 const SOCIAL_ICONS = {
@@ -90,6 +91,8 @@ export default function Footer() {
   const legal = storeConfig.legal || {};
   const redes = Object.keys(SOCIAL_ICONS).filter((k) => social[k]);
   const correoVentas = correoCorporativo(storeConfig);
+  const whatsapp = String(storeConfig.contacto?.whatsapp || storeConfig.whatsapp || '').replace(/\D/g, '');
+  const telefono = whatsapp ? storeConfig.contacto?.telefonoFormato || whatsapp : '';
 
   return (
     <footer className="mt-20 border-t border-neutral-100 bg-neutral-50 py-12">
@@ -129,6 +132,16 @@ export default function Footer() {
             </p>
           )}
           {storeConfig.direccionFiscal && <p>{storeConfig.direccionFiscal}</p>}
+          {/* Teléfono escrito, no solo el botón flotante: las pasarelas de pago
+              piden número, correo y dirección visibles en la web. */}
+          {telefono && (
+            <p>
+              📞 WhatsApp:{' '}
+              <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="font-medium text-neutral-800 underline-offset-4 hover:underline">
+                {telefono}
+              </a>
+            </p>
+          )}
           {correoVentas && (
             <p>
               🏢 Ventas corporativas:{' '}
@@ -165,6 +178,13 @@ export default function Footer() {
           {legal.terminosActivo && (
             <Link to="/terminos-condiciones" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
               {legal.terminosTitulo || 'Términos'}
+            </Link>
+          )}
+          {/* Las pasarelas de pago (Culqi) piden ver la política de cambios y
+              devoluciones con su propio enlace, no escondida en los Términos. */}
+          {legal.terminosActivo && seccionesDeDevolucion(legal.terminosTexto).length > 0 && (
+            <Link to="/cambios-y-devoluciones" className="text-neutral-600 hover:text-neutral-900 font-medium transition">
+              Cambios y devoluciones
             </Link>
           )}
           {/* Poder cambiar de opinión sobre las cookies tiene que ser tan fácil
