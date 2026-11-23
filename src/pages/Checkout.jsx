@@ -20,6 +20,7 @@ import { codigoDelLive } from '../lib/live.js';
 import { conRecarga } from '../lib/cargarPieza.js';
 import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
 import { primerCampoQueFalta } from '../lib/camposCheckout.js';
+import { reportarError } from '../lib/reportarError.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -349,8 +350,14 @@ export default function Checkout() {
       } else if (window.Culqi.order) {
         procesarPagoRef.current(null, window.Culqi.order.id);
       } else {
+        // Culqi rechazó los datos antes de cobrar y deja el motivo en
+        // Culqi.error. Antes se tapaba con un mensaje genérico y nadie sabía
+        // qué había pasado: ahora el cliente lee el de Culqi y el panel recibe
+        // el detalle técnico (sin datos de la tarjeta).
+        const e = window.Culqi.error || {};
         setStatus('error');
-        setErrorMsg('No se pudo generar el token de pago. Intenta nuevamente.');
+        setErrorMsg(e.user_message || 'No se pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.');
+        reportarError(`Culqi no generó el token: ${[e.type, e.code, e.merchant_message || e.user_message].filter(Boolean).join(' · ') || 'sin detalle'}`);
       }
     };
     return () => {
