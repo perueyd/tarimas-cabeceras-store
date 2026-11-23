@@ -400,6 +400,21 @@ export default function Checkout() {
     });
   }
 
+  /**
+   * Algunos mensajes de Culqi mandan al cliente a llamar al teléfono de CULQI
+   * («Contáctanos al (01) 643 1050») o a «contactarse con el comercio» sin
+   * decir cómo. Se cambian por el WhatsApp de la tienda.
+   */
+  function mensajeParaElCliente(mensaje) {
+    const texto = String(mensaje || '').trim();
+    const numero = storeConfig.contacto?.telefonoFormato || storeConfig.contacto?.whatsapp || '';
+    const escribenos = numero ? ` Si el problema sigue, escríbenos por WhatsApp al ${numero}.` : '';
+    if (!texto) return `El pago no pudo procesarse.${escribenos}`;
+    if (/643\s*1050/.test(texto)) return `Hubo un problema con el sistema de pagos. Intenta de nuevo en unos minutos.${escribenos}`;
+    if (/contáct(e|ese|anos).*comercio|Contáctanos para ayudarte/i.test(texto)) return `${texto}${escribenos}`;
+    return texto;
+  }
+
   // La ventana de pago abierta (Culqi Checkout Custom). Se crea una nueva
   // cada vez que el cliente pulsa pagar, con el monto de ese momento.
   const culqiRef = useRef(null);
@@ -547,7 +562,7 @@ export default function Checkout() {
         return procesarPago(token, { deviceId, autenticacion3DS });
       }
       if (!res.ok) {
-        throw new Error((data?.error || data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.') + detalleDePrueba(`cobro, ${res.status}`, data));
+        throw new Error(mensajeParaElCliente(data?.error || data?.user_message || data?.merchant_message) + detalleDePrueba(`cobro, ${res.status}`, data));
       }
       clearCart();
       trackPurchase(data.orderCode || data.id, totalConDescuento);

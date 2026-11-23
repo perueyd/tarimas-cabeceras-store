@@ -93,6 +93,9 @@ export default function App() {
   // justo encima del botón «Ver mi oferta» en el celular. Ahí la persona viene
   // a una sola cosa y tiene diez segundos: no se le pone nada delante.
   const enElLive = pathname.startsWith('/live');
+  // En la constancia los botones flotantes (WhatsApp y chat) tapaban la tabla
+  // en el celular y salían al imprimirla o guardarla en PDF.
+  const enLaConstancia = pathname === '/constancia';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -131,7 +134,7 @@ export default function App() {
       {!enElPanel && (
         <>
           <Footer />
-          {!enElLive && (
+          {!enElLive && !enLaConstancia && (
             <>
               <WhatsAppButton />
               {/* Si el chat no se puede cargar, se queda sin chat; el resto de
