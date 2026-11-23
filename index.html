@@ -45,6 +45,9 @@
          rompería el pago en cuanto ellos actualicen. El riesgo se acota con la
          CSP (script-src limita desde qué dominios se puede cargar código). -->
     <script src="https://js.culqi.com/checkout-js"></script>
+    <!-- Culqi 3DS: verificación del titular con su banco cuando Culqi la pide.
+         Guía: https://docs.culqi.com/es/documentacion/culqi-3ds/v1/configuracion -->
+    <script src="https://3ds.culqi.com" defer></script>
     <!-- Leaflet (mapa gratuito con OpenStreetMap, sin llave de API).
          Versión fija -> sí lleva SRI: si el CDN sirviera un archivo alterado,
          el navegador lo rechaza en vez de ejecutarlo. -->

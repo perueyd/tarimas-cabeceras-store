@@ -33,3 +33,12 @@ test('datos antifraude: nombre partido, teléfono solo con números, sin vacíos
   });
   assert.equal('last_name' in datosAntifraude({ nombre: 'Ana' }), false);
 });
+
+// Lo que llega del navegador para 3DS se limpia: solo los campos que Culqi espera.
+import { huellaValida, limpiarAutenticacion3DS } from '../api/create-charge.js';
+test('3DS: huella y resultado de la verificación, limpios', () => {
+  assert.equal(huellaValida('8019959c-fab1-49eb-bbbe-b846d308d8df'), '8019959c-fab1-49eb-bbbe-b846d308d8df');
+  assert.equal(huellaValida('<script>'), null);
+  assert.deepEqual(limpiarAutenticacion3DS({ eci: '05', xid: 'abc', otro: 'x', cavv: 7 }), { eci: '05', xid: 'abc' });
+  assert.equal(limpiarAutenticacion3DS('nada'), null);
+});

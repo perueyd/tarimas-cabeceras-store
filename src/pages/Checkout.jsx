@@ -351,6 +351,55 @@ export default function Checkout() {
   const procesarPagoRef = useRef(procesarPago);
   useEffect(() => { procesarPagoRef.current = procesarPago; });
 
+  /** La huella del dispositivo para el antifraude de Culqi; si no se puede, se cobra sin ella. */
+  async function huellaDelDispositivo() {
+    try {
+      if (!window.Culqi3DS) return null;
+      window.Culqi3DS.publicKey = CULQI_PUBLIC_KEY;
+      // Con un tope: si el antifraude tarda (red lenta, un bloqueador), se
+      // cobra sin la huella en vez de dejar al cliente esperando para siempre.
+      return await Promise.race([window.Culqi3DS.generateDevice(), new Promise((r) => setTimeout(() => r(null), 6000))]);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Abre la ventana de Culqi 3DS para que el titular confirme la compra con
+   * su banco. Devuelve los parámetros que hay que mandar en el segundo cobro;
+   * si el cliente no la completa, falla con un mensaje para él.
+   */
+  function verificarConElBanco(token) {
+    return new Promise((resolver, rechazar) => {
+      const c3ds = window.Culqi3DS;
+      if (!c3ds) {
+        rechazar(new Error('Tu banco pide verificar esta compra y no se pudo abrir la verificación. Recarga la página e intenta de nuevo.'));
+        return;
+      }
+      function alResponder(evento) {
+        // La librería responde desde nuestra propia página (lo dice la guía).
+        if (evento.origin !== window.location.origin || !evento.data) return;
+        const { parameters3DS, error } = evento.data;
+        if (!parameters3DS && !error) return;
+        window.removeEventListener('message', alResponder);
+        if (parameters3DS) resolver(parameters3DS);
+        else rechazar(new Error(`No se pudo verificar la compra con tu banco: ${error}`));
+      }
+      window.addEventListener('message', alResponder);
+      c3ds.reset?.();
+      c3ds.publicKey = CULQI_PUBLIC_KEY;
+      c3ds.settings = {
+        charge: { totalAmount: Math.round(totalConDescuento * 100), returnUrl: window.location.href, currency: 'PEN' },
+        card: { email: form.email },
+      };
+      c3ds.options = { showModal: true, showLoading: true, showIcon: true };
+      Promise.resolve(c3ds.initAuthentication(token)).catch((e) => {
+        window.removeEventListener('message', alResponder);
+        rechazar(new Error(`No se pudo verificar la compra con tu banco: ${e?.message || e}`));
+      });
+    });
+  }
+
   // La ventana de pago abierta (Culqi Checkout Custom). Se crea una nueva
   // cada vez que el cliente pulsa pagar, con el monto de ese momento.
   const culqiRef = useRef(null);
@@ -452,15 +501,23 @@ export default function Checkout() {
     culqi.open();
   }
 
-  async function procesarPago(token) {
+  /**
+   * Cobra con el token de Culqi. Sigue la guía de Culqi 3DS (docs.culqi.com,
+   * 23/11/2026): manda la huella del dispositivo y, si el banco pide verificar
+   * al titular, abre la ventana de verificación y vuelve a cobrar con su resultado.
+   */
+  async function procesarPago(token, previo = {}) {
     setStatus('paying');
     try {
+      const deviceId = previo.deviceId ?? (await huellaDelDispositivo());
       const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
       const res = await fetch('/api/create-charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
+          deviceId: deviceId || undefined,
+          autenticacion3DS: previo.autenticacion3DS,
           amount: Math.round(totalConDescuento * 100),
           email: form.email,
           nombre: form.nombre,
@@ -485,6 +542,10 @@ export default function Checkout() {
         }),
       });
       const data = await res.json();
+      if (res.ok && data?.necesita3DS) {
+        const autenticacion3DS = await verificarConElBanco(token);
+        return procesarPago(token, { deviceId, autenticacion3DS });
+      }
       if (!res.ok) {
         throw new Error((data?.error || data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.') + detalleDePrueba(`cobro, ${res.status}`, data));
       }

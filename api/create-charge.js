@@ -37,6 +37,11 @@ export default async function handler(req, res) {
   const entrega = s(body.entrega, 120);
   // Lo que el cliente quiso decirnos al comprar (opcional).
   const observaciones = limpiarObservaciones(body.observaciones);
+  // Pasos de la guía de Culqi (docs.culqi.com → Culqi 3DS, 23/11/2026): la
+  // huella del dispositivo va en antifraud_details y, si el banco pidió
+  // verificar al titular, el segundo intento trae el resultado de esa verificación.
+  const huella = huellaValida(body.deviceId);
+  const autenticacion3DS = limpiarAutenticacion3DS(body.autenticacion3DS);
   const secretKey = process.env.CULQI_SECRET_KEY;
 
   if (!secretKey) {
@@ -119,7 +124,8 @@ export default async function handler(req, res) {
         // Culqi pide estos datos en cada cargo: su motor antifraude rechaza
         // más compras legítimas cuando no los tiene (docs.culqi.com → Cargos,
         // consultado el 23/11/2026).
-        antifraud_details: datosAntifraude({ nombre, telefono, direccion }),
+        antifraud_details: { ...datosAntifraude({ nombre, telefono, direccion }), ...(huella && { device_finger_print_id: huella }) },
+        ...(autenticacion3DS && { authentication_3DS: autenticacion3DS }),
       }),
     });
 
@@ -131,13 +137,17 @@ export default async function handler(req, res) {
     if (!culqiRes.ok || data?.object !== 'charge') {
       // Tarjeta rechazada: el cliente no compró, el cupón vuelve a estar libre.
       await reserva.liberar();
+      // El banco pide verificar al titular: el navegador abre la ventana de
+      // Culqi 3DS y vuelve a llamar aquí con el resultado. No es un error.
+      // (Si ya venía verificado y lo vuelve a pedir, ahí sí se rechaza.)
+      if (data?.action_code === 'REVIEW' && !autenticacion3DS) {
+        return res.status(200).json({ necesita3DS: true });
+      }
       // El detalle técnico de Culqi (sin datos del cliente ni de la tarjeta)
       // va al panel: al cliente solo le llega el mensaje genérico de Culqi.
       await avisarError('cobro', `Culqi no hizo el cargo: ${motivoDeCulqi(data, culqiRes.status)}`);
       if (data?.action_code === 'REVIEW') {
-        return res.status(402).json({
-          error: 'Tu banco pide verificar esta compra y todavía no podemos hacerlo aquí. Paga con otra tarjeta, con Yape o con transferencia.',
-        });
+        return res.status(402).json({ error: 'Tu banco no pudo verificar la compra. Prueba con otra tarjeta, con Yape o con transferencia.' });
       }
       return res.status(culqiRes.ok ? 402 : culqiRes.status).json(data);
     }
@@ -253,4 +263,22 @@ export function motivoDeCulqi(data = {}, estado) {
     .filter(Boolean)
     .join(' · ')
     .slice(0, 300);
+}
+
+/** La huella del dispositivo que da Culqi3DS.generateDevice() (un UUID), o null. */
+export function huellaValida(valor) {
+  const v = String(valor || '').trim();
+  return /^[0-9a-f-]{16,64}$/i.test(v) ? v : null;
+}
+
+const CAMPOS_3DS = ['eci', 'xid', 'cavv', 'protocolVersion', 'directoryServerTransactionId'];
+
+/** El resultado de la verificación 3DS, solo con los campos que Culqi espera (texto corto). */
+export function limpiarAutenticacion3DS(valor) {
+  if (!valor || typeof valor !== 'object') return null;
+  const limpio = {};
+  for (const campo of CAMPOS_3DS) {
+    if (typeof valor[campo] === 'string' && valor[campo].trim()) limpio[campo] = valor[campo].trim().slice(0, 200);
+  }
+  return Object.keys(limpio).length ? limpio : null;
 }

@@ -111,15 +111,19 @@ test('cupón + tarjeta rechazada: el uso se devuelve', async () => {
 });
 
 // El banco pide verificar al titular (3DS): Culqi responde 200 SIN cobrar.
-// Tomarlo como pago dejaba un pedido «Pagado» sin dinero.
-test('tarjeta que pide verificación (REVIEW): no hay pedido pagado y el cupón vuelve', async () => {
+// Tomarlo como pago dejaba un pedido «Pagado» sin dinero. Ahora se pide la
+// verificación al navegador; y si ya venía verificado, se rechaza.
+test('tarjeta que pide verificación (REVIEW): se pide 3DS, sin pedido pagado y el cupón vuelve', async () => {
   prepararTienda();
   respuestaCulqi = { revision: true };
   const res = await pagoConTarjeta();
-  assert.equal(res.statusCode, 402);
-  assert.equal(res.cuerpo.guardado, undefined);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.cuerpo.necesita3DS, true);
   assert.equal((db.get('pedidos') || []).length, 0, 'no debe guardarse ningún pedido');
   assert.equal(usos(), 0);
+  const otraVez = await pagoConTarjeta({ autenticacion3DS: { eci: '05', xid: 'x' } });
+  assert.equal(otraVez.statusCode, 402, 'ya verificado y Culqi sigue sin cobrar: se rechaza');
+  assert.equal((db.get('pedidos') || []).length, 0);
 });
 
 test('cupón + Culqi sin conexión: el uso se devuelve', async () => {
