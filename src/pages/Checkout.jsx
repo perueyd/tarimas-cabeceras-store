@@ -19,6 +19,7 @@ import { esLineaDeServicio, referidoActual } from '../lib/servicios.js';
 import { codigoDelLive } from '../lib/live.js';
 import { conRecarga } from '../lib/cargarPieza.js';
 import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
+import { primerCampoQueFalta } from '../lib/camposCheckout.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -359,6 +360,7 @@ export default function Checkout() {
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === faltante) setFaltante(null);
   }
 
   // Solo se queja cuando ya hay algo escrito: señalar en rojo un campo vacío
@@ -367,27 +369,28 @@ export default function Checkout() {
     ? revisarComprobante({ tipo: form.docTipo, numero: form.docNumero, razonSocial: form.razonSocial })
     : null;
 
+  // Campo que se marcó en rojo al intentar pagar; se apaga en cuanto lo tocan.
+  const [faltante, setFaltante] = useState(null);
+
+  /**
+   * ¿Está todo? Si no, lleva al cliente al primer campo que falta, lo marca y
+   * dice cuál es. Sin documento válido no se puede emitir el comprobante, y
+   * emitirlo es obligatorio al cobrar IGV.
+   */
   function isFormValid() {
-    return (
-      form.nombre &&
-      form.email &&
-      form.telefono &&
-      form.direccion &&
-      form.distrito &&
-      form.entregaFecha &&
-      form.entregaHorario &&
-      // Sin documento válido no se puede emitir el comprobante, y emitirlo es
-      // obligatorio al cobrar IGV.
-      form.docNumero &&
-      !revisarComprobante({ tipo: form.docTipo, numero: form.docNumero, razonSocial: form.razonSocial })
-    );
+    const falta = primerCampoQueFalta(form);
+    if (!falta) return true;
+    setFaltante(falta.campo);
+    setErrorMsg(falta.mensaje);
+    const caja = document.querySelector(`[data-campo="${falta.campo}"]`);
+    caja?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // preventScroll: el desplazamiento suave ya lo hace; enfocar sin esto salta de golpe.
+    caja?.querySelector('input, select, textarea')?.focus({ preventScroll: true });
+    return false;
   }
 
   function abrirCulqi() {
-    if (!isFormValid()) {
-      setErrorMsg('Completa todos los campos (incluida la fecha y el horario de entrega) antes de pagar.');
-      return;
-    }
+    if (!isFormValid()) return;
     if (!CULQI_PUBLIC_KEY) {
       setErrorMsg('Falta configurar VITE_CULQI_PUBLIC_KEY en las variables de entorno.');
       return;
@@ -482,10 +485,7 @@ export default function Checkout() {
   // Registra un pedido con pago manual (Yape/Plin directo o transferencia):
   // queda como "Pago por verificar" y se abre WhatsApp para enviar el comprobante.
   async function registrarPedidoManual(metodoLabel) {
-    if (!isFormValid()) {
-      setErrorMsg('Completa todos los campos (incluida la fecha y el horario de entrega) antes de continuar.');
-      return;
-    }
+    if (!isFormValid()) return;
     setErrorMsg('');
     setStatus('paying');
     const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
@@ -618,18 +618,23 @@ export default function Checkout() {
       ) : (
         <>
           <form className="grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
-            <Field label="Nombre completo" name="nombre" value={form.nombre} onChange={handleChange} full />
-            <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} />
-            <Field label="Teléfono / WhatsApp" name="telefono" value={form.telefono} onChange={handleChange} />
-            <Field label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} full />
-            <LocationSearch
-              label="Distrito"
-              options={limaOptions}
-              value={form.distrito}
-              onSelect={setLimaDistrito}
-              placeholder="Busca tu distrito..."
-              disabled={!ubigeo}
-            />
+            <Field label="Nombre completo" name="nombre" value={form.nombre} onChange={handleChange} full marcado={faltante} />
+            <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} marcado={faltante} />
+            <Field label="Teléfono / WhatsApp" name="telefono" value={form.telefono} onChange={handleChange} marcado={faltante} />
+            <Field label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} full marcado={faltante} />
+            <div data-campo="distrito" className={faltante === 'distrito' ? 'rounded-lg ring-2 ring-red-500 ring-offset-2' : ''}>
+              <LocationSearch
+                label="Distrito"
+                options={limaOptions}
+                value={form.distrito}
+                onSelect={(op) => {
+                  setLimaDistrito(op);
+                  if (faltante === 'distrito') setFaltante(null);
+                }}
+                placeholder="Busca tu distrito..."
+                disabled={!ubigeo}
+              />
+            </div>
             <Field
               label="Referencia (opcional)"
               name="referencia"
@@ -659,6 +664,7 @@ export default function Checkout() {
                     value={form.docNumero}
                     onChange={handleChange}
                     placeholder="8 dígitos"
+                    marcado={faltante}
                   />
                 ) : (
                   <>
@@ -668,6 +674,7 @@ export default function Checkout() {
                       value={form.docNumero}
                       onChange={handleChange}
                       placeholder="11 dígitos"
+                      marcado={faltante}
                     />
                     <Field
                       label="Razón social"
@@ -675,6 +682,7 @@ export default function Checkout() {
                       value={form.razonSocial}
                       onChange={handleChange}
                       placeholder="Como figura en la SUNAT"
+                      marcado={faltante}
                     />
                   </>
                 )}
@@ -743,15 +751,18 @@ export default function Checkout() {
                   value={form.entregaFecha}
                   onChange={handleChange}
                   min={primerDiaDeEntrega(new Date(), reglaEntrega)}
+                  marcado={faltante}
                 />
-                <label className="text-sm">
+                <label className="text-sm" data-campo="entregaHorario">
                   <span className="mb-1 block text-neutral-700">Rango de horario</span>
                   <select
                     name="entregaHorario"
                     value={form.entregaHorario}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
+                    className={`w-full rounded-lg border bg-white px-3 py-2 outline-none focus:border-ink ${
+                      faltante === 'entregaHorario' ? 'border-red-500 ring-2 ring-red-200' : 'border-neutral-300'
+                    }`}
                   >
                     <option value="">Selecciona un horario</option>
                     {horariosDeReparto(storeConfig.deliverySlots, form.entregaFecha, new Date(), reglaEntrega).map((s) => (
@@ -1141,9 +1152,11 @@ function ProvinciaFlow({
   );
 }
 
-function Field({ label, name, value, onChange, type = 'text', full = false, required = true, placeholder, min }) {
+function Field({ label, name, value, onChange, type = 'text', full = false, required = true, placeholder, min, marcado }) {
+  // marcado = el campo que falta al intentar pagar: ese se pinta en rojo.
+  const falta = marcado && marcado === name;
   return (
-    <label className={`text-sm ${full ? 'sm:col-span-2' : ''}`}>
+    <label className={`text-sm ${full ? 'sm:col-span-2' : ''}`} data-campo={name}>
       <span className="mb-1 block text-neutral-700">{label}</span>
       <input
         type={type}
@@ -1153,7 +1166,9 @@ function Field({ label, name, value, onChange, type = 'text', full = false, requ
         required={required}
         placeholder={placeholder}
         min={min}
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink"
+        className={`w-full rounded-lg border px-3 py-2 outline-none focus:border-ink ${
+          falta ? 'border-red-500 ring-2 ring-red-200' : 'border-neutral-300'
+        }`}
       />
     </label>
   );
