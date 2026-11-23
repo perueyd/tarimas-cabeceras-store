@@ -353,19 +353,6 @@ export const products = [
   */
 ];
 
-// ---------- FUNCIONES AUXILIARES (no tocar) ----------
-export function getProductById(id) {
-  return products.find((p) => p.id === id);
-}
-
-export function getColorById(id) {
-  return colors.find((c) => c.id === id);
-}
-
-export function getSizeById(id) {
-  return sizes.find((s) => s.id === id);
-}
-
 export const currencyFormatter = new Intl.NumberFormat('es-PE', {
   style: 'currency',
   currency: 'PEN',

@@ -60,7 +60,7 @@ const NOMBRES_HOMBRE = /pablo|jorge|miguel|carlos|juan|diego|alvaro|álvaro|dali
 // Puntúa una voz para JARVIS: español LATINO primero (el dueño es de Perú y
 // prefiere el acento neutro del doblaje, no el de España), voz de hombre, y
 // motores modernos ("Natural"/"Neural"/Google) que suenan mucho menos robóticos.
-export function puntuarVoz(v) {
+function puntuarVoz(v) {
   const l = (v.lang || '').toLowerCase();
   const n = (v.name || '').toLowerCase();
   if (!l.startsWith('es')) return -1;
@@ -79,7 +79,7 @@ export function puntuarVoz(v) {
   return p;
 }
 
-export function vocesDisponibles() {
+function vocesDisponibles() {
   return (window.speechSynthesis?.getVoices?.() || [])
     .filter((v) => puntuarVoz(v) >= 0)
     .sort((a, b) => puntuarVoz(b) - puntuarVoz(a));

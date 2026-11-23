@@ -21,7 +21,7 @@ import { calendarUrl } from './descargas.js';
 // POR CADA TECLA. Cada respuesta reescribía la lista de pedidos, y al escribir
 // rápido las letras se perdían o el cursor saltaba. Ahora se escribe en local y
 // se guarda al salir del campo o al pulsar Enter.
-export function CampoReferencia({ o, onUpdate }) {
+function CampoReferencia({ o, onUpdate }) {
   const [valor, setValor] = useState(o.referencia || '');
   const [guardado, setGuardado] = useState(false);
 
@@ -66,7 +66,7 @@ export function CampoReferencia({ o, onUpdate }) {
 // sale del facturador. Anotar aquí su número deja a la vista, pedido por
 // pedido, cuáles ya tienen su boleta y cuáles no — que es justo lo que hay que
 // vigilar cuando se usan dos documentos.
-export function CampoComprobanteEmitido({ o, onUpdate }) {
+function CampoComprobanteEmitido({ o, onUpdate }) {
   const [valor, setValor] = useState(o.comprobante || '');
   const [mal, setMal] = useState(false);
 
@@ -429,7 +429,7 @@ export function PedidoCard({ o, onUpdate, onDelete, currencyFormatter, getColorB
 // El botón copia las cuatro líneas de una vez. Parece poca cosa, pero es la
 // diferencia entre emitir el comprobante en veinte segundos o ir saltando por
 // la pantalla a buscar cada dato — que es como se cometen los errores.
-export function BloqueComprobante({ o, currencyFormatter }) {
+function BloqueComprobante({ o, currencyFormatter }) {
   const [copiado, setCopiado] = useState(false);
 
   // Los pedidos anteriores a esta función no tienen el desglose guardado, así

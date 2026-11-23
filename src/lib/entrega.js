@@ -34,7 +34,7 @@ import { enLima } from './lima.js';
  *   seguro  false = lo de hoy depende de la disponibilidad del taller y se confirma por WhatsApp
  *   demora  si puede retrasarse, cuánto (ej. "1 a 3 días"); vacío = no se avisa de retrasos
  */
-export const REGLA_GENERAL = Object.freeze({ corte: 8, desde: 17, seguro: true, demora: '' });
+const REGLA_GENERAL = Object.freeze({ corte: 8, desde: 17, seguro: true, demora: '' });
 
 export const REGLAS_DE_FABRICA = Object.freeze({
   general: REGLA_GENERAL,

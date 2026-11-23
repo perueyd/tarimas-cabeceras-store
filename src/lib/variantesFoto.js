@@ -14,7 +14,7 @@
 // Las reglas van en LISTA y gana la PRIMERA que calce, porque se solapan: una
 // cabecera aérea es además una cabecera sin laterales (se lo impone la regla
 // del catálogo), así que "aérea" va primero o se llevaría la ficha equivocada.
-export function varianteDe(item, opciones) {
+function varianteDe(item, opciones) {
   const reglas = Array.isArray(item?.segunOpcion) ? item.segunOpcion : [];
   return reglas.find((r) => opciones?.[r.grupo] === r.valor) || null;
 }

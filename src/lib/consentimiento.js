@@ -44,11 +44,6 @@ export function guardarConsentimiento({ analitica, marketing }) {
   return valor;
 }
 
-export function borrarConsentimiento() {
-  try { localStorage.removeItem(CLAVE); } catch { /* da igual */ }
-  window.dispatchEvent(new CustomEvent('ed-consentimiento', { detail: null }));
-}
-
 export function aceptaAnalitica() {
   return leerConsentimiento()?.analitica === true;
 }

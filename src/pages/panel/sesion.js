@@ -10,7 +10,7 @@
 // compartida o prestada el siguiente que abriera /pedidos entraba directo. En
 // sessionStorage se borra al cerrar la pestaña, y además caduca a las 8 horas.
 export const CLAVE_STORAGE = 'ed-orders-key';
-export const CLAVE_HORAS = 8;
+const CLAVE_HORAS = 8;
 
 export function leerClaveGuardada() {
   try {

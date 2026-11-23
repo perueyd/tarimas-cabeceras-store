@@ -73,7 +73,7 @@ function lum(r, g, b) {
 // va con `object-contain`, así que una foto que no fuera cuadrada quedaba con
 // las zonas corridas — el color se pintaba en un sitio y el mueble estaba en
 // otro. Con la proporción original las dos coinciden exactamente.
-export function medidasMascara(img) {
+function medidasMascara(img) {
   const w = img.naturalWidth || img.width || TAM_MASCARA;
   const h = img.naturalHeight || img.height || TAM_MASCARA;
   const escala = Math.min(1, TAM_MASCARA / Math.max(w, h));

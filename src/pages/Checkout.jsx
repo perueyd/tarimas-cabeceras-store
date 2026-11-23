@@ -533,7 +533,6 @@ export default function Checkout() {
           token,
           deviceId: deviceId || undefined,
           autenticacion3DS: previo.autenticacion3DS,
-          amount: Math.round(totalConDescuento * 100),
           email: form.email,
           nombre: form.nombre,
           telefono: form.telefono,
