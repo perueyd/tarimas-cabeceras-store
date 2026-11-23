@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { rutaDeConstancia } from '../lib/constancia.js';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
@@ -65,6 +66,7 @@ export default function ThankYou() {
         <>
           <p className="mt-4 text-sm font-medium">
             N° de pedido: <span className="rounded bg-neutral-100 px-2 py-1 font-mono">{state.orderCode}</span>
+            <BotonCopiar texto={state.orderCode} />
           </p>
           <Link
             to={`/seguimiento?codigo=${encodeURIComponent(state.orderCode)}`}
@@ -121,5 +123,30 @@ export default function ThankYou() {
         <RecommendedProducts title="¿Y si completas tu dormitorio?" />
       </div>
     </main>
+  );
+}
+
+// Copia el número de pedido (pedido del dueño, 23/11/2026): el cliente lo
+// necesita para rastrear o escribir por WhatsApp, y en el celular seleccionar
+// un texto pequeño a mano es incómodo.
+function BotonCopiar({ texto }) {
+  const [copiado, setCopiado] = useState(false);
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch {
+      // Sin permiso para el portapapeles: el número sigue a la vista.
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copiar}
+      className="ml-2 rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
+    >
+      {copiado ? '✓ Copiado' : 'Copiar'}
+    </button>
   );
 }
