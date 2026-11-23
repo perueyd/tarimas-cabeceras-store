@@ -16,3 +16,10 @@ test('en la tienda publicada no se cobra con llave de prueba', () => {
   assert.equal(motivoParaNoCobrar('sk_live_abc', 'production'), null);
   assert.equal(motivoParaNoCobrar('sk_test_abc', 'preview'), null);
 });
+
+// El aviso de «bloqueado por la política de seguridad» solo debe llevar el dominio.
+import { soloDominio } from '../src/lib/reportarError.js';
+test('el aviso de bloqueo no lleva la ruta ni los datos de la dirección', () => {
+  assert.equal(soloDominio('https://checkoutview.culqi.com/v4/x?token=abc'), 'https://checkoutview.culqi.com');
+  assert.equal(soloDominio('inline'), 'inline');
+});

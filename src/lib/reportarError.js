@@ -44,4 +44,20 @@ export function vigilarErroresGlobales() {
     if (e.error) reportarError(e.error);
   });
   window.addEventListener('unhandledrejection', (e) => reportarError(e.reason));
+  // Lo que bloquea la política de seguridad (vercel.json). El pago con tarjeta
+  // de Culqi falló sin decir por qué porque la política no dejaba cargar una
+  // de sus direcciones: así el panel dice cuál fue. Solo se manda el dominio
+  // (sin la parte «/…?…»), que no lleva datos de nadie.
+  window.addEventListener('securitypolicyviolation', (e) => {
+    reportarError(`Bloqueado por la política de seguridad: ${e.effectiveDirective} → ${soloDominio(e.blockedURI)}`);
+  });
+}
+
+/** «https://x.culqi.com/a?b» → «https://x.culqi.com»; «inline» o «eval» se dejan igual. */
+export function soloDominio(direccion) {
+  try {
+    return new URL(direccion).origin;
+  } catch {
+    return String(direccion || '').slice(0, 40);
+  }
 }
