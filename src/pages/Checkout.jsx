@@ -35,6 +35,12 @@ function useUbigeo() {
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 const CULQI_DE_PRUEBA = esLlaveDePrueba(CULQI_PUBLIC_KEY);
 
+/** Correo, nombre y apellido para el Checkout de Culqi (el apellido es lo que sigue al primer nombre). */
+function clienteParaCulqi(form) {
+  const [firstName = '', ...resto] = String(form.nombre || '').trim().split(/\s+/);
+  return { email: form.email, ...(firstName && { firstName }), ...(resto.length && { lastName: resto.join(' ') }) };
+}
+
 // Solo en la versión de PRUEBA: el motivo técnico de Culqi se ve en pantalla,
 // para no tener que ir a buscarlo al panel. A un cliente real nunca se le muestra.
 function detalleDePrueba(donde, e = {}) {
@@ -494,8 +500,9 @@ export default function Checkout() {
         currency: 'PEN',
         amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
       },
-      // El correo ya lo escribió en nuestro formulario: no se le vuelve a pedir.
-      client: { email: form.email },
+      // Paso 2 de la guía de Culqi («Envía nombre, apellido e email de tu
+      // cliente»): ya los escribió en nuestro formulario, no se le vuelven a pedir.
+      client: clienteParaCulqi(form),
       options: {
         lang: 'es',
         modal: true,
