@@ -337,8 +337,9 @@ export default function Checkout() {
   // llamando a la versión vieja de procesarPago — se cobraba el total SIN
   // descuento y el cupón no llegaba al servidor.
   //
-  // Con una referencia que se actualiza en cada render, el callback global
-  // siempre invoca la función actual, pase lo que pase con las dependencias.
+  // Con una referencia que se actualiza en cada render, la respuesta de Culqi
+  // (alTerminarCulqi, que se engancha al abrir la ventana) siempre invoca la
+  // versión actual, aunque el cliente cambie algo con la ventana abierta.
   const procesarPagoRef = useRef(procesarPago);
   useEffect(() => { procesarPagoRef.current = procesarPago; });
 
