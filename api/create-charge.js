@@ -119,8 +119,13 @@ export default async function handler(req, res) {
         // Esto es lo que el cliente ve en el estado de cuenta de su tarjeta.
         // Si ahí aparece un nombre que no reconoce, desconoce el cargo y el
         // banco le devuelve el dinero: un contracargo que la tienda paga.
-        description: `Pedido ${NOMBRE_TIENDA} - ${nombre || ''}`.trim(),
-        metadata: { nombre, telefono, zona, direccion, ubicacion, entrega, items: JSON.stringify(items || []) },
+        // Culqi admite como mucho 80 letras en la descripción: con un nombre largo se recorta.
+        description: `Pedido ${NOMBRE_TIENDA} - ${nombre || ''}`.trim().slice(0, 80),
+        // Culqi rechaza el cobro entero si un valor de la metadata pasa de
+        // 200 letras (parameter_error). La lista de productos completa ya
+        // pasaba con un solo producto: ahora va un resumen corto y cada valor
+        // se recorta. El detalle completo queda en el pedido de la tienda.
+        metadata: metadataParaCulqi({ nombre, telefono, zona, direccion, ubicacion, entrega, items: resumenDeItems(items) }),
         // Culqi pide estos datos en cada cargo: su motor antifraude rechaza
         // más compras legítimas cuando no los tiene (docs.culqi.com → Cargos,
         // consultado el 23/11/2026).
@@ -281,4 +286,22 @@ export function limpiarAutenticacion3DS(valor) {
     if (typeof valor[campo] === 'string' && valor[campo].trim()) limpio[campo] = valor[campo].trim().slice(0, 200);
   }
   return Object.keys(limpio).length ? limpio : null;
+}
+
+/** Culqi solo acepta valores de metadata de hasta 200 letras (docs y error parameter_error, 23/11/2026). */
+export const MAX_METADATA_CULQI = 200;
+
+export function metadataParaCulqi(datos = {}) {
+  return Object.fromEntries(
+    Object.entries(datos)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => [k, String(v).slice(0, MAX_METADATA_CULQI)])
+  );
+}
+
+/** «1× MILÁN (2plazas); 2× COLCHÓN …» — lo justo para reconocer la venta en el panel de Culqi. */
+export function resumenDeItems(items = []) {
+  return (items || [])
+    .map((i) => `${i.qty || 1}× ${i.productName || i.name || i.productId || ''}${i.sizeId ? ` (${i.sizeId})` : ''}`.trim())
+    .join('; ');
 }

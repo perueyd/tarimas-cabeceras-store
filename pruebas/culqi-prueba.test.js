@@ -42,3 +42,15 @@ test('3DS: huella y resultado de la verificación, limpios', () => {
   assert.deepEqual(limpiarAutenticacion3DS({ eci: '05', xid: 'abc', otro: 'x', cavv: 7 }), { eci: '05', xid: 'abc' });
   assert.equal(limpiarAutenticacion3DS('nada'), null);
 });
+
+// Culqi rechazaba el cobro entero («el valor del parametro 'items' de la
+// metadata excede el límite... de 200 caracteres»): con UN solo producto la
+// lista completa ya pasaba de 200. Ningún valor puede pasar de ese tope.
+import { metadataParaCulqi, resumenDeItems, MAX_METADATA_CULQI } from '../api/create-charge.js';
+test('metadata para Culqi: ningún valor pasa de 200 letras y los vacíos no van', () => {
+  const muchos = Array.from({ length: 12 }, (_, n) => ({ qty: 1, productName: `CABECERA MODELO ${n}`, sizeId: 'queen' }));
+  const md = metadataParaCulqi({ items: resumenDeItems(muchos), direccion: 'x'.repeat(500), ubicacion: '' });
+  assert.ok(Object.values(md).every((v) => v.length <= MAX_METADATA_CULQI));
+  assert.equal('ubicacion' in md, false);
+  assert.equal(resumenDeItems([{ qty: 2, productName: 'MILÁN', sizeId: '2plazas' }]), '2× MILÁN (2plazas)');
+});
