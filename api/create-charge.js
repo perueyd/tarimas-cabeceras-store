@@ -263,7 +263,7 @@ export function datosAntifraude({ nombre = '', telefono = '', direccion = '' } =
 }
 
 /** Por qué Culqi no cobró, en una línea y sin datos personales. */
-export function motivoDeCulqi(data = {}, estado) {
+function motivoDeCulqi(data = {}, estado) {
   return [estado, data.object, data.type, data.code, data.decline_code, data.action_code, data.merchant_message]
     .filter(Boolean)
     .join(' · ')

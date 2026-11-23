@@ -39,7 +39,7 @@ function isValidOffer(offer, original) {
 // distinto, se ignora y se usa el del catálogo. Los recargos negativos se
 // tratan como 0 (para "más barato sin brazos", pon el precio base sin brazos
 // y cobra un extra por ponerlos).
-export function resolveOpciones(product, seleccion) {
+function resolveOpciones(product, seleccion) {
   const grupos = Array.isArray(product?.opciones) ? product.opciones : [];
   const sel = seleccion && typeof seleccion === 'object' ? seleccion : {};
   let extra = 0;
@@ -92,7 +92,7 @@ export function precioDeLinea(product, item) {
   return info ? info.unitPrice : null;
 }
 
-export function clampPercent(value) {
+function clampPercent(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;
   return Math.min(n, 90);

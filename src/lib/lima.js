@@ -14,7 +14,7 @@
 // los números dejen de cuadrar entre pantallas sin que nadie sepa por qué.
 //
 // Perú no cambia de hora, así que el desfase es siempre el mismo.
-export const MINUTOS_DETRAS_DE_UTC = 5 * 60;
+const MINUTOS_DETRAS_DE_UTC = 5 * 60;
 const MS_LIMA = -MINUTOS_DETRAS_DE_UTC * 60 * 1000;
 
 /** El mismo instante, corrido a la hora de Lima. Para cortar por día o mes. */
@@ -39,15 +39,3 @@ export function anioLima(fecha = new Date()) {
   return enLima(fecha)?.toISOString().slice(0, 4) ?? null;
 }
 
-/**
- * Una fecha y hora escritas para una persona en Perú.
- * Usa la zona horaria de verdad, no el desfase a mano: así el navegador
- * escribe el mes y el formato como se espera aquí.
- */
-export function textoLima(iso, opciones = {}) {
-  try {
-    return new Date(iso).toLocaleString('es-PE', { timeZone: 'America/Lima', ...opciones });
-  } catch {
-    return String(iso ?? '');
-  }
-}
