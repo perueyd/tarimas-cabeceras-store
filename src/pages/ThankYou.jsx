@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { rutaDeConstancia } from '../lib/constancia.js';
-import { NOMBRE_TIENDA } from '../data/sitio.js';
+import { NOMBRE_TIENDA, SITIO_URL } from '../data/sitio.js';
+import { useCatalog } from '../context/CatalogContext.jsx';
 import { currencyFormatter } from '../data/catalog.js';
 import RecommendedProducts from '../components/RecommendedProducts.jsx';
 import PostPurchaseSurvey from '../components/PostPurchaseSurvey.jsx';
@@ -65,7 +67,9 @@ export default function ThankYou() {
         <>
           <p className="mt-4 text-sm font-medium">
             N° de pedido: <span className="rounded bg-neutral-100 px-2 py-1 font-mono">{state.orderCode}</span>
+            <BotonCopiar texto={state.orderCode} />
           </p>
+          <EnviarPorWhatsApp state={state} />
           <Link
             to={`/seguimiento?codigo=${encodeURIComponent(state.orderCode)}`}
             className="mt-2 inline-block text-sm text-sky-700 underline"
@@ -121,5 +125,60 @@ export default function ThankYou() {
         <RecommendedProducts title="¿Y si completas tu dormitorio?" />
       </div>
     </main>
+  );
+}
+
+// Copia el número de pedido (pedido del dueño, 23/11/2026): el cliente lo
+// necesita para rastrear o escribir por WhatsApp, y en el celular seleccionar
+// un texto pequeño a mano es incómodo.
+function BotonCopiar({ texto }) {
+  const [copiado, setCopiado] = useState(false);
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch {
+      // Sin permiso para el portapapeles: el número sigue a la vista.
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copiar}
+      className="ml-2 rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100"
+    >
+      {copiado ? '✓ Copiado' : 'Copiar'}
+    </button>
+  );
+}
+
+/**
+ * Manda el pedido por WhatsApp a la tienda, con el enlace a la constancia
+ * (pedido del dueño, 23/11/2026). El cliente se queda con el pedido en su
+ * chat y el dueño lo recibe al instante. No es un envío automático: el
+ * cliente toca «Enviar» en su WhatsApp (el envío automático exige la API
+ * de WhatsApp Business, que es de pago).
+ */
+function EnviarPorWhatsApp({ state }) {
+  const { storeConfig } = useCatalog();
+  const numero = String(storeConfig.contacto?.whatsapp || storeConfig.whatsapp || '').replace(/\D/g, '');
+  if (!numero) return null;
+  const lineas = [
+    `Hola, acabo de hacer mi pedido en ${NOMBRE_TIENDA}.`,
+    `Pedido: ${state.orderCode}`,
+    state.monto != null && `Monto: ${currencyFormatter.format(state.monto)}`,
+    state.entregaFecha && `Entrega: desde el ${state.entregaFecha}${state.entregaHorario ? ` · ${state.entregaHorario}` : ''}`,
+    `Constancia: ${SITIO_URL}${rutaDeConstancia(state.orderCode)}`,
+  ].filter(Boolean);
+  return (
+    <a
+      href={`https://wa.me/${numero}?text=${encodeURIComponent(lineas.join('\n'))}`}
+      target="_blank"
+      rel="noreferrer"
+      className="mx-auto mt-4 flex w-fit items-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+    >
+      📲 Enviar mi pedido por WhatsApp
+    </a>
   );
 }

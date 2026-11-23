@@ -19,6 +19,8 @@ import { esLineaDeServicio, referidoActual } from '../lib/servicios.js';
 import { codigoDelLive } from '../lib/live.js';
 import { conRecarga } from '../lib/cargarPieza.js';
 import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
+import { primerCampoQueFalta } from '../lib/camposCheckout.js';
+import { reportarError } from '../lib/reportarError.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
 // principal — solo el checkout lo necesita, así no pesa en el resto de la web.
@@ -32,6 +34,14 @@ function useUbigeo() {
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 const CULQI_DE_PRUEBA = esLlaveDePrueba(CULQI_PUBLIC_KEY);
+
+// Solo en la versión de PRUEBA: el motivo técnico de Culqi se ve en pantalla,
+// para no tener que ir a buscarlo al panel. A un cliente real nunca se le muestra.
+function detalleDePrueba(donde, e = {}) {
+  if (!CULQI_DE_PRUEBA) return '';
+  const partes = [e?.object, e?.type, e?.code, e?.decline_code, e?.action_code, e?.merchant_message].filter(Boolean);
+  return ` [Detalle de prueba (${donde}): ${partes.join(' · ') || 'Culqi no dio detalle'}]`;
+}
 
 // Lo máximo que Yape deja pagar de una vez, según la documentación de Culqi
 // (pagos online con Yape: solo en soles y hasta S/ 2000).
@@ -335,30 +345,103 @@ export default function Checkout() {
   // llamando a la versión vieja de procesarPago — se cobraba el total SIN
   // descuento y el cupón no llegaba al servidor.
   //
-  // Con una referencia que se actualiza en cada render, el callback global
-  // siempre invoca la función actual, pase lo que pase con las dependencias.
+  // Con una referencia que se actualiza en cada render, la respuesta de Culqi
+  // (alTerminarCulqi, que se engancha al abrir la ventana) siempre invoca la
+  // versión actual, aunque el cliente cambie algo con la ventana abierta.
   const procesarPagoRef = useRef(procesarPago);
   useEffect(() => { procesarPagoRef.current = procesarPago; });
 
-  useEffect(() => {
-    // Callback global que Culqi invoca tras cerrar su modal con un token.
-    window.culqi = function culqiCallback() {
-      if (window.Culqi.token) {
-        procesarPagoRef.current(window.Culqi.token.id);
-      } else if (window.Culqi.order) {
-        procesarPagoRef.current(null, window.Culqi.order.id);
-      } else {
-        setStatus('error');
-        setErrorMsg('No se pudo generar el token de pago. Intenta nuevamente.');
+  /** La huella del dispositivo para el antifraude de Culqi; si no se puede, se cobra sin ella. */
+  async function huellaDelDispositivo() {
+    try {
+      if (!window.Culqi3DS) return null;
+      window.Culqi3DS.publicKey = CULQI_PUBLIC_KEY;
+      // Con un tope: si el antifraude tarda (red lenta, un bloqueador), se
+      // cobra sin la huella en vez de dejar al cliente esperando para siempre.
+      return await Promise.race([window.Culqi3DS.generateDevice(), new Promise((r) => setTimeout(() => r(null), 6000))]);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Abre la ventana de Culqi 3DS para que el titular confirme la compra con
+   * su banco. Devuelve los parámetros que hay que mandar en el segundo cobro;
+   * si el cliente no la completa, falla con un mensaje para él.
+   */
+  function verificarConElBanco(token) {
+    return new Promise((resolver, rechazar) => {
+      const c3ds = window.Culqi3DS;
+      if (!c3ds) {
+        rechazar(new Error('Tu banco pide verificar esta compra y no se pudo abrir la verificación. Recarga la página e intenta de nuevo.'));
+        return;
       }
-    };
-    return () => {
-      window.culqi = undefined;
-    };
-  }, []);
+      function alResponder(evento) {
+        // La librería responde desde nuestra propia página (lo dice la guía).
+        if (evento.origin !== window.location.origin || !evento.data) return;
+        const { parameters3DS, error } = evento.data;
+        if (!parameters3DS && !error) return;
+        window.removeEventListener('message', alResponder);
+        if (parameters3DS) resolver(parameters3DS);
+        else rechazar(new Error(`No se pudo verificar la compra con tu banco: ${error}`));
+      }
+      window.addEventListener('message', alResponder);
+      c3ds.reset?.();
+      c3ds.publicKey = CULQI_PUBLIC_KEY;
+      c3ds.settings = {
+        charge: { totalAmount: Math.round(totalConDescuento * 100), returnUrl: window.location.href, currency: 'PEN' },
+        card: { email: form.email },
+      };
+      c3ds.options = { showModal: true, showLoading: true, showIcon: true };
+      Promise.resolve(c3ds.initAuthentication(token)).catch((e) => {
+        window.removeEventListener('message', alResponder);
+        rechazar(new Error(`No se pudo verificar la compra con tu banco: ${e?.message || e}`));
+      });
+    });
+  }
+
+  /**
+   * Algunos mensajes de Culqi mandan al cliente a llamar al teléfono de CULQI
+   * («Contáctanos al (01) 643 1050») o a «contactarse con el comercio» sin
+   * decir cómo. Se cambian por el WhatsApp de la tienda.
+   */
+  function mensajeParaElCliente(mensaje) {
+    const texto = String(mensaje || '').trim();
+    const numero = storeConfig.contacto?.telefonoFormato || storeConfig.contacto?.whatsapp || '';
+    const escribenos = numero ? ` Si el problema sigue, escríbenos por WhatsApp al ${numero}.` : '';
+    if (!texto) return `El pago no pudo procesarse.${escribenos}`;
+    if (/643\s*1050/.test(texto)) return `Hubo un problema con el sistema de pagos. Intenta de nuevo en unos minutos.${escribenos}`;
+    if (/contáct(e|ese|anos).*comercio|Contáctanos para ayudarte/i.test(texto)) return `${texto}${escribenos}`;
+    return texto;
+  }
+
+  // La ventana de pago abierta (Culqi Checkout Custom). Se crea una nueva
+  // cada vez que el cliente pulsa pagar, con el monto de ese momento.
+  const culqiRef = useRef(null);
+  useEffect(() => () => culqiRef.current?.close?.(), []);
+
+  /** Lo que Culqi devuelve al terminar: un token para cobrar, o el motivo del rechazo. */
+  function alTerminarCulqi() {
+    const c = culqiRef.current;
+    if (!c) return;
+    if (c.token) {
+      c.close();
+      procesarPagoRef.current(c.token.id);
+    } else {
+      // Culqi rechazó los datos antes de cobrar y deja el motivo en
+      // Culqi.error. Antes se tapaba con un mensaje genérico y nadie sabía
+      // qué había pasado: ahora el cliente lee el de Culqi y el panel recibe
+      // el detalle técnico (sin datos de la tarjeta).
+      const e = c.error || {};
+      setStatus('error');
+      setErrorMsg((e.user_message || 'No se pudo procesar la tarjeta. Revisa los datos e intenta nuevamente.') + detalleDePrueba('ventana de Culqi', e));
+      reportarError(`Culqi no generó el token: ${[e.type, e.code, e.merchant_message || e.user_message].filter(Boolean).join(' · ') || 'sin detalle'}`);
+    }
+  }
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === faltante) setFaltante(null);
   }
 
   // Solo se queja cuando ya hay algo escrito: señalar en rojo un campo vacío
@@ -367,71 +450,89 @@ export default function Checkout() {
     ? revisarComprobante({ tipo: form.docTipo, numero: form.docNumero, razonSocial: form.razonSocial })
     : null;
 
+  // Campo que se marcó en rojo al intentar pagar; se apaga en cuanto lo tocan.
+  const [faltante, setFaltante] = useState(null);
+
+  /**
+   * ¿Está todo? Si no, lleva al cliente al primer campo que falta, lo marca y
+   * dice cuál es. Sin documento válido no se puede emitir el comprobante, y
+   * emitirlo es obligatorio al cobrar IGV.
+   */
   function isFormValid() {
-    return (
-      form.nombre &&
-      form.email &&
-      form.telefono &&
-      form.direccion &&
-      form.distrito &&
-      form.entregaFecha &&
-      form.entregaHorario &&
-      // Sin documento válido no se puede emitir el comprobante, y emitirlo es
-      // obligatorio al cobrar IGV.
-      form.docNumero &&
-      !revisarComprobante({ tipo: form.docTipo, numero: form.docNumero, razonSocial: form.razonSocial })
-    );
+    const falta = primerCampoQueFalta(form);
+    if (!falta) return true;
+    setFaltante(falta.campo);
+    setErrorMsg(falta.mensaje);
+    const caja = document.querySelector(`[data-campo="${falta.campo}"]`);
+    caja?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // preventScroll: el desplazamiento suave ya lo hace; enfocar sin esto salta de golpe.
+    caja?.querySelector('input, select, textarea')?.focus({ preventScroll: true });
+    return false;
   }
 
   function abrirCulqi() {
-    if (!isFormValid()) {
-      setErrorMsg('Completa todos los campos (incluida la fecha y el horario de entrega) antes de pagar.');
-      return;
-    }
+    if (!isFormValid()) return;
     if (!CULQI_PUBLIC_KEY) {
       setErrorMsg('Falta configurar VITE_CULQI_PUBLIC_KEY en las variables de entorno.');
       return;
     }
-    if (!window.Culqi) {
+    // Culqi Checkout Custom (https://js.culqi.com/checkout-js), según la guía
+    // de Culqi consultada el 23/11/2026: el Checkout v4 que usábamos
+    // «dejará de estar disponible pronto» y con él el pago fallaba con
+    // CCKT-408 (tiempo de espera agotado).
+    if (typeof window.CulqiCheckout !== 'function') {
       setErrorMsg('El sistema de pago aún está cargando. Espera un segundo e intenta de nuevo.');
       return;
     }
     setErrorMsg('');
     setStatus('idle');
 
-    window.Culqi.publicKey = CULQI_PUBLIC_KEY;
-    window.Culqi.settings({
-      title: NOMBRE_TIENDA,
-      currency: 'PEN',
-      amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
+    culqiRef.current?.close?.();
+    const culqi = new window.CulqiCheckout(CULQI_PUBLIC_KEY, {
+      settings: {
+        title: NOMBRE_TIENDA,
+        currency: 'PEN',
+        amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
+      },
+      // El correo ya lo escribió en nuestro formulario: no se le vuelve a pedir.
+      client: { email: form.email },
+      options: {
+        lang: 'es',
+        modal: true,
+        // Las cuotas y Cuotéalo BCP siguen APAGADOS, y encenderlos NO es cambiar
+        // este false por true. Cuotéalo y PagoEfectivo no dan un token: crean
+        // una ORDEN que se paga fuera y se confirma después. Ese camino no está
+        // hecho (api/create-charge.js solo cobra con un token de tarjeta o
+        // Yape): falta crear la orden en el servidor y atender el aviso de
+        // Culqi cuando el cliente termina de pagar.
+        installments: false,
+        paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
+        paymentMethodsSort: ['tarjeta', 'yape'],
+      },
+      appearance: { menuType: 'sidebar' },
     });
-    window.Culqi.options({
-      lang: 'es',
-      // Las cuotas y Cuotéalo BCP siguen APAGADOS, y encenderlos NO es cambiar
-      // este false por true. Cuotéalo no cobra aquí: manda al cliente a la web
-      // del BCP y el pago se confirma después. Eso llega por el otro camino de
-      // Culqi (window.Culqi.order, ver más arriba), y ese camino no está hecho:
-      // api/create-charge.js solo sabe cobrar con un token de tarjeta o Yape.
-      // Falta crear la orden en el servidor y atender el aviso de Culqi cuando
-      // el cliente termina de pagar en el BCP.
-      //
-      // Si alguien pone true aquí sin eso, el cliente llega hasta el final y el
-      // cobro se cae: se manda a crear el cargo con el token vacío.
-      installments: false,
-      paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
-    });
-    window.Culqi.open();
+    culqi.culqi = alTerminarCulqi;
+    culqiRef.current = culqi;
+    culqi.open();
   }
 
-  async function procesarPago(token) {
+  /**
+   * Cobra con el token de Culqi. Sigue la guía de Culqi 3DS (docs.culqi.com,
+   * 23/11/2026): manda la huella del dispositivo y, si el banco pide verificar
+   * al titular, abre la ventana de verificación y vuelve a cobrar con su resultado.
+   */
+  async function procesarPago(token, previo = {}) {
     setStatus('paying');
     try {
+      const deviceId = previo.deviceId ?? (await huellaDelDispositivo());
       const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
       const res = await fetch('/api/create-charge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token,
+          deviceId: deviceId || undefined,
+          autenticacion3DS: previo.autenticacion3DS,
           amount: Math.round(totalConDescuento * 100),
           email: form.email,
           nombre: form.nombre,
@@ -456,8 +557,12 @@ export default function Checkout() {
         }),
       });
       const data = await res.json();
+      if (res.ok && data?.necesita3DS) {
+        const autenticacion3DS = await verificarConElBanco(token);
+        return procesarPago(token, { deviceId, autenticacion3DS });
+      }
       if (!res.ok) {
-        throw new Error(data?.error || data?.user_message || data?.merchant_message || 'El pago no pudo procesarse.');
+        throw new Error(mensajeParaElCliente(data?.error || data?.user_message || data?.merchant_message) + detalleDePrueba(`cobro, ${res.status}`, data));
       }
       clearCart();
       trackPurchase(data.orderCode || data.id, totalConDescuento);
@@ -482,10 +587,7 @@ export default function Checkout() {
   // Registra un pedido con pago manual (Yape/Plin directo o transferencia):
   // queda como "Pago por verificar" y se abre WhatsApp para enviar el comprobante.
   async function registrarPedidoManual(metodoLabel) {
-    if (!isFormValid()) {
-      setErrorMsg('Completa todos los campos (incluida la fecha y el horario de entrega) antes de continuar.');
-      return;
-    }
+    if (!isFormValid()) return;
     setErrorMsg('');
     setStatus('paying');
     const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
@@ -618,18 +720,23 @@ export default function Checkout() {
       ) : (
         <>
           <form className="grid grid-cols-1 gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
-            <Field label="Nombre completo" name="nombre" value={form.nombre} onChange={handleChange} full />
-            <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} />
-            <Field label="Teléfono / WhatsApp" name="telefono" value={form.telefono} onChange={handleChange} />
-            <Field label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} full />
-            <LocationSearch
-              label="Distrito"
-              options={limaOptions}
-              value={form.distrito}
-              onSelect={setLimaDistrito}
-              placeholder="Busca tu distrito..."
-              disabled={!ubigeo}
-            />
+            <Field label="Nombre completo" name="nombre" value={form.nombre} onChange={handleChange} full marcado={faltante} />
+            <Field label="Correo electrónico" name="email" type="email" value={form.email} onChange={handleChange} marcado={faltante} />
+            <Field label="Teléfono / WhatsApp" name="telefono" value={form.telefono} onChange={handleChange} marcado={faltante} />
+            <Field label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} full marcado={faltante} />
+            <div data-campo="distrito" className={faltante === 'distrito' ? 'rounded-lg ring-2 ring-red-500 ring-offset-2' : ''}>
+              <LocationSearch
+                label="Distrito"
+                options={limaOptions}
+                value={form.distrito}
+                onSelect={(op) => {
+                  setLimaDistrito(op);
+                  if (faltante === 'distrito') setFaltante(null);
+                }}
+                placeholder="Busca tu distrito..."
+                disabled={!ubigeo}
+              />
+            </div>
             <Field
               label="Referencia (opcional)"
               name="referencia"
@@ -659,6 +766,7 @@ export default function Checkout() {
                     value={form.docNumero}
                     onChange={handleChange}
                     placeholder="8 dígitos"
+                    marcado={faltante}
                   />
                 ) : (
                   <>
@@ -668,6 +776,7 @@ export default function Checkout() {
                       value={form.docNumero}
                       onChange={handleChange}
                       placeholder="11 dígitos"
+                      marcado={faltante}
                     />
                     <Field
                       label="Razón social"
@@ -675,6 +784,7 @@ export default function Checkout() {
                       value={form.razonSocial}
                       onChange={handleChange}
                       placeholder="Como figura en la SUNAT"
+                      marcado={faltante}
                     />
                   </>
                 )}
@@ -743,15 +853,18 @@ export default function Checkout() {
                   value={form.entregaFecha}
                   onChange={handleChange}
                   min={primerDiaDeEntrega(new Date(), reglaEntrega)}
+                  marcado={faltante}
                 />
-                <label className="text-sm">
+                <label className="text-sm" data-campo="entregaHorario">
                   <span className="mb-1 block text-neutral-700">Rango de horario</span>
                   <select
                     name="entregaHorario"
                     value={form.entregaHorario}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 outline-none focus:border-ink"
+                    className={`w-full rounded-lg border bg-white px-3 py-2 outline-none focus:border-ink ${
+                      faltante === 'entregaHorario' ? 'border-red-500 ring-2 ring-red-200' : 'border-neutral-300'
+                    }`}
                   >
                     <option value="">Selecciona un horario</option>
                     {horariosDeReparto(storeConfig.deliverySlots, form.entregaFecha, new Date(), reglaEntrega).map((s) => (
@@ -1141,9 +1254,11 @@ function ProvinciaFlow({
   );
 }
 
-function Field({ label, name, value, onChange, type = 'text', full = false, required = true, placeholder, min }) {
+function Field({ label, name, value, onChange, type = 'text', full = false, required = true, placeholder, min, marcado }) {
+  // marcado = el campo que falta al intentar pagar: ese se pinta en rojo.
+  const falta = marcado && marcado === name;
   return (
-    <label className={`text-sm ${full ? 'sm:col-span-2' : ''}`}>
+    <label className={`text-sm ${full ? 'sm:col-span-2' : ''}`} data-campo={name}>
       <span className="mb-1 block text-neutral-700">{label}</span>
       <input
         type={type}
@@ -1153,7 +1268,9 @@ function Field({ label, name, value, onChange, type = 'text', full = false, requ
         required={required}
         placeholder={placeholder}
         min={min}
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 outline-none focus:border-ink"
+        className={`w-full rounded-lg border px-3 py-2 outline-none focus:border-ink ${
+          falta ? 'border-red-500 ring-2 ring-red-200' : 'border-neutral-300'
+        }`}
       />
     </label>
   );

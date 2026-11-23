@@ -16,3 +16,41 @@ test('en la tienda publicada no se cobra con llave de prueba', () => {
   assert.equal(motivoParaNoCobrar('sk_live_abc', 'production'), null);
   assert.equal(motivoParaNoCobrar('sk_test_abc', 'preview'), null);
 });
+
+// El aviso de «bloqueado por la política de seguridad» solo debe llevar el dominio.
+import { soloDominio } from '../src/lib/reportarError.js';
+test('el aviso de bloqueo no lleva la ruta ni los datos de la dirección', () => {
+  assert.equal(soloDominio('https://checkoutview.culqi.com/v4/x?token=abc'), 'https://checkoutview.culqi.com');
+  assert.equal(soloDominio('inline'), 'inline');
+});
+
+// Culqi pide los datos del cliente en cada cargo (antifraud_details); sin
+// ellos su antifraude rechaza más compras buenas. Los vacíos no se mandan.
+import { datosAntifraude } from '../api/create-charge.js';
+test('datos antifraude: nombre partido, teléfono solo con números, sin vacíos', () => {
+  assert.deepEqual(datosAntifraude({ nombre: 'Ana María Pérez', telefono: '+51 999 888 777', direccion: 'Av. Lima 123' }), {
+    first_name: 'Ana', last_name: 'María Pérez', address: 'Av. Lima 123', address_city: 'Lima', country_code: 'PE', phone_number: '999888777',
+  });
+  assert.equal('last_name' in datosAntifraude({ nombre: 'Ana' }), false);
+});
+
+// Lo que llega del navegador para 3DS se limpia: solo los campos que Culqi espera.
+import { huellaValida, limpiarAutenticacion3DS } from '../api/create-charge.js';
+test('3DS: huella y resultado de la verificación, limpios', () => {
+  assert.equal(huellaValida('8019959c-fab1-49eb-bbbe-b846d308d8df'), '8019959c-fab1-49eb-bbbe-b846d308d8df');
+  assert.equal(huellaValida('<script>'), null);
+  assert.deepEqual(limpiarAutenticacion3DS({ eci: '05', xid: 'abc', otro: 'x', cavv: 7 }), { eci: '05', xid: 'abc' });
+  assert.equal(limpiarAutenticacion3DS('nada'), null);
+});
+
+// Culqi rechazaba el cobro entero («el valor del parametro 'items' de la
+// metadata excede el límite... de 200 caracteres»): con UN solo producto la
+// lista completa ya pasaba de 200. Ningún valor puede pasar de ese tope.
+import { metadataParaCulqi, resumenDeItems, MAX_METADATA_CULQI } from '../api/create-charge.js';
+test('metadata para Culqi: ningún valor pasa de 200 letras y los vacíos no van', () => {
+  const muchos = Array.from({ length: 12 }, (_, n) => ({ qty: 1, productName: `CABECERA MODELO ${n}`, sizeId: 'queen' }));
+  const md = metadataParaCulqi({ items: resumenDeItems(muchos), direccion: 'x'.repeat(500), ubicacion: '' });
+  assert.ok(Object.values(md).every((v) => v.length <= MAX_METADATA_CULQI));
+  assert.equal('ubicacion' in md, false);
+  assert.equal(resumenDeItems([{ qty: 2, productName: 'MILÁN', sizeId: '2plazas' }]), '2× MILÁN (2plazas)');
+});

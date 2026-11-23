@@ -116,20 +116,22 @@ export default function Constancia({ pedido }) {
         </Dato>
       </section>
 
-      <table className="mt-6 w-full text-left text-sm">
+      {/* En el celular la tabla no cabía y se cortaba la columna «Importe»:
+          letra más chica y columnas angostas en pantallas pequeñas. */}
+      <table className="mt-6 w-full text-left text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-neutral-300 text-xs uppercase tracking-wide text-neutral-500">
             <th className="py-2 pr-2 font-medium">Descripción</th>
-            <th className="w-12 py-2 text-center font-medium">Cant.</th>
-            <th className="w-24 py-2 text-right font-medium">P. unit.</th>
-            <th className="w-24 py-2 text-right font-medium">Importe</th>
+            <th className="w-9 py-2 text-center font-medium sm:w-12">Cant.</th>
+            <th className="w-[4.5rem] py-2 text-right font-medium sm:w-24">P. unit.</th>
+            <th className="w-[4.5rem] py-2 text-right font-medium sm:w-24">Importe</th>
           </tr>
         </thead>
         <tbody>
           {items.map((i, n) => (
             <tr key={n} className="border-b border-neutral-100 align-top">
               <td className="py-2 pr-2">
-                <span className="font-medium">{i.productName}</span>
+                <span className="break-words font-medium">{i.productName}</span>
                 {detalleDe(i) && <span className="block text-xs text-neutral-500">{detalleDe(i)}</span>}
               </td>
               <td className="py-2 text-center">{i.qty}</td>

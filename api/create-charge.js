@@ -37,6 +37,11 @@ export default async function handler(req, res) {
   const entrega = s(body.entrega, 120);
   // Lo que el cliente quiso decirnos al comprar (opcional).
   const observaciones = limpiarObservaciones(body.observaciones);
+  // Pasos de la guía de Culqi (docs.culqi.com → Culqi 3DS, 23/11/2026): la
+  // huella del dispositivo va en antifraud_details y, si el banco pidió
+  // verificar al titular, el segundo intento trae el resultado de esa verificación.
+  const huella = huellaValida(body.deviceId);
+  const autenticacion3DS = limpiarAutenticacion3DS(body.autenticacion3DS);
   const secretKey = process.env.CULQI_SECRET_KEY;
 
   if (!secretKey) {
@@ -114,17 +119,42 @@ export default async function handler(req, res) {
         // Esto es lo que el cliente ve en el estado de cuenta de su tarjeta.
         // Si ahí aparece un nombre que no reconoce, desconoce el cargo y el
         // banco le devuelve el dinero: un contracargo que la tienda paga.
-        description: `Pedido ${NOMBRE_TIENDA} - ${nombre || ''}`.trim(),
-        metadata: { nombre, telefono, zona, direccion, ubicacion, entrega, items: JSON.stringify(items || []) },
+        // Culqi admite como mucho 80 letras en la descripción: con un nombre largo se recorta.
+        description: `Pedido ${NOMBRE_TIENDA} - ${nombre || ''}`.trim().slice(0, 80),
+        // Culqi rechaza el cobro entero si un valor de la metadata pasa de
+        // 200 letras (parameter_error). La lista de productos completa ya
+        // pasaba con un solo producto: ahora va un resumen corto y cada valor
+        // se recorta. El detalle completo queda en el pedido de la tienda.
+        metadata: metadataParaCulqi({ nombre, telefono, zona, direccion, ubicacion, entrega, items: resumenDeItems(items) }),
+        // Culqi pide estos datos en cada cargo: su motor antifraude rechaza
+        // más compras legítimas cuando no los tiene (docs.culqi.com → Cargos,
+        // consultado el 23/11/2026).
+        antifraud_details: { ...datosAntifraude({ nombre, telefono, direccion }), ...(huella && { device_finger_print_id: huella }) },
+        ...(autenticacion3DS && { authentication_3DS: autenticacion3DS }),
       }),
     });
 
     const data = await culqiRes.json();
 
-    if (!culqiRes.ok) {
+    // Solo es venta si Culqi devuelve un CARGO. Ojo: cuando el banco pide
+    // verificar al titular (3DS), Culqi responde 200 con action_code «REVIEW»
+    // y SIN cobrar; tomar ese 200 como pago dejaba el pedido «Pagado» sin dinero.
+    if (!culqiRes.ok || data?.object !== 'charge') {
       // Tarjeta rechazada: el cliente no compró, el cupón vuelve a estar libre.
       await reserva.liberar();
-      return res.status(culqiRes.status).json(data);
+      // El banco pide verificar al titular: el navegador abre la ventana de
+      // Culqi 3DS y vuelve a llamar aquí con el resultado. No es un error.
+      // (Si ya venía verificado y lo vuelve a pedir, ahí sí se rechaza.)
+      if (data?.action_code === 'REVIEW' && !autenticacion3DS) {
+        return res.status(200).json({ necesita3DS: true });
+      }
+      // El detalle técnico de Culqi (sin datos del cliente ni de la tarjeta)
+      // va al panel: al cliente solo le llega el mensaje genérico de Culqi.
+      await avisarError('cobro', `Culqi no hizo el cargo: ${motivoDeCulqi(data, culqiRes.status)}`);
+      if (data?.action_code === 'REVIEW') {
+        return res.status(402).json({ error: 'Tu banco no pudo verificar la compra. Prueba con otra tarjeta, con Yape o con transferencia.' });
+      }
+      return res.status(culqiRes.ok ? 402 : culqiRes.status).json(data);
     }
     // El dinero ya se cobró: desde aquí el uso es definitivo pase lo que pase
     // después (aunque falle guardar el pedido, el cliente SÍ disfrutó el cupón).
@@ -214,4 +244,64 @@ export default async function handler(req, res) {
     await avisarError('cobro con tarjeta', `No se pudo conectar con Culqi: ${err?.message}`);
     return res.status(500).json({ error: 'Error al conectar con Culqi.' });
   }
+}
+
+/** Nombre, teléfono y dirección del cliente como los pide Culqi (antifraud_details). */
+export function datosAntifraude({ nombre = '', telefono = '', direccion = '' } = {}) {
+  const [first_name = '', ...resto] = String(nombre).trim().split(/\s+/);
+  const datos = {
+    first_name,
+    last_name: resto.join(' '),
+    address: String(direccion).trim(),
+    // Con tarjeta solo se cobra Lima (provincia se coordina por WhatsApp).
+    address_city: 'Lima',
+    country_code: 'PE',
+    phone_number: String(telefono).replace(/\D/g, '').slice(-9),
+  };
+  // Culqi rechaza campos vacíos: se mandan solo los que hay.
+  return Object.fromEntries(Object.entries(datos).filter(([, v]) => v));
+}
+
+/** Por qué Culqi no cobró, en una línea y sin datos personales. */
+export function motivoDeCulqi(data = {}, estado) {
+  return [estado, data.object, data.type, data.code, data.decline_code, data.action_code, data.merchant_message]
+    .filter(Boolean)
+    .join(' · ')
+    .slice(0, 300);
+}
+
+/** La huella del dispositivo que da Culqi3DS.generateDevice() (un UUID), o null. */
+export function huellaValida(valor) {
+  const v = String(valor || '').trim();
+  return /^[0-9a-f-]{16,64}$/i.test(v) ? v : null;
+}
+
+const CAMPOS_3DS = ['eci', 'xid', 'cavv', 'protocolVersion', 'directoryServerTransactionId'];
+
+/** El resultado de la verificación 3DS, solo con los campos que Culqi espera (texto corto). */
+export function limpiarAutenticacion3DS(valor) {
+  if (!valor || typeof valor !== 'object') return null;
+  const limpio = {};
+  for (const campo of CAMPOS_3DS) {
+    if (typeof valor[campo] === 'string' && valor[campo].trim()) limpio[campo] = valor[campo].trim().slice(0, 200);
+  }
+  return Object.keys(limpio).length ? limpio : null;
+}
+
+/** Culqi solo acepta valores de metadata de hasta 200 letras (docs y error parameter_error, 23/11/2026). */
+export const MAX_METADATA_CULQI = 200;
+
+export function metadataParaCulqi(datos = {}) {
+  return Object.fromEntries(
+    Object.entries(datos)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => [k, String(v).slice(0, MAX_METADATA_CULQI)])
+  );
+}
+
+/** «1× MILÁN (2plazas); 2× COLCHÓN …» — lo justo para reconocer la venta en el panel de Culqi. */
+export function resumenDeItems(items = []) {
+  return (items || [])
+    .map((i) => `${i.qty || 1}× ${i.productName || i.name || i.productId || ''}${i.sizeId ? ` (${i.sizeId})` : ''}`.trim())
+    .join('; ');
 }
