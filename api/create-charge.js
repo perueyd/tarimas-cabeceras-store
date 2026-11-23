@@ -116,15 +116,30 @@ export default async function handler(req, res) {
         // banco le devuelve el dinero: un contracargo que la tienda paga.
         description: `Pedido ${NOMBRE_TIENDA} - ${nombre || ''}`.trim(),
         metadata: { nombre, telefono, zona, direccion, ubicacion, entrega, items: JSON.stringify(items || []) },
+        // Culqi pide estos datos en cada cargo: su motor antifraude rechaza
+        // más compras legítimas cuando no los tiene (docs.culqi.com → Cargos,
+        // consultado el 23/11/2026).
+        antifraud_details: datosAntifraude({ nombre, telefono, direccion }),
       }),
     });
 
     const data = await culqiRes.json();
 
-    if (!culqiRes.ok) {
+    // Solo es venta si Culqi devuelve un CARGO. Ojo: cuando el banco pide
+    // verificar al titular (3DS), Culqi responde 200 con action_code «REVIEW»
+    // y SIN cobrar; tomar ese 200 como pago dejaba el pedido «Pagado» sin dinero.
+    if (!culqiRes.ok || data?.object !== 'charge') {
       // Tarjeta rechazada: el cliente no compró, el cupón vuelve a estar libre.
       await reserva.liberar();
-      return res.status(culqiRes.status).json(data);
+      // El detalle técnico de Culqi (sin datos del cliente ni de la tarjeta)
+      // va al panel: al cliente solo le llega el mensaje genérico de Culqi.
+      await avisarError('cobro', `Culqi no hizo el cargo: ${motivoDeCulqi(data, culqiRes.status)}`);
+      if (data?.action_code === 'REVIEW') {
+        return res.status(402).json({
+          error: 'Tu banco pide verificar esta compra y todavía no podemos hacerlo aquí. Paga con otra tarjeta, con Yape o con transferencia.',
+        });
+      }
+      return res.status(culqiRes.ok ? 402 : culqiRes.status).json(data);
     }
     // El dinero ya se cobró: desde aquí el uso es definitivo pase lo que pase
     // después (aunque falle guardar el pedido, el cliente SÍ disfrutó el cupón).
@@ -214,4 +229,28 @@ export default async function handler(req, res) {
     await avisarError('cobro con tarjeta', `No se pudo conectar con Culqi: ${err?.message}`);
     return res.status(500).json({ error: 'Error al conectar con Culqi.' });
   }
+}
+
+/** Nombre, teléfono y dirección del cliente como los pide Culqi (antifraud_details). */
+export function datosAntifraude({ nombre = '', telefono = '', direccion = '' } = {}) {
+  const [first_name = '', ...resto] = String(nombre).trim().split(/\s+/);
+  const datos = {
+    first_name,
+    last_name: resto.join(' '),
+    address: String(direccion).trim(),
+    // Con tarjeta solo se cobra Lima (provincia se coordina por WhatsApp).
+    address_city: 'Lima',
+    country_code: 'PE',
+    phone_number: String(telefono).replace(/\D/g, '').slice(-9),
+  };
+  // Culqi rechaza campos vacíos: se mandan solo los que hay.
+  return Object.fromEntries(Object.entries(datos).filter(([, v]) => v));
+}
+
+/** Por qué Culqi no cobró, en una línea y sin datos personales. */
+export function motivoDeCulqi(data = {}, estado) {
+  return [estado, data.object, data.type, data.code, data.decline_code, data.action_code, data.merchant_message]
+    .filter(Boolean)
+    .join(' · ')
+    .slice(0, 300);
 }

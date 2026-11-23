@@ -23,3 +23,13 @@ test('el aviso de bloqueo no lleva la ruta ni los datos de la dirección', () =>
   assert.equal(soloDominio('https://checkoutview.culqi.com/v4/x?token=abc'), 'https://checkoutview.culqi.com');
   assert.equal(soloDominio('inline'), 'inline');
 });
+
+// Culqi pide los datos del cliente en cada cargo (antifraud_details); sin
+// ellos su antifraude rechaza más compras buenas. Los vacíos no se mandan.
+import { datosAntifraude } from '../api/create-charge.js';
+test('datos antifraude: nombre partido, teléfono solo con números, sin vacíos', () => {
+  assert.deepEqual(datosAntifraude({ nombre: 'Ana María Pérez', telefono: '+51 999 888 777', direccion: 'Av. Lima 123' }), {
+    first_name: 'Ana', last_name: 'María Pérez', address: 'Av. Lima 123', address_city: 'Lima', country_code: 'PE', phone_number: '999888777',
+  });
+  assert.equal('last_name' in datosAntifraude({ nombre: 'Ana' }), false);
+});

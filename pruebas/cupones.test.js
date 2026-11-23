@@ -52,11 +52,13 @@ globalThis.fetch = async (url, opts = {}) => {
   }
   if (String(url).includes('api.culqi.com')) {
     if (respuestaCulqi.lanza) throw new Error('sin conexión');
+    // 3DS: Culqi contesta 200 pero sin cargo, pidiendo verificar al titular.
+    if (respuestaCulqi.revision) return { ok: true, status: 200, json: async () => ({ action_code: 'REVIEW', user_message: 'Verifica' }) };
     const ok = respuestaCulqi.ok;
     return {
       ok,
       status: ok ? 201 : 402,
-      json: async () => (ok ? { id: 'chr_prueba' } : { user_message: 'Tarjeta rechazada' }),
+      json: async () => (ok ? { object: 'charge', id: 'chr_prueba' } : { user_message: 'Tarjeta rechazada' }),
     };
   }
   return { ok: true, json: async () => ({}), text: async () => '' };
@@ -106,6 +108,18 @@ test('cupón + tarjeta rechazada: el uso se devuelve', async () => {
   const res = await pagoConTarjeta();
   assert.equal(res.statusCode, 402);
   assert.equal(usos(), 0, 'la tarjeta se rechazó: el cupón no debe contar como usado');
+});
+
+// El banco pide verificar al titular (3DS): Culqi responde 200 SIN cobrar.
+// Tomarlo como pago dejaba un pedido «Pagado» sin dinero.
+test('tarjeta que pide verificación (REVIEW): no hay pedido pagado y el cupón vuelve', async () => {
+  prepararTienda();
+  respuestaCulqi = { revision: true };
+  const res = await pagoConTarjeta();
+  assert.equal(res.statusCode, 402);
+  assert.equal(res.cuerpo.guardado, undefined);
+  assert.equal((db.get('pedidos') || []).length, 0, 'no debe guardarse ningún pedido');
+  assert.equal(usos(), 0);
 });
 
 test('cupón + Culqi sin conexión: el uso se devuelve', async () => {
