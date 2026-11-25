@@ -14,6 +14,7 @@ import VistaPrevia from '../components/VistaPrevia.jsx';
 import { CategoriasTab, ColoresTab, TamanosTab } from './editor/BasicosTab.jsx';
 import { PortadaTab, VitrinaTab } from './editor/PortadaTab.jsx';
 import { ProductosTab } from './editor/ProductosTab.jsx';
+import { StockTab } from './editor/StockTab.jsx';
 import { PortafolioTab, ServiciosTab } from './editor/ServiciosTab.jsx';
 import { AliadosTab } from './editor/AliadosTab.jsx';
 import { ConfigTab, EncuestaTab, FaqTab, LegalTab } from './editor/TextosTab.jsx';
@@ -104,6 +105,7 @@ export default function CatalogEditor({ adminKey, irA }) {
               // Sin los productos ocultos con los que se cobran los planes
               // de servicio: esos se cuentan en su propia pestaña.
               { id: 'productos', label: 'Productos', aviso: catalog.products.filter((p) => !p.esServicio).length },
+              { id: 'stock', label: 'Stock', aviso: catalog.products.filter((p) => p.enStock && !p.esServicio).length || undefined },
               { id: 'categorias', label: 'Categorías' },
               { id: 'colores', label: 'Colores' },
               { id: 'tamanos', label: 'Tamaños' },
@@ -149,6 +151,7 @@ export default function CatalogEditor({ adminKey, irA }) {
 
       {sub === 'branding' && <BrandingTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'productos' && <ProductosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
+      {sub === 'stock' && <StockTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'categorias' && <CategoriasTab catalog={catalog} api={api} flash={flash} />}
       {sub === 'servicios' && <ServiciosTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}
       {sub === 'portafolio' && <PortafolioTab catalog={catalog} api={api} flash={flash} adminKey={adminKey} />}

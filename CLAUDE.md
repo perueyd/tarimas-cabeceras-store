@@ -356,11 +356,15 @@ donde también está la lista de registrados.
 
 ## Plazos de entrega: `src/lib/entrega.js`
 
-**Una regla por tipo de producto** (el dueño, 19/11/2026), editable en el
-panel → Entrega y guardada en `storeConfig.reglasEntrega`. De fábrica:
-cabeceras hasta las 8 a. m. → hoy desde las 5 p. m., con posible demora de
-1 a 3 días; tarimas hasta las 9 a. m. → hoy SEGÚN DISPONIBILIDAD (no se
-promete), desde las 11 a. m.; lo demás, la regla general (8 a. m. / 5 p. m.).
+**Una regla por tipo de producto** (el dueño, 19/11/2026 y 25/11/2026),
+editable en el panel → Entrega y guardada en `storeConfig.reglasEntrega`. De
+fábrica: cabeceras y tarimas hasta las 8 a. m. → hoy desde las 5 p. m.; si no,
+al día siguiente TAMBIÉN desde las 5 p. m. (ese día se fabrica; el primer día
+posible solo ofrece horarios desde `desde`), con posible demora de 1 a 3 días;
+colchones a los 2 días (`dias`); lo demás, la regla general (8 a. m. / 5 p. m.).
+Todo se fabrica a pedido; lo marcado en el panel → Stock (`product.enStock`)
+usa la regla `stock` (entrega inmediata, hoy hasta las 4 p. m.): elige la
+regla con `tipoDeEntrega(producto)`, nunca con `producto.category` a secas.
 
 - Pago, ficha, carrito, armador de dormitorio y CHAT-ED usan las MISMAS
   funciones (`reglaDelPedido`, `textoDePlazo`, `plazosPorCategoria`). No

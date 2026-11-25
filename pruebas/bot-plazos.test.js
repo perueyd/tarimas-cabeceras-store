@@ -45,9 +45,8 @@ test('CHAT-ED dice el plazo de cada tipo de producto y solo las formas de pago a
   const plazos = texto.slice(texto.indexOf('PLAZOS DE ENTREGA'), texto.indexOf('FORMAS DE PAGO'));
   assert.match(plazos, /vale ESTA/, 'tiene que mandar sobre una pregunta frecuente antigua');
   assert.match(plazos, /- CABECERAS: pedido hasta las 8 a\. m\. → se entrega HOY desde las 5 p\. m\. \(seguro\).*de 1 a 3 días más/);
-  assert.match(plazos, /- TARIMAS: pedido hasta las 9 a\. m\. → PUEDE salir hoy desde las 11 a\. m\. SOLO si el taller tiene disponibilidad \(NO es seguro/);
-  assert.doesNotMatch(plazos.split('\n').find((l) => l.startsWith('- CABECERAS')), /disponibilidad/, 'la regla de la tarima no puede colarse en la cabecera');
-  assert.match(plazos, /- COLCHONES: /, 'lo que no tiene regla propia sale con la general');
+  assert.match(plazos, /- TARIMAS: pedido hasta las 8 a\. m\. → se entrega HOY desde las 5 p\. m\./, 'la tarima sigue el plan de la cabecera (25/11/2026)');
+  assert.match(plazos, /- COLCHONES: NO hay entrega el mismo día · se entrega a los 2 días/, 'el colchón tiene su propio plazo');
   assert.match(plazos, /preguntan por el TIEMPO de entrega, no por el precio/);
   assert.doesNotMatch(plazos, /Salas/, 'un tipo sin productos a la venta no se menciona');
 

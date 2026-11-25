@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NOMBRE_TIENDA } from '../data/sitio.js';
-import { horariosDeReparto, primerDiaDeEntrega, reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
+import { horariosDeReparto, primerDiaDeEntrega, reglaDelPedido, reglasDeEntrega, textoDePlazo, tipoDeEntrega } from '../lib/entrega.js';
 import { diaLima } from '../lib/lima.js';
 import { MAX_OBSERVACIONES } from '../lib/observaciones.js';
 import { correoCorporativo, enlaceCorreoCorporativo } from '../lib/contacto.js';
@@ -105,7 +105,7 @@ export default function Checkout() {
   // Los servicios se coordinan por WhatsApp: no cuentan para la fecha de entrega.
   const reglaEntrega = reglaDelPedido(
     reglasDeEntrega(storeConfig),
-    items.filter((i) => !esLineaDeServicio(i)).map((i) => getProductById(i.productId)?.category)
+    items.filter((i) => !esLineaDeServicio(i)).map((i) => tipoDeEntrega(getProductById(i.productId)))
   );
   const [form, setForm] = useState({
     nombre: '',

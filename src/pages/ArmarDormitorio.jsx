@@ -1,5 +1,5 @@
 import { Suspense, useMemo, useState } from 'react';
-import { reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
+import { reglaDelPedido, reglasDeEntrega, textoDePlazo, tipoDeEntrega } from '../lib/entrega.js';
 import { lazyConRecarga } from '../lib/cargarPieza.js';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { Link, useNavigate } from 'react-router-dom';
@@ -590,7 +590,7 @@ export default function ArmarDormitorio() {
 
       <p className="mt-8 text-xs text-neutral-400">
         Los precios son los mismos del catálogo; aquí no se suma ningún cargo.
-        {seleccion.length ? ` ${textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), seleccion.map((p) => p.category)))}` : ''}
+        {seleccion.length ? ` ${textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), seleccion.map(tipoDeEntrega)))}` : ''}
       </p>
     </main>
   );
