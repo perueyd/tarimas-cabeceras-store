@@ -127,7 +127,25 @@ async function registrar(req, res, llave) {
     monto: pedido.monto,
     cip: orden.payment_code || null,
     vence: orden.expiration_date || null,
+    cuotealo: enlaceDeCuotealo(orden),
   });
+}
+
+/**
+ * Si el cliente eligió Cuotéalo BCP, Culqi devuelve en la orden el enlace a la
+ * página del BCP donde se termina el pago. Culqi la abre en una pestaña nueva
+ * en el mismo instante en que la tienda pasa a /gracias, y el iPhone la
+ * bloqueaba o la tapaba: el cliente veía un código de PagoEfectivo y nunca
+ * llegaba al BCP (lo vio el dueño, 25/11/2026). Con el enlace, /gracias le
+ * ofrece el botón para continuar. Solo se acepta https.
+ */
+export function enlaceDeCuotealo(orden) {
+  try {
+    const u = new URL(String(orden?.cuotealo || ''));
+    return u.protocol === 'https:' ? u.href : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Solo ids con la forma de Culqi (ord_live_… / ord_test_…). */
@@ -176,7 +194,7 @@ export async function guardarPedidoDeOrden(id, llave) {
     ...datos,
     fecha: new Date().toISOString(),
     estado: pagado ? 'Pagado' : 'Pago por verificar',
-    metodo: `${pendiente.prueba ? 'PRUEBA de Culqi · ' : ''}PagoEfectivo / billetera / Cuotéalo (Culqi)`,
+    metodo: `${pendiente.prueba ? 'PRUEBA de Culqi · ' : ''}${enlaceDeCuotealo(orden) ? 'Cuotéalo BCP (Culqi)' : 'PagoEfectivo / billetera / Cuotéalo (Culqi)'}`,
     culqiOrderId: id,
     ...(orden.payment_code && { cip: orden.payment_code }),
   };

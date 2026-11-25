@@ -39,8 +39,28 @@ export default function ThankYou() {
             : `Recibimos tu pedido. Quedará confirmado apenas verifiquemos tu pago por ${state?.metodo || 'el método elegido'}. Si aún no nos enviaste tu comprobante por WhatsApp, hazlo para agilizar la confirmación.`
           : 'Tu pago se procesó correctamente. Te enviaremos la confirmación por correo.'}
       </p>
+      {/* Cuotéalo BCP: el pago se termina en la página del BCP. Culqi la abre
+          en otra pestaña, pero el iPhone la bloqueaba (25/11/2026): este botón
+          la abre con el toque del cliente, que el navegador sí permite. */}
+      {state?.cuotealo && (
+        <div className="mx-auto mt-6 max-w-md rounded-xl border-2 border-sky-300 bg-sky-50 p-4">
+          <p className="text-sm font-semibold text-sky-900">Falta un paso: termina tu pago en Cuotéalo BCP</p>
+          <p className="mt-2 text-xs text-sky-900">
+            Ahí pones tus datos y el BCP te dice al instante si te aprueba las cuotas. Cuando aceptes, tu pedido se
+            confirma solo.
+          </p>
+          <a
+            href={state.cuotealo}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-block rounded-lg bg-[#0033a0] px-4 py-2 text-sm font-medium text-white"
+          >
+            Continuar en Cuotéalo BCP
+          </a>
+        </div>
+      )}
       {/* PagoEfectivo: el código CIP con el que se paga en banca móvil, agentes o bodegas. */}
-      {state?.cip && (
+      {state?.cip && !state?.cuotealo && (
         <div className="mx-auto mt-6 max-w-md rounded-xl border-2 border-sky-300 bg-sky-50 p-4">
           <p className="text-sm font-semibold text-sky-900">Tu código de pago (CIP)</p>
           <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-sky-900">{state.cip}</p>
