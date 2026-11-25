@@ -58,7 +58,7 @@ globalThis.fetch = async (url, opts = {}) => {
   return { ok: true, json: async () => ({}), text: async () => '' };
 };
 
-const { default: rutaOrden, idDeOrden } = await import('../api/_rutas/culqi-orden.js');
+const { default: rutaOrden, idDeOrden, enlaceDeCuotealo } = await import('../api/_rutas/culqi-orden.js');
 const { default: rutaAviso, idDeOrdenDelAviso } = await import('../api/_rutas/culqi-webhook.js');
 const { mediosDeCulqi } = await import('../src/lib/mediosCulqi.js');
 const { cuotasValidas } = await import('../api/create-charge.js');
@@ -170,4 +170,24 @@ test('cuotas: solo de 2 a 48', () => {
   assert.equal(cuotasValidas(1), null);
   assert.equal(cuotasValidas('abc'), null);
   assert.equal(cuotasValidas(99), null);
+});
+
+// Con Cuotéalo, Culqi abría la página del BCP en otra pestaña justo cuando la
+// tienda pasaba a /gracias; el iPhone la bloqueaba y el cliente veía un código
+// de PagoEfectivo sin llegar nunca al BCP (25/11/2026). Ahora /gracias recibe
+// el enlace y ofrece el botón para continuar.
+test('Cuotéalo: registrar devuelve el enlace del BCP y el pedido dice Cuotéalo', async () => {
+  preparar();
+  const id = await crearYGenerarCodigo();
+  ordenes.get(id).cuotealo = 'https://pre1a.payment.pagoefectivo.pe/ABC.html';
+  const r = await llamar(rutaOrden, { query: { accion: 'registrar' }, body: { orderId: id } });
+  assert.equal(r.cuerpo.cuotealo, 'https://pre1a.payment.pagoefectivo.pe/ABC.html');
+  assert.match(pedidos()[0].metodo, /Cuotéalo BCP/);
+});
+
+test('enlace de Cuotéalo: solo https', () => {
+  assert.equal(enlaceDeCuotealo({ cuotealo: 'javascript:alert(1)' }), null);
+  assert.equal(enlaceDeCuotealo({ cuotealo: 'http://x.pe/a' }), null);
+  assert.equal(enlaceDeCuotealo({ cuotealo: null }), null);
+  assert.equal(enlaceDeCuotealo({}), null);
 });

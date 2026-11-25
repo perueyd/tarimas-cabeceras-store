@@ -600,6 +600,7 @@ export default function Checkout() {
           metodo: 'PagoEfectivo, billetera o Cuotéalo (Culqi)',
           cip: data.cip,
           venceCip: data.vence,
+          cuotealo: data.cuotealo,
           pagoCulqi: true,
         },
       });
