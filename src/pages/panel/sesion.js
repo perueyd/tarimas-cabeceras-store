@@ -7,7 +7,7 @@
 // La clave de administrador se guarda en sessionStorage (no en localStorage) y
 // con fecha de caducidad. Motivo: la clave es la credencial completa del panel.
 // En localStorage quedaba guardada para siempre, así que en una computadora
-// compartida o prestada el siguiente que abriera /pedidos entraba directo. En
+// compartida o prestada el siguiente que abriera /panel entraba directo. En
 // sessionStorage se borra al cerrar la pestaña, y además caduca a las 8 horas.
 export const CLAVE_STORAGE = 'ed-orders-key';
 const CLAVE_HORAS = 8;

@@ -294,7 +294,7 @@ Sí, pero requiere cambio en código:
 
 ## ✅ Checklist
 
-- [ ] JARVIS VOICE está en el panel (/pedidos)
+- [ ] JARVIS VOICE está en el panel (/panel)
 - [ ] Permiso de micrófono configurado
 - [ ] Probé el botón 🎙️ en la página
 - [ ] Probé hablar un comando

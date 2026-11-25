@@ -63,7 +63,7 @@ test('una foto o un archivo que no existe no se responde con la portada', () => 
   assert.equal(cae('/assets/index-viejo.js'), false);
   assert.equal(cae('/api/catalog'), false);
   // Las páginas de la tienda sí: es una sola página.
-  for (const ruta of ['/', '/tienda', '/producto/tarima-clasica', '/checkout', '/pedidos']) assert.equal(cae(ruta), true, ruta);
+  for (const ruta of ['/', '/tienda', '/producto/tarima-clasica', '/checkout', '/panel']) assert.equal(cae(ruta), true, ruta);
 });
 
 test('no queda ningún nombre viejo de la marca en el código', () => {

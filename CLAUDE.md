@@ -146,7 +146,7 @@ de la portada salen solo de reseñas reales.
 
 ## Panel de administración
 
-`/pedidos`, protegido con `ORDERS_ADMIN_KEY`. Se carga aparte con `lazy()` para
+`/panel`, protegido con `ORDERS_ADMIN_KEY`. Se carga aparte con `lazy()` para
 que los clientes no descarguen las ~20 pestañas del panel.
 
 Las pestañas reciben un helper `api(method, resource, body)` — **úsalo**. Trece

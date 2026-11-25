@@ -49,7 +49,7 @@ en su mensaje de WhatsApp. No salen en el seguimiento público.
 - **Provincia**: sin pago directo — el cliente arma su cotización de envío por WhatsApp
   (el envío corre por su cuenta) y su carrito queda guardado para completar después.
 
-**Métodos de pago (editable sin tocar código):** en el panel `/pedidos` →
+**Métodos de pago (editable sin tocar código):** en el panel `/panel` →
 Editar página → Cómo funciona → **Pagos** → «Métodos de pago habilitados»,
 apaga la casilla del que no uses. Si apagas la tarjeta, debajo te sale la lista
 de textos que todavía la mencionan (pie de página, portada, preguntas,
@@ -79,7 +79,7 @@ productos listos, o agrega una línea nueva:
 
 ## 2. Subir tus fotos
 
-Forma recomendada (sin tocar código): en el panel `/pedidos` → **Editar página** →
+Forma recomendada (sin tocar código): en el panel `/panel` → **Editar página** →
 **Productos**, al crear o editar un producto usa el botón **"📷 Subir"** junto al
 campo de imagen. Elige el archivo y la URL se completa sola — no necesitas copiar
 archivos a ninguna carpeta ni editar `catalog.js`.
@@ -251,7 +251,7 @@ Puedes sacar el hex de cualquier selector de color en Google ("color picker"):
 
 ## 5. Cambiar precios
 
-Desde el panel `/pedidos` → **Editar página** → **Productos** (recomendado, no
+Desde el panel `/panel` → **Editar página** → **Productos** (recomendado, no
 necesitas tocar código): edita **Precio regular** y, si quieres, **Precio de
 oferta** por cada tamaño — ver la sección
 ["Descuento directo por producto"](#descuento-directo-por-producto-precio-regular--precio-de-oferta)
@@ -352,7 +352,7 @@ function enviarCorreo(o, items) {
         'Código: ' + o.code + '\nCliente: ' + o.nombre + '\nTeléfono: ' + (o.telefono || '-') + '\n' +
         'Monto: ' + monto + '\nMétodo: ' + (o.metodo || '-') + '\nEntrega: ' + (o.entrega || '-') + '\n\n' +
         (items ? 'Productos:\n' + items + '\n\n' : '') +
-        'Míralo en tu panel: https://tarimas-cabeceras-store.vercel.app/pedidos'
+        'Míralo en tu panel: https://tarimas-cabeceras-store.vercel.app/panel'
     );
   }
 }
@@ -370,7 +370,7 @@ function enviarCorreo(o, items) {
 
 Desde ese momento: cada pedido nuevo agrega una fila y le manda un correo de
 confirmación al cliente (si dejó su email); y cada vez que tú cambias el
-estado en tu panel `/pedidos`, se actualiza esa fila en la hoja Y se le
+estado en tu panel `/panel`, se actualiza esa fila en la hoja Y se le
 envía un correo automático avisando el nuevo estado. Los correos salen desde
 tu propia cuenta de Gmail (gratis, hasta ~100 correos/día).
 
@@ -378,7 +378,7 @@ tu propia cuenta de Gmail (gratis, hasta ~100 correos/día).
 la tienda, llena **"Tu correo (aviso de pedido nuevo)"**. Con eso, cada pedido
 nuevo te llega también a tu correo (lo envía el mismo Apps Script de arriba —
 por eso el script incluye el bloque `if (o.evento === 'creado' && o.ownerEmail)`).
-Aparte de esto, **mientras tengas el panel `/pedidos` abierto**, suena un pitido
+Aparte de esto, **mientras tengas el panel `/panel` abierto**, suena un pitido
 y salta un aviso apenas entra un pedido, sin necesidad de configurar nada.
 
 **Si "Autorizar acceso" no abre ninguna ventana** (síntoma: haces clic y no
@@ -399,9 +399,9 @@ pedir autorización de nuevo.
 
 ---
 
-## Panel del negocio (/pedidos)
+## Panel del negocio (/panel)
 
-- Entra a `tudominio.vercel.app/pedidos` con la clave que definiste en la
+- Entra a `tudominio.vercel.app/panel` con la clave que definiste en la
   variable `ORDERS_ADMIN_KEY` de Vercel.
 - Pestaña **Resumen**: gráfica de ventas confirmadas por día (14 días) y
   gráfica de ventas por producto.
@@ -429,7 +429,7 @@ pedir autorización de nuevo.
 
 ### Editar página — pestañas de catálogo
 
-Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
+Dentro de `/panel` → **✏️ Editar página** hay varias sub-pestañas:
 
 - **Categorías**: agregar, activar/desactivar, eliminar, **renombrar**, y ahora
   también editar la **descripción** que se ve en su tarjeta de la portada
@@ -482,7 +482,7 @@ Dentro de `/pedidos` → **✏️ Editar página** hay varias sub-pestañas:
 
 Además de muebles, la tienda puede mostrar tus **servicios** (diseño de
 interiores, tapicería, instalación…) y tus **proyectos realizados**, con fotos.
-Todo se maneja desde `/pedidos` → **Mi tienda** → **Editar página** → grupo
+Todo se maneja desde `/panel` → **Mi tienda** → **Editar página** → grupo
 **Qué vendo**:
 
 - **Servicios** → los planes. En cada plan pones nombre, área, descripción,
@@ -542,7 +542,7 @@ Para ofrecer **arquitectura, ingeniería civil o diseño** con profesionales que
 no son de tu empresa. Ellos traen público desde sus redes; tú vendes, cobras y
 emites el comprobante.
 
-En `/pedidos` → Mi tienda → Editar página → Qué vendo → **Aliados**:
+En `/panel` → Mi tienda → Editar página → Qué vendo → **Aliados**:
 
 1. **+ Nuevo aliado**: nombre, profesión, número de colegiatura y un código
    corto (ej. `arq-ana`). También puedes anotar, solo para ti, su teléfono y
@@ -577,7 +577,7 @@ Para cuando haces una transmisión en vivo (TikTok, Instagram, Facebook). Tú
 dices en el live «entren a **corporacionagamenon.com/live**»; quien
 entra deja su nombre y su WhatsApp y ve al momento el código de descuento.
 
-Se maneja en `/pedidos` → **Promociones** → **Live**:
+Se maneja en `/panel` → **Promociones** → **Live**:
 
 0. **Si transmites por TikTok:** los enlaces que dices o escribes en el live
    no se pueden tocar. Pon la dirección `…/live` en el enlace de tu perfil
@@ -633,7 +633,7 @@ Cómo se usa:
 - **El cliente** la ve solo: al terminar su compra y en la página de
   seguimiento tiene el enlace «Ver la constancia de mi pedido». Esa versión no
   muestra su nombre ni su DNI, porque se abre solo con el código del pedido.
-- **Tú**, en `/pedidos` → Pedidos, abre el pedido y toca **🧾 Constancia**:
+- **Tú**, en `/panel` → Pedidos, abre el pedido y toca **🧾 Constancia**:
   ahí sale completa (con nombre, DNI y dirección). Puedes imprimirla, guardarla
   en PDF o mandarle el enlace por WhatsApp.
 - Cuando emitas la boleta o factura en el facturador, escribe su número en
@@ -644,7 +644,7 @@ Cómo se usa:
 ## Reiniciar la tienda (dejarla en cero)
 
 Para cuando termines de hacer pruebas y quieras empezar a vender con el panel
-limpio. Está al final de `/pedidos` → **Resumen** → «Reiniciar la tienda».
+limpio. Está al final de `/panel` → **Resumen** → «Reiniciar la tienda».
 
 - **Deja en cero:** pedidos y ventas, carritos abandonados, visitas, historial
   de códigos, las veces que se usó cada cupón, reseñas, suscriptores, encuestas
@@ -686,13 +686,13 @@ accesible sin necesidad de haber comprado. No es opcional.
 - **Para el cliente:** un formulario público (nombre, documento, domicilio,
   teléfono, correo, tipo "Reclamo" o "Queja", detalle y qué solicita). Al
   enviarlo recibe un número de hoja (folio) correlativo, ej. `RC-2026-0001`.
-- **Para ti:** en el panel `/pedidos` → pestaña **📋 Reclamos** ves todos los
+- **Para ti:** en el panel `/panel` → pestaña **📋 Reclamos** ves todos los
   reclamos, con los días restantes para responder (el plazo legal es hasta
   30 días calendario desde la fecha del reclamo). Escribes tu respuesta ahí
   mismo y queda guardada con fecha.
 - **No se pueden eliminar**: a diferencia de los pedidos, los reclamos no
   tienen botón de borrar — son un registro legal que debes conservar.
-- **Datos del proveedor**: en `/pedidos` → Editar página → Datos de la
+- **Datos del proveedor**: en `/panel` → Editar página → Datos de la
   tienda, completa **Razón social**, **RUC** y **Domicilio fiscal** — se
   muestran en la página pública del libro para identificar tu negocio.
   Puedes dejarlos vacíos por ahora; la página funciona igual, pero
@@ -758,7 +758,7 @@ atractivo que un texto en fondo plano.
 
 ## Códigos de descuento (cupones)
 
-Panel `/pedidos` → pestaña **🏷️ Promociones**.
+Panel `/panel` → pestaña **🏷️ Promociones**.
 
 - **"🎲 Generar código"** te da un código legible al azar (ej. `PROMO-K7X2Q`)
   listo para enviar a un cliente. **"+ Código manual"** te deja escribir el tuyo

@@ -3,7 +3,7 @@ import * as staticCatalog from '../data/catalog.js';
 
 // Catálogo en vivo: al cargar la web se pide /api/catalog (que lee de la base
 // de datos si el dueño ya editó algo desde el panel, o del archivo estático
-// como respaldo). Así, agregar/editar productos desde /pedidos → "Editar
+// como respaldo). Así, agregar/editar productos desde /panel → "Editar
 // página" se refleja al instante en toda la tienda, sin deploy.
 const CatalogContext = createContext(null);
 
