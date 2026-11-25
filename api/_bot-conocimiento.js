@@ -13,7 +13,7 @@ import { getCatalog } from './_catalog.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { SITIO } from './_sitio.js';
 import { cobroDePlan, planesVisibles } from '../src/lib/servicios.js';
-import { plazosPorCategoria, reglaParaElAsistente, reglasDeEntrega } from '../src/lib/entrega.js';
+import { plazosPorCategoria, reglaParaElAsistente, reglasDeEntrega, TIPO_STOCK } from '../src/lib/entrega.js';
 import { metodosActivos } from '../src/lib/metodosPago.js';
 import { correoCorporativo } from '../src/lib/contacto.js';
 
@@ -38,6 +38,10 @@ function plazosYPagos(catalog) {
   const { products = [], categories = [], storeConfig = {} } = catalog;
   const aLaVenta = new Set(products.filter((p) => !p.oculto && !p.esServicio).map((p) => p.category));
   const tipos = categories.filter((c) => aLaVenta.has(c.id)).map((c) => ({ id: c.id, label: c.label || c.name || c.id }));
+  // Lo que el dueño marcó «en stock» se entrega de inmediato: CHAT-ED tiene
+  // que saber cuáles son, con su nombre, para no darles el plazo de fabricación.
+  const enStock = products.filter((p) => p.enStock && !p.oculto && !p.esServicio).map((p) => p.name);
+  if (enStock.length) tipos.push({ id: TIPO_STOCK, label: `En stock (${enStock.join(', ')})` });
   const plazos = plazosPorCategoria(reglasDeEntrega(storeConfig), tipos, reglaParaElAsistente)
     .map((p) => `- ${p.nombre.toUpperCase()}: ${p.texto}`)
     .join('\n');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   REGLAS_DE_FABRICA,
+  TIPO_STOCK,
   horaLegible,
   limpiarRegla,
   reglasDeEntrega,
@@ -8,7 +9,8 @@ import {
   textoDePlazo,
 } from '../lib/entrega.js';
 
-const HORAS_CORTE = [6, 7, 8, 9, 10, 11, 12];
+const HORAS_CORTE = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+const DIAS = [1, 2, 3, 4, 5, 6, 7];
 const HORAS_REPARTO = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 // Lo que se edita: las reglas vigentes; un tipo sin regla propia queda en null.
@@ -23,6 +25,8 @@ export default function EntregaTab({ catalog, api, flash }) {
   // Una fila por tipo de producto del catálogo, y la general al final.
   const filasDeReglas = [
     ...(catalog.categories || []).map((c) => ({ id: c.id, nombre: c.label || c.name || c.id })),
+    // Lo que se marca «en stock» en la pestaña Stock: no se fabrica.
+    { id: TIPO_STOCK, nombre: 'En stock (entrega inmediata)' },
     { id: 'general', nombre: 'General' },
   ];
   // Para la pregunta frecuente y CHAT-ED solo cuentan los tipos que de verdad se venden.
@@ -150,6 +154,8 @@ export default function EntregaTab({ catalog, api, flash }) {
                           onChange={(e) => cambiarRegla(id, 'desde', Number(e.target.value))}
                           className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2"
                         >
+                          {/* 0 = no hay que esperar a que se fabrique (lo que está en stock). */}
+                          <option value={0}>El próximo horario disponible</option>
                           {HORAS_REPARTO.map((h) => <option key={h} value={h}>{horaLegible(h)}</option>)}
                         </select>
                       </label>
@@ -165,6 +171,18 @@ export default function EntregaTab({ catalog, api, flash }) {
                         <span>Lo de hoy depende de la disponibilidad del taller (se le confirma al cliente por WhatsApp)</span>
                       </label>
                     )}
+                    <label className="text-sm">
+                      <span className="mb-1 block text-neutral-700">
+                        {regla.corte === null ? 'Se entrega a los' : 'Si no entra para hoy, se entrega a los'}
+                      </span>
+                      <select
+                        value={regla.dias || 1}
+                        onChange={(e) => cambiarRegla(id, 'dias', Number(e.target.value))}
+                        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2"
+                      >
+                        {DIAS.map((d) => <option key={d} value={d}>{d === 1 ? '1 día (al día siguiente)' : `${d} días`}</option>)}
+                      </select>
+                    </label>
                     <label className="text-sm sm:col-span-2">
                       <span className="mb-1 block text-neutral-700">Si hay muchos pedidos, puede demorar (déjalo vacío si no)</span>
                       <input

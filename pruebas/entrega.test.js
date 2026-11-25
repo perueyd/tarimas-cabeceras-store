@@ -20,6 +20,7 @@ import {
   reglasDeEntrega,
   respuestaDeEntrega,
   textoDePlazo,
+  tipoDeEntrega,
 } from '../src/lib/entrega.js';
 
 // Lima va 5 horas por detrás de UTC: las 07:00 de Lima son las 12:00 UTC.
@@ -86,6 +87,16 @@ test('para OTRO día el cliente elige la hora que quiera', () => {
   );
 });
 
+// El dueño, 25/11/2026: lo que se pide después del corte se FABRICA al día
+// siguiente (desde las 8 a. m., listo hacia las 5 p. m.). Se ofrecía mañana
+// por la mañana a quien pedía de noche, y eso no se podía cumplir.
+test('pedido después del corte: mañana solo desde las 5, pasado mañana cualquier hora', () => {
+  const ahora = limaUTC(7, 20, 0); // 8 de la noche del día 7
+  assert.deepEqual(horariosDeReparto(SLOTS, '2026-10-08', ahora).map((s) => s.id), ['noche']);
+  assert.deepEqual(horariosDeReparto(SLOTS, '2026-10-09', ahora).map((s) => s.id), ['manana', 'tarde', 'noche']);
+  assert.match(textoDePlazo(), /al día siguiente desde las 5 p\. m\./);
+});
+
 test('sin fecha elegida todavía, se muestran todas', () => {
   assert.deepEqual(horariosDeReparto(SLOTS, '', limaUTC(7, 7, 0)).length, 3);
 });
@@ -115,38 +126,48 @@ test('cabecera: hasta las 8 entra para hoy y solo se reparte desde las 5 p. m.',
   assert.match(textoDePlazo(cabecera), /de 1 a 3 días más/, 'la cabecera tiene que avisar que puede retrasarse');
 });
 
-test('tarima: hasta las 9 entra para hoy, pero según disponibilidad y desde las 11', () => {
-  assert.equal(primerDiaDeEntrega(limaUTC(29, 8, 30), tarima), '2026-10-29', 'a las 8:30 una tarima todavía entra para hoy');
-  assert.equal(primerDiaDeEntrega(limaUTC(29, 9, 0), tarima), '2026-10-29');
-  assert.equal(primerDiaDeEntrega(limaUTC(29, 9, 1), tarima), '2026-10-30');
-  // 9 a. m. + 2 horas de fabricación: la mañana (9 a 1) no cabe hoy; la tarde y la noche sí.
-  assert.deepEqual(horariosDeReparto(SLOTS, '2026-10-29', limaUTC(29, 8, 0), tarima).map((s) => s.id), ['tarde', 'noche']);
-  assert.equal(tarima.seguro, false);
-  assert.match(textoDePlazo(tarima), /según la disponibilidad del taller/);
-  assert.doesNotMatch(textoDePlazo(tarima), /te lo entregamos hoy mismo/, 'lo de hoy NO se puede prometer como seguro');
+// El dueño, 25/11/2026: la tarima sigue el MISMO plan que la cabecera, y el
+// colchón se entrega a los dos días (todo se trabaja a pedido).
+test('tarima: el mismo plan que la cabecera', () => {
+  assert.deepEqual(tarima, cabecera);
+  assert.equal(primerDiaDeEntrega(limaUTC(29, 8, 30), tarima), '2026-10-30', 'a las 8:30 ya pasa a mañana');
 });
 
-test('cabecera y tarima juntas: manda la más exigente de las dos', () => {
-  const juntas = reglaDelPedido(REGLAS, ['tarimas', 'cabeceras']);
-  assert.deepEqual(juntas, { corte: 8, desde: 17, seguro: false, demora: '1 a 3 días' });
-  assert.equal(primerDiaDeEntrega(limaUTC(29, 8, 30), juntas), '2026-10-30', 'a las 8:30 la cabecera ya no llega hoy');
+test('colchón: a los dos días, nunca el mismo día', () => {
+  const colchon = reglaDelPedido(REGLAS, ['colchones']);
+  assert.equal(primerDiaDeEntrega(limaUTC(29, 6, 0), colchon), '2026-10-31');
+  assert.match(textoDePlazo(colchon), /a los 2 días/);
+  assert.equal(reglaDelPedido(REGLAS, ['colchones', 'cabeceras']).dias, 2, 'con un colchón en el carrito, manda el plazo más largo');
 });
 
-test('lo que no tiene regla propia (colchones) usa la general de siempre', () => {
-  assert.deepEqual(reglaDelPedido(REGLAS, ['colchones']), REGLAS.general);
+test('lo que no tiene regla propia usa la general', () => {
+  assert.deepEqual(reglaDelPedido(REGLAS, ['salas']), REGLAS.general);
   assert.deepEqual(reglaDelPedido(REGLAS, []), REGLAS.general, 'un carrito vacío o sin categoría también');
+});
+
+// Stock (sugerencia del dueño, 25/11/2026): lo que se marca «en stock» no se
+// fabrica y se entrega hoy, en un horario que todavía no haya pasado.
+test('en stock: entrega hoy hasta las 4 p. m., en un horario que no haya pasado', () => {
+  assert.equal(tipoDeEntrega({ category: 'cabeceras', enStock: true }), 'stock');
+  assert.equal(tipoDeEntrega({ category: 'cabeceras' }), 'cabeceras');
+  const stock = reglaDelPedido(REGLAS, ['stock']);
+  assert.equal(primerDiaDeEntrega(limaUTC(29, 15, 0), stock), '2026-10-29');
+  assert.deepEqual(horariosDeReparto(SLOTS, '2026-10-29', limaUTC(29, 10, 0), stock).map((s) => s.id), ['tarde', 'noche'], 'a las 10 a. m. la mañana ya empezó');
+  assert.equal(primerDiaDeEntrega(limaUTC(29, 17, 0), stock), '2026-10-30', 'después de las 4 p. m., mañana');
+  assert.equal(reglaDelPedido(REGLAS, ['stock', 'cabeceras']).corte, 8, 'si junta algo en stock con algo a pedido, manda lo que se fabrica');
 });
 
 test('lo que el dueño cambia en el panel manda sobre la regla de fábrica', () => {
   const reglas = reglasDeEntrega({
-    reglasEntrega: { tarimas: null, colchones: { corte: null, desde: 0, seguro: true, demora: '' }, general: { corte: 10, desde: 15 } },
+    reglasEntrega: { tarimas: null, colchones: { corte: null, desde: 0, seguro: true, demora: '', dias: 1 }, general: { corte: 10, desde: 15 } },
   });
   assert.deepEqual(reglas.tarimas, undefined, '«usa la regla general» deja la tarima sin regla propia');
   assert.equal(reglaDelPedido(reglas, ['tarimas']).corte, 10);
   assert.equal(alcanzaParaHoy(limaUTC(29, 6, 0), reglaDelPedido(reglas, ['colchones'])), false, 'sin entrega el mismo día, nunca es hoy');
   assert.match(textoDePlazo(reglas.colchones), /desde el día siguiente/);
   // Datos raros guardados no rompen nada: se vuelve a la regla de partida.
-  assert.equal(reglasDeEntrega({ reglasEntrega: { cabeceras: { corte: 'las ocho', desde: 99 } } }).cabeceras.corte, 8);
+  assert.equal(reglasDeEntrega({ reglasEntrega: { cabeceras: { corte: 'las ocho', desde: 99, dias: 'muchos' } } }).cabeceras.corte, 8);
+  assert.equal(reglasDeEntrega({ reglasEntrega: { cabeceras: { dias: 'muchos' } } }).cabeceras.dias, 1);
 });
 
 test('la pregunta frecuente se arma con las mismas reglas, una línea por tipo que se vende', () => {
@@ -156,7 +177,7 @@ test('la pregunta frecuente se arma con las mismas reglas, una línea por tipo q
     { id: 'colchones', label: 'Colchones' },
   ]);
   assert.match(texto, /Cabeceras: Pídelo hasta las 8 a\. m\./);
-  assert.match(texto, /Tarimas: Pídelo hasta las 9 a\. m\. y, según la disponibilidad/);
-  assert.match(texto, /Colchones: Pídelo hasta las 8 a\. m\. y te lo entregamos hoy mismo desde las 5 p\. m\./);
+  assert.match(texto, /Tarimas: Pídelo hasta las 8 a\. m\./);
+  assert.match(texto, /Colchones: Te lo entregamos a los 2 días/);
   assert.match(texto, /provincias/);
 });

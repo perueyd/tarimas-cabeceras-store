@@ -94,7 +94,7 @@ Las formas de pago disponibles son las que ves al finalizar tu compra (por ejemp
 Fabricamos a pedido. El plazo de entrega en Lima Metropolitana depende del producto: lo indicamos en su ficha y al finalizar la compra, donde eliges la fecha y el rango horario. Cuando la entrega del mismo día depende de la disponibilidad del taller, te la confirmamos por WhatsApp. Si por algún motivo no pudiéramos cumplir el plazo, te avisaremos y podrás elegir entre esperar o que te devolvamos el importe completo.
 
 7. DERECHO A DEVOLVER TU COMPRA
-Si el producto llega con un defecto de fabricación, no corresponde a lo que pediste o está dañado por el transporte, escríbenos dentro de los 7 días calendario siguientes a la entrega con fotos. Lo cambiamos, lo reparamos o te devolvemos el dinero, según prefieras, sin costo para ti.
+Si el producto llega con un defecto de fabricación, no corresponde a lo que pediste o está dañado por el transporte, escríbenos dentro de los 7 días calendario siguientes a la entrega con fotos. Lo cambiamos, lo reparamos o te devolvemos el dinero, según prefieras, sin costo para ti. Si un defecto de fabricación aparece después de esos 7 días, te atendemos igual dentro de la garantía (punto 8).
 
 Ten en cuenta que, al tratarse de bienes fabricados a tu medida y con tus especificaciones, no aplica la devolución por simple arrepentimiento cuando el producto llegó correcto y conforme a lo pedido. Esto no afecta en nada tus derechos por producto defectuoso.
 

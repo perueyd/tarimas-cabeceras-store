@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { reglaDelPedido, reglasDeEntrega, textoDePlazo } from '../lib/entrega.js';
+import { reglaDelPedido, reglasDeEntrega, textoDePlazo, tipoDeEntrega } from '../lib/entrega.js';
 import ProductImage from '../components/ProductImage.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
@@ -21,7 +21,7 @@ export default function Cart() {
   // exigente. Los servicios se coordinan aparte y no cuentan.
   const productosDelCarrito = items.filter((i) => !esLineaDeServicio(i));
   const plazo = productosDelCarrito.length
-    ? textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), productosDelCarrito.map((i) => getProductByIdSafe(i.productId)?.category)))
+    ? textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), productosDelCarrito.map((i) => tipoDeEntrega(getProductByIdSafe(i.productId)))))
     : '';
   const envioTexto = storeConfig?.envioTexto || '';
 

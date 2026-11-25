@@ -1,13 +1,11 @@
 import { limpiarObservaciones } from '../src/lib/observaciones.js';
 import { newOrderCode, saveOrder } from './_store.js';
-import { priceOrder, s } from './_pricing.js';
-import { getCatalog } from './_catalog.js';
-import { registerPromoUsage, reservaDeCupon, validatePromo } from './_promo.js';
+import { s } from './_pricing.js';
+import { registerPromoUsage, reservaDeCupon } from './_promo.js';
+import { calcularCobro } from './_cobro.js';
 import { clientIp, rateLimitRequest } from './_ratelimit.js';
 import { agregarAlHistorial } from './_historial.js';
-import { calcularDescuentoAuto, comprobarMontoEsperado, mejorTotal } from './_ofertas-auto.js';
 import { separarIGV } from './_impuestos.js';
-import { referidoValido } from '../src/lib/servicios.js';
 import { leerDatosComprobante } from '../src/lib/documento.js';
 import { NOMBRE_TIENDA } from '../src/data/sitio.js';
 import { avisarError } from './_alertas.js';
@@ -42,6 +40,8 @@ export default async function handler(req, res) {
   // verificar al titular, el segundo intento trae el resultado de esa verificación.
   const huella = huellaValida(body.deviceId);
   const autenticacion3DS = limpiarAutenticacion3DS(body.autenticacion3DS);
+  // Cuotas con tarjeta de crédito, si el cliente las eligió en la ventana de Culqi.
+  const cuotas = cuotasValidas(body.cuotas);
   const secretKey = process.env.CULQI_SECRET_KEY;
 
   if (!secretKey) {
@@ -58,51 +58,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Faltan datos para procesar el pago (token, email).' });
   }
 
-  // SEGURIDAD: el monto se recalcula aquí desde el catálogo ACTUAL; se ignora el del navegador.
-  const { products, partners } = await getCatalog();
-  const priced = priceOrder(products, body.items);
-  // Qué profesional aliado trajo a este cliente, si vino por su enlace.
-  const referido = referidoValido(body.referido, partners);
-  if (!priced) {
-    return res.status(400).json({ error: 'El pedido contiene productos o tamaños inválidos.' });
-  }
-
-  // Código promocional (opcional) — se revalida aquí igual que en /api/orders.
-  let promoCode = null;
-  let promoDescuento = 0;
-  // Si el cobro no se completa, el uso reservado se devuelve (ver liberarUso).
+  // SEGURIDAD: el monto se recalcula aquí desde el catálogo ACTUAL; se ignora
+  // el del navegador. Es el MISMO cálculo que usan las órdenes de PagoEfectivo,
+  // billeteras y Cuotéalo (api/_cobro.js). Si el cobro no se completa, el uso
+  // reservado del cupón se devuelve (reserva.liberar()).
   const reserva = reservaDeCupon();
-  const promoInput = s(body.promoCode, 30);
-  if (promoInput) {
-    const promoResult = await validatePromo(promoInput, priced.total);
-    if (promoResult.valid) {
-      const reservado = await reserva.reservar(promoResult.promo);
-      if (reservado) {
-        promoDescuento = promoResult.descuento;
-        promoCode = promoResult.promo.code;
-      }
-    }
-  }
-
-  // Descuentos automáticos (flash sale, por cantidad, por categoría). Antes
-  // solo se calculaban en el navegador, así que el checkout mostraba el precio
-  // rebajado y aquí se cobraba el precio completo.
-  const { descuento: descuentoAuto } = await calcularDescuentoAuto(priced.items, priced.total, products);
-  const { descuento, total: montoFinal, vieneDePromo } = mejorTotal(priced.total, promoDescuento, descuentoAuto);
-  const descuentoDePromo = vieneDePromo; // ¿ganó el cupón o la oferta automática?
-  promoDescuento = descuento;
-  // Ganó la oferta automática: el cupón no se usa, así que su uso se devuelve.
-  if (!descuentoDePromo) await reserva.liberar();
-
-  // Nunca cobrar por encima de lo que el cliente vio en pantalla.
-  const control = comprobarMontoEsperado(montoFinal, body.montoMostrado);
-  if (!control.ok) {
-    await reserva.liberar();
-    return res.status(409).json({ error: control.error });
-  }
+  const cobro = await calcularCobro(body, { reserva });
+  if (cobro.error) return res.status(cobro.status).json({ error: cobro.error });
+  const { montoFinal, promoCode, promoDescuento, descuentoDePromo, referido } = cobro;
+  const items = cobro.items;
 
   const amount = Math.round(montoFinal * 100);
-  const items = priced.items;
 
   try {
     const culqiRes = await fetch('https://api.culqi.com/v2/charges', {
@@ -131,6 +97,7 @@ export default async function handler(req, res) {
         // consultado el 23/11/2026).
         antifraud_details: { ...datosAntifraude({ nombre, telefono, direccion }), ...(huella && { device_finger_print_id: huella }) },
         ...(autenticacion3DS && { authentication_3DS: autenticacion3DS }),
+        ...(cuotas && { installments: cuotas }),
       }),
     });
 
@@ -179,6 +146,7 @@ export default async function handler(req, res) {
         metodo: esPrueba ? 'Tarjeta (PRUEBA de Culqi, sin cobro real)' : 'Tarjeta/Yape (Culqi)',
         ...(esPrueba && { prueba: true }),
         chargeId: data.id,
+        ...(cuotas && { cuotas }),
         monto: amount / 100,
         base: separarIGV(amount / 100).base,
         igv: separarIGV(amount / 100).igv,
@@ -304,4 +272,10 @@ export function resumenDeItems(items = []) {
   return (items || [])
     .map((i) => `${i.qty || 1}× ${i.productName || i.name || i.productId || ''}${i.sizeId ? ` (${i.sizeId})` : ''}`.trim())
     .join('; ');
+}
+
+/** Número de cuotas válido para Culqi (2 a 48), o null si es al contado. */
+export function cuotasValidas(valor) {
+  const n = Number(valor);
+  return Number.isInteger(n) && n >= 2 && n <= 48 ? n : null;
 }
