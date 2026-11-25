@@ -20,7 +20,7 @@ import { codigoDelLive } from '../lib/live.js';
 import { conRecarga } from '../lib/cargarPieza.js';
 import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
 import { mediosDeCulqi } from '../lib/mediosCulqi.js';
-import { primerCampoQueFalta } from '../lib/camposCheckout.js';
+import { fechaLegible, primerCampoQueFalta } from '../lib/camposCheckout.js';
 import { reportarError } from '../lib/reportarError.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
@@ -460,8 +460,22 @@ export default function Checkout() {
   }
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    if (e.target.name === faltante) setFaltante(null);
+    const { name } = e.target;
+    let { value } = e.target;
+    // El calendario del iPhone ignora el `min` y deja elegir días pasados
+    // (25/11/2026): si la fecha no se puede cumplir, se cambia por la más
+    // cercana posible y se le avisa al cliente.
+    if (name === 'entregaFecha' && value) {
+      const minima = primerDiaDeEntrega(new Date(), reglaEntrega);
+      if (minima && value < minima) {
+        value = minima;
+        setAvisoFecha(`Esa fecha ya no se puede cumplir: te pusimos la más cercana, el ${fechaLegible(minima)}.`);
+      } else {
+        setAvisoFecha('');
+      }
+    }
+    setForm({ ...form, [name]: value });
+    if (name === faltante) setFaltante(null);
   }
 
   // Solo se queja cuando ya hay algo escrito: señalar en rojo un campo vacío
@@ -472,6 +486,7 @@ export default function Checkout() {
 
   // Campo que se marcó en rojo al intentar pagar; se apaga en cuanto lo tocan.
   const [faltante, setFaltante] = useState(null);
+  const [avisoFecha, setAvisoFecha] = useState('');
 
   /**
    * ¿Está todo? Si no, lleva al cliente al primer campo que falta, lo marca y
@@ -479,7 +494,7 @@ export default function Checkout() {
    * emitirlo es obligatorio al cobrar IGV.
    */
   function isFormValid() {
-    const falta = primerCampoQueFalta(form);
+    const falta = primerCampoQueFalta(form, { fechaMinima: primerDiaDeEntrega(new Date(), reglaEntrega) });
     if (!falta) return true;
     setFaltante(falta.campo);
     setErrorMsg(falta.mensaje);
@@ -961,6 +976,7 @@ export default function Checkout() {
                   </select>
                 </label>
               </div>
+              {avisoFecha && <p className="mt-2 text-xs text-amber-700">{avisoFecha}</p>}
               {/* Una tarima para hoy depende de que el taller tenga hueco: se
                   dice ANTES de pagar, no después. */}
               {!soloServicios && !reglaEntrega.seguro && form.entregaFecha === diaLima() && (

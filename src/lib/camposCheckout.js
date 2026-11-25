@@ -15,9 +15,13 @@ const CAMPOS = [
 
 /**
  * El primer campo que falta o está mal, o null si todo está completo.
+ * `fechaMinima` (AAAA-MM-DD) es el primer día en que se puede entregar: el
+ * calendario del iPhone (Safari) no respeta el `min` del campo y deja tocar
+ * días que ya pasaron (lo reportó el dueño, 25/11/2026), así que también se
+ * revisa aquí, antes de cobrar.
  * @returns {{ campo: string, mensaje: string } | null}
  */
-export function primerCampoQueFalta(form = {}) {
+export function primerCampoQueFalta(form = {}, { fechaMinima = null } = {}) {
   for (const [campo, nombre] of CAMPOS) {
     if (!String(form[campo] || '').trim()) return { campo, mensaje: `Falta ${nombre}.` };
   }
@@ -32,6 +36,17 @@ export function primerCampoQueFalta(form = {}) {
     return { campo, mensaje: errorDoc };
   }
   if (!form.entregaFecha) return { campo: 'entregaFecha', mensaje: 'Falta elegir la fecha de entrega.' };
+  // Las fechas AAAA-MM-DD se comparan bien como texto.
+  if (fechaMinima && form.entregaFecha < fechaMinima) {
+    return { campo: 'entregaFecha', mensaje: `Esa fecha ya no se puede cumplir. La más cercana es el ${fechaLegible(fechaMinima)}.` };
+  }
   if (!form.entregaHorario) return { campo: 'entregaHorario', mensaje: 'Falta elegir el horario de entrega.' };
   return null;
+}
+
+/** «2026-11-26» → «jueves 26 de noviembre», sin depender de la zona del navegador. */
+export function fechaLegible(iso) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 }
