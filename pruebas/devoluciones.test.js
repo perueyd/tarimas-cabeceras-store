@@ -18,3 +18,11 @@ test('sin secciones de devolución no inventa nada', () => {
   assert.deepEqual(seccionesDeDevolucion('1. PRECIOS\nTodo con IGV.'), []);
   assert.deepEqual(seccionesDeDevolucion(undefined), []);
 });
+
+// Ley 29571, art. 97 c (vicios ocultos) y art. 20 (la garantía legal no se
+// puede recortar): el plazo de 7 días para avisar no puede leerse como el fin
+// de la garantía para un defecto que aparece después.
+test('los defectos que aparecen después de 7 días siguen cubiertos por la garantía', () => {
+  const [devolver] = seccionesDeDevolucion(TERMINOS);
+  assert.match(devolver.texto, /después de esos 7 días, te atendemos igual dentro de la garantía/);
+});
