@@ -86,6 +86,16 @@ test('para OTRO día el cliente elige la hora que quiera', () => {
   );
 });
 
+// El dueño, 25/11/2026: lo que se pide después del corte se FABRICA al día
+// siguiente (desde las 8 a. m., listo hacia las 5 p. m.). Se ofrecía mañana
+// por la mañana a quien pedía de noche, y eso no se podía cumplir.
+test('pedido después del corte: mañana solo desde las 5, pasado mañana cualquier hora', () => {
+  const ahora = limaUTC(7, 20, 0); // 8 de la noche del día 7
+  assert.deepEqual(horariosDeReparto(SLOTS, '2026-10-08', ahora).map((s) => s.id), ['noche']);
+  assert.deepEqual(horariosDeReparto(SLOTS, '2026-10-09', ahora).map((s) => s.id), ['manana', 'tarde', 'noche']);
+  assert.match(textoDePlazo(), /al día siguiente desde las 5 p\. m\./);
+});
+
 test('sin fecha elegida todavía, se muestran todas', () => {
   assert.deepEqual(horariosDeReparto(SLOTS, '', limaUTC(7, 7, 0)).length, 3);
 });

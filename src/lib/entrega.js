@@ -121,18 +121,20 @@ export function alcanzaParaHoy(ahora = new Date(), regla = REGLA_GENERAL) {
 /**
  * Los horarios que se le pueden ofrecer al cliente para la fecha que eligió.
  *
- * Para HOY MISMO solo caben los que empiezan cuando el mueble ya está hecho
- * (la hora `desde` de la regla: las 5 p. m. para una cabecera). Para cualquier
- * OTRO día el mueble está listo desde la víspera, así que el cliente elige la
- * hora que quiera — mañana, tarde o noche. Antes se filtraba siempre, y eso le
- * quitaba al cliente las entregas de mañana y tarde de los días siguientes.
+ * El PRIMER día posible de entrega es el día en que el taller fabrica el
+ * mueble (empieza a las 8 a. m. y lo termina hacia la hora `desde`: las 5 p. m.
+ * para una cabecera). Ese día solo caben los horarios desde esa hora: si el
+ * pedido entró antes del corte, es hoy; si entró después, es MAÑANA, porque
+ * se fabrica mañana (el dueño, 25/11/2026: antes se ofrecía mañana por la
+ * mañana a quien pedía de noche, y eso no se podía cumplir). Los días
+ * siguientes el mueble ya está hecho y el cliente elige la hora que quiera.
  *
  * Si para hoy no cuadra ningún horario —porque todavía no se han puesto en el
  * panel— se devuelven todos: mejor una hora a coordinar que dejar al cliente
  * sin poder comprar.
  */
 export function horariosDeReparto(slots = [], fechaElegida = '', ahora = new Date(), regla = REGLA_GENERAL) {
-  if (!fechaElegida || fechaElegida !== diaEnLima(ahora)) return slots;
+  if (!fechaElegida || fechaElegida !== primerDiaDeEntrega(ahora, regla)) return slots;
   const desHoy = slots.filter((s) => horaDeInicio(s?.label) >= regla.desde);
   return desHoy.length ? desHoy : slots;
 }
@@ -155,13 +157,13 @@ export function textoDePlazo(regla = REGLA_GENERAL) {
   } else if (regla.seguro) {
     partes.push(
       `Pídelo hasta las ${horaLegible(regla.corte)} y te lo entregamos hoy mismo desde las ${horaLegible(regla.desde)};` +
-        ' si no, desde el día siguiente en el horario que elijas.'
+        ` si no, al día siguiente desde las ${horaLegible(regla.desde)}, o cualquier otro día en el horario que elijas.`
     );
   } else {
     partes.push(
       `Pídelo hasta las ${horaLegible(regla.corte)} y, según la disponibilidad del taller, puede salir hoy mismo` +
         `${regla.desde ? ` desde las ${horaLegible(regla.desde)}` : ''} (te lo confirmamos por WhatsApp);` +
-        ' si no, desde el día siguiente en el horario que elijas.'
+        ` si no, al día siguiente${regla.desde ? ` desde las ${horaLegible(regla.desde)}` : ''}, o cualquier otro día en el horario que elijas.`
     );
   }
   if (regla.demora) partes.push(`Según la cantidad de pedidos, puede demorar de ${regla.demora} más; si pasa, te avisamos por WhatsApp.`);
@@ -174,11 +176,6 @@ function horaDeInicio(label) {
   if (!m) return -1;
   const h = Number(m[1]) % 12;
   return /p/i.test(m[3]) ? h + 12 : h;
-}
-
-/** El día de hoy en Lima, como "2026-11-07". */
-function diaEnLima(ahora) {
-  return enLima(ahora)?.toISOString().slice(0, 10) ?? '';
 }
 
 /**
@@ -218,7 +215,8 @@ export function reglaParaElAsistente(regla = REGLA_GENERAL) {
         ' tiene disponibilidad (NO es seguro: se confirma por WhatsApp)'
     );
   }
-  partes.push('pedido después → desde el día siguiente, a la hora que elija el cliente');
+  if (regla.corte === null) partes.push('desde el día siguiente, a la hora que elija el cliente');
+  else partes.push(`pedido después → al día siguiente, pero SOLO desde las ${horaLegible(regla.desde)} (ese día se fabrica); desde el otro día, a la hora que elija el cliente`);
   partes.push(regla.demora ? `puede demorar de ${regla.demora} más según la cantidad de pedidos (díselo)` : 'sin aviso de demora');
   return partes.join(' · ');
 }
