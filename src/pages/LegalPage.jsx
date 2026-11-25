@@ -20,7 +20,8 @@ function proveedorTexto(storeConfig) {
 function sustituir(texto, storeConfig) {
   return corregirPlazoDeReclamos(texto || '')
     .replaceAll('{{proveedor}}', proveedorTexto(storeConfig))
-    .replaceAll('{{whatsapp}}', storeConfig.whatsapp || 'nuestro WhatsApp');
+    // El número como se lee en Perú («951 278 010»), no el de wa.me («51951278010»).
+    .replaceAll('{{whatsapp}}', storeConfig.contacto?.telefonoFormato || storeConfig.whatsapp || 'nuestro WhatsApp');
 }
 
 // which: 'privacidad' | 'terminos' | 'devoluciones'

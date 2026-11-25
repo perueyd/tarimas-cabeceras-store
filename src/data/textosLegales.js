@@ -88,7 +88,7 @@ Todos los precios se muestran en soles (S/) e INCLUYEN el IGV. El precio que ves
 El contrato queda cerrado cuando confirmas tu pedido y recibimos tu pago o su comprobante. Te enviamos un código de seguimiento para consultar el estado en cualquier momento.
 
 5. FORMAS DE PAGO
-Las formas de pago disponibles son las que ves al finalizar tu compra (por ejemplo Yape, Plin, transferencia bancaria o pago contra entrega, según las tengamos activas). En los pagos directos, tu pedido queda como "pago por verificar" hasta que confirmemos la operación.
+Las formas de pago disponibles son las que ves al finalizar tu compra (por ejemplo tarjeta o Yape a través de Culqi, Yape directo, transferencia bancaria o pago contra entrega, según las tengamos activas). Con tarjeta, el pago lo procesa Culqi y tu banco puede pedirte confirmar la compra; nosotros no vemos ni guardamos los datos de tu tarjeta. En los pagos directos, tu pedido queda como "pago por verificar" hasta que confirmemos la operación.
 
 6. ENTREGA
 Fabricamos a pedido. El plazo de entrega en Lima Metropolitana depende del producto: lo indicamos en su ficha y al finalizar la compra, donde eliges la fecha y el rango horario. Cuando la entrega del mismo día depende de la disponibilidad del taller, te la confirmamos por WhatsApp. Si por algún motivo no pudiéramos cumplir el plazo, te avisaremos y podrás elegir entre esperar o que te devolvamos el importe completo.
