@@ -34,9 +34,23 @@ export default function ThankYou() {
       </h1>
       <p className="mt-3 text-neutral-500">
         {porVerificar
-          ? `Recibimos tu pedido. Quedará confirmado apenas verifiquemos tu pago por ${state?.metodo || 'el método elegido'}. Si aún no nos enviaste tu comprobante por WhatsApp, hazlo para agilizar la confirmación.`
+          ? state?.pagoCulqi
+            ? 'Recibimos tu pedido. Quedará confirmado automáticamente apenas Culqi nos avise que pagaste. No necesitas enviarnos el comprobante.'
+            : `Recibimos tu pedido. Quedará confirmado apenas verifiquemos tu pago por ${state?.metodo || 'el método elegido'}. Si aún no nos enviaste tu comprobante por WhatsApp, hazlo para agilizar la confirmación.`
           : 'Tu pago se procesó correctamente. Te enviaremos la confirmación por correo.'}
       </p>
+      {/* PagoEfectivo: el código CIP con el que se paga en banca móvil, agentes o bodegas. */}
+      {state?.cip && (
+        <div className="mx-auto mt-6 max-w-md rounded-xl border-2 border-sky-300 bg-sky-50 p-4">
+          <p className="text-sm font-semibold text-sky-900">Tu código de pago (CIP)</p>
+          <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-sky-900">{state.cip}</p>
+          <p className="mt-2 text-xs text-sky-900">
+            Págalo en tu banca móvil o por internet, o en un agente o bodega, buscando «PagoEfectivo».
+            {state.venceCip ? ` Vence el ${new Date(state.venceCip * 1000).toLocaleString('es-PE', { timeZone: 'America/Lima', dateStyle: 'long', timeStyle: 'short' }).replace(/\.$/, '')}.` : ''}
+          </p>
+          <BotonCopiar texto={String(state.cip)} />
+        </div>
+      )}
       {/* El cobro salió bien pero el pedido no llegó a guardarse. Se avisa de
           forma destacada: si no, el cliente se va con un código que no
           funciona y acaba pagando dos veces. */}

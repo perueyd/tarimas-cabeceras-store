@@ -19,6 +19,7 @@ import { esLineaDeServicio, referidoActual } from '../lib/servicios.js';
 import { codigoDelLive } from '../lib/live.js';
 import { conRecarga } from '../lib/cargarPieza.js';
 import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
+import { mediosDeCulqi } from '../lib/mediosCulqi.js';
 import { primerCampoQueFalta } from '../lib/camposCheckout.js';
 import { reportarError } from '../lib/reportarError.js';
 
@@ -34,6 +35,12 @@ function useUbigeo() {
 
 const CULQI_PUBLIC_KEY = import.meta.env.VITE_CULQI_PUBLIC_KEY;
 const CULQI_DE_PRUEBA = esLlaveDePrueba(CULQI_PUBLIC_KEY);
+
+/** Cuántas cuotas eligió el cliente en la ventana de Culqi (0 o 1 = al contado). */
+function cuotasDelToken(token) {
+  const n = Number(token?.metadata?.installments ?? token?.installments ?? 0);
+  return Number.isInteger(n) && n > 1 ? n : 0;
+}
 
 /** Correo, nombre y apellido para el Checkout de Culqi (el apellido es lo que sigue al primer nombre). */
 function clienteParaCulqi(form) {
@@ -432,7 +439,14 @@ export default function Checkout() {
     if (!c) return;
     if (c.token) {
       c.close();
-      procesarPagoRef.current(c.token.id);
+      // Cuotas con tarjeta: Culqi devuelve cuántas eligió el cliente.
+      procesarPagoRef.current(c.token.id, { cuotas: cuotasDelToken(c.token) });
+    } else if (c.order) {
+      // PagoEfectivo, billetera o Cuotéalo: el cliente generó su código o su
+      // QR y pagará fuera. El pedido queda «por verificar» hasta que Culqi
+      // avise del pago (api/_rutas/culqi-webhook.js).
+      c.close();
+      registrarOrdenRef.current(c.order.id || c.order);
     } else {
       // Culqi rechazó los datos antes de cobrar y deja el motivo en
       // Culqi.error. Antes se tapaba con un mensaje genérico y nadie sabía
@@ -476,7 +490,7 @@ export default function Checkout() {
     return false;
   }
 
-  function abrirCulqi() {
+  async function abrirCulqi() {
     if (!isFormValid()) return;
     if (!CULQI_PUBLIC_KEY) {
       setErrorMsg('Falta configurar VITE_CULQI_PUBLIC_KEY en las variables de entorno.');
@@ -494,11 +508,19 @@ export default function Checkout() {
     setStatus('idle');
 
     culqiRef.current?.close?.();
+    // Para PagoEfectivo, billeteras y Cuotéalo Culqi pide una ORDEN creada
+    // antes de abrir la ventana (docs.culqi.com → Órdenes de pago). Si no se
+    // puede crear, se abre igual con tarjeta y Yape: nunca se pierde la venta.
+    setStatus('preparando');
+    const orderId = await crearOrdenDeCulqi();
+    setStatus('idle');
+    const medios = mediosDeCulqi(totalConDescuento, Boolean(orderId), MAX_YAPE);
     const culqi = new window.CulqiCheckout(CULQI_PUBLIC_KEY, {
       settings: {
         title: NOMBRE_TIENDA,
         currency: 'PEN',
         amount: Math.round(totalConDescuento * 100), // Culqi trabaja en céntimos
+        ...(orderId && { order: orderId }),
       },
       // Paso 2 de la guía de Culqi («Envía nombre, apellido e email de tu
       // cliente»): ya los escribió en nuestro formulario, no se le vuelven a pedir.
@@ -506,21 +528,99 @@ export default function Checkout() {
       options: {
         lang: 'es',
         modal: true,
-        // Las cuotas y Cuotéalo BCP siguen APAGADOS, y encenderlos NO es cambiar
-        // este false por true. Cuotéalo y PagoEfectivo no dan un token: crean
-        // una ORDEN que se paga fuera y se confirma después. Ese camino no está
-        // hecho (api/create-charge.js solo cobra con un token de tarjeta o
-        // Yape): falta crear la orden en el servidor y atender el aviso de
-        // Culqi cuando el cliente termina de pagar.
-        installments: false,
-        paymentMethods: { tarjeta: true, yape: totalConDescuento <= MAX_YAPE, billetera: false, bancaMovil: false, agente: false, cuotealo: false },
-        paymentMethodsSort: ['tarjeta', 'yape'],
+        // Todos los medios de Culqi (pedido del dueño, 25/11/2026), cada uno
+        // dentro de los montos que Culqi acepta (ver mediosDeCulqi). Las
+        // cuotas con tarjeta de crédito las elige el cliente en la ventana.
+        installments: true,
+        paymentMethods: medios,
+        paymentMethodsSort: Object.keys(medios),
       },
       appearance: { menuType: 'sidebar' },
     });
     culqi.culqi = alTerminarCulqi;
     culqiRef.current = culqi;
     culqi.open();
+  }
+
+  /** Crea la orden de Culqi para los pagos que se hacen después (PagoEfectivo, billeteras, Cuotéalo). Devuelve su id o null. */
+  async function crearOrdenDeCulqi() {
+    try {
+      const res = await fetch('/api/culqi-orden?accion=crear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosDelPago()),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.orderId) {
+        reportarError(`No se creó la orden de Culqi: ${res.status} ${data?.error || ''}`);
+        return null;
+      }
+      return data.orderId;
+    } catch (err) {
+      reportarError(err);
+      return null;
+    }
+  }
+
+  /** El cliente generó su código (CIP) o su QR: se guarda el pedido y va a «gracias» con las instrucciones. */
+  async function registrarOrden(orderId) {
+    setStatus('paying');
+    try {
+      const res = await fetch('/api/culqi-orden?accion=registrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(mensajeParaElCliente(data?.error) + detalleDePrueba(`orden, ${res.status}`, data));
+      const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
+      clearCart();
+      navigate('/gracias', {
+        state: {
+          orderCode: data.orderCode,
+          monto: data.monto ?? totalConDescuento,
+          entregaFecha: form.entregaFecha,
+          entregaHorario: slot ? slot.label : '',
+          porVerificar: data.estado !== 'Pagado',
+          metodo: 'PagoEfectivo, billetera o Cuotéalo (Culqi)',
+          cip: data.cip,
+          venceCip: data.vence,
+          pagoCulqi: true,
+        },
+      });
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err.message);
+    }
+  }
+  const registrarOrdenRef = useRef(registrarOrden);
+  useEffect(() => { registrarOrdenRef.current = registrarOrden; });
+
+  /** Lo que se manda al servidor para cobrar: lo mismo para la tarjeta y para las órdenes de Culqi. */
+  function datosDelPago() {
+    const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
+    return {
+      email: form.email,
+      nombre: form.nombre,
+      telefono: form.telefono,
+      zona: 'Lima Metropolitana',
+      direccion: `${form.direccion}, ${form.distrito}${form.referencia ? ` (Ref: ${form.referencia})` : ''}`,
+      ubicacion: ubicacion ? `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lng}` : '',
+      entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
+      items,
+      promoCode: promo?.code,
+      // Si llegó por el enlace de un profesional aliado, se anota en el
+      // pedido. El servidor comprueba que ese aliado exista.
+      referido: referidoActual() || undefined,
+      observaciones: form.observaciones.trim() || undefined,
+      // El servidor recalcula el total por su cuenta; esto solo le sirve
+      // para comprobar que coincide con lo que se mostró en pantalla y
+      // negarse a cobrar de más si no cuadra.
+      docTipo: form.docTipo,
+      docNumero: form.docNumero,
+      razonSocial: form.razonSocial,
+      montoMostrado: totalConDescuento,
+    };
   }
 
   /**
@@ -540,32 +640,14 @@ export default function Checkout() {
           token,
           deviceId: deviceId || undefined,
           autenticacion3DS: previo.autenticacion3DS,
-          email: form.email,
-          nombre: form.nombre,
-          telefono: form.telefono,
-          zona: 'Lima Metropolitana',
-          direccion: `${form.direccion}, ${form.distrito}${form.referencia ? ` (Ref: ${form.referencia})` : ''}`,
-          ubicacion: ubicacion ? `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lng}` : '',
-          entrega: `${form.entregaFecha} · ${slot ? slot.label : form.entregaHorario}`,
-          items,
-          promoCode: promo?.code,
-          // Si llegó por el enlace de un profesional aliado, se anota en el
-          // pedido. El servidor comprueba que ese aliado exista.
-          referido: referidoActual() || undefined,
-          observaciones: form.observaciones.trim() || undefined,
-          // El servidor recalcula el total por su cuenta; esto solo le sirve
-          // para comprobar que coincide con lo que se mostró en pantalla y
-          // negarse a cobrar de más si no cuadra.
-          docTipo: form.docTipo,
-          docNumero: form.docNumero,
-          razonSocial: form.razonSocial,
-          montoMostrado: totalConDescuento,
+          cuotas: previo.cuotas || undefined,
+          ...datosDelPago(),
         }),
       });
       const data = await res.json();
       if (res.ok && data?.necesita3DS) {
         const autenticacion3DS = await verificarConElBanco(token);
-        return procesarPago(token, { deviceId, autenticacion3DS });
+        return procesarPago(token, { ...previo, deviceId, autenticacion3DS });
       }
       if (!res.ok) {
         throw new Error(mensajeParaElCliente(data?.error || data?.user_message || data?.merchant_message) + detalleDePrueba(`cobro, ${res.status}`, data));

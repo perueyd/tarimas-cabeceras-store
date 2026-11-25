@@ -24,6 +24,8 @@ const RUTAS = {
   // No la piden los clientes: la piden WhatsApp, Facebook y compañía (ver el
   // rewrite por user-agent en vercel.json).
   compartir: () => import('./_rutas/compartir.js'),
+  'culqi-orden': () => import('./_rutas/culqi-orden.js'),
+  'culqi-webhook': () => import('./_rutas/culqi-webhook.js'),
   'descuentos-auto': () => import('./_rutas/descuentos-auto.js'),
   encuesta: () => import('./_rutas/encuesta.js'),
   // Errores recientes de la tienda y avisos al teléfono (api/_alertas.js).

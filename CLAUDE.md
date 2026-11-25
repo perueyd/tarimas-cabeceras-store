@@ -197,6 +197,28 @@ la ayuda, la página se recarga sola una vez y trae la versión nueva. El chat y
 desaparecen sin tumbar la página. `pruebas/piezas.test.js` avisa si queda un
 `import()` sin la ayuda.
 
+## Órdenes de Culqi: PagoEfectivo, billeteras y Cuotéalo
+
+Tarjeta y Yape cobran al momento (`api/create-charge.js`). PagoEfectivo
+(banca móvil, agentes), billeteras con QR y Cuotéalo NO: el cliente recibe un
+código (CIP) o un QR y paga después. Para eso (`api/_rutas/culqi-orden.js`):
+
+1. `crear`: antes de abrir la ventana se crea la orden en Culqi
+   (`confirm: false`), con el MISMO cálculo de precio que la tarjeta
+   (`api/_cobro.js`). Todavía no hay pedido: si el cliente paga con tarjeta,
+   la orden vence sola.
+2. `registrar`: cuando el cliente generó su código, se guarda el pedido como
+   «Pago por verificar», con su CIP. Nunca dos veces.
+3. Aviso de Culqi (`api/_rutas/culqi-webhook.js`, evento
+   `order.status.changed`, se configura en el CulqiPanel → Eventos →
+   Webhooks): marca «Pagado» o, si venció, «Cancelado». **No se cree lo que
+   dice el aviso**: el estado se consulta a Culqi con la llave privada
+   (hay prueba en `pruebas/culqi-ordenes.test.js`).
+
+Montos que acepta Culqi: billeteras con QR de S/ 6 a S/ 500, Cuotéalo desde
+S/ 100 (`src/lib/mediosCulqi.js`). Las cuotas con tarjeta de crédito viajan al
+cargo como `installments`.
+
 ## Cupones: reservar y devolver
 
 El uso de un cupón se reserva ANTES de cobrar (`reservaDeCupon()` en
