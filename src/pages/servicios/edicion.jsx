@@ -269,7 +269,7 @@ export function BarraDeEdicion({ ed }) {
           >
             ✓ Ver como cliente
           </button>
-          <Link to="/pedidos" className="rounded-lg border border-white/40 px-3 py-1.5 transition hover:bg-white/10">
+          <Link to="/panel" className="rounded-lg border border-white/40 px-3 py-1.5 transition hover:bg-white/10">
             Panel
           </Link>
         </div>

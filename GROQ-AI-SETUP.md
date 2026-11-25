@@ -85,7 +85,7 @@ específicas, escríbenos vía WhatsApp: +51951278010"
 
 ### JARVIS (Para el Admin)
 
-**Ubicación:** Botón 🤖 flotante en abajo a la izquierda del panel `/pedidos`
+**Ubicación:** Botón 🤖 flotante en abajo a la izquierda del panel `/panel`
 
 **Puede hacer:**
 - ✅ Generar descripciones de productos

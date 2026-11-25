@@ -4,7 +4,7 @@
 
 Tu panel ahora tiene un **sistema unificado de 8 tipos de ofertas** con control total. Todo está en:
 ```
-/pedidos → 💰 Ofertas y descuentos
+/panel → 💰 Ofertas y descuentos
 ```
 
 ---
@@ -109,7 +109,7 @@ Banner visible en la tienda mostrando la oferta actual.
 ## 🎮 CÓMO USAR EL PANEL
 
 ### Crear una nueva oferta
-1. Ve a `/pedidos` → `💰 Ofertas y descuentos`
+1. Ve a `/panel` → `💰 Ofertas y descuentos`
 2. Haz clic en `+ Nueva oferta`
 3. Selecciona el tipo
 4. Llena los campos específicos

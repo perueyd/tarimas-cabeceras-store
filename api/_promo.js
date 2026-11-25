@@ -1,5 +1,5 @@
 // Códigos promocionales (cupones de descuento) — vive en Redis, editable desde
-// el panel /pedidos → "Promociones". Sin base de datos conectada, los códigos
+// el panel /panel → "Promociones". Sin base de datos conectada, los códigos
 // simplemente no existen todavía (el checkout sigue funcionando sin ellos).
 import { hasDB, redisCmd } from './_store.js';
 import { vencida } from './_ofertas-auto.js';

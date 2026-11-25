@@ -14,7 +14,7 @@ import ProductDetail from './pages/ProductDetail.jsx';
 import Cart from './pages/Cart.jsx';
 import Checkout from './pages/Checkout.jsx';
 import ThankYou from './pages/ThankYou.jsx';
-// El panel de administración se carga SOLO cuando el dueño entra a /pedidos.
+// El panel de administración se carga SOLO cuando el dueño entra a /panel.
 // Antes viajaba en el mismo paquete que la tienda, así que cada cliente
 // descargaba las ~20 pestañas del panel, el asistente de voz y la vista previa
 // antes de poder ver la portada. Con datos móviles en Perú eso son segundos de
@@ -88,7 +88,9 @@ export default function App() {
   // lo que gestiona el negocio — y el chat y el WhatsApp además se ponían
   // literalmente encima de las fichas de pedido.
   const { pathname } = useLocation();
-  const enElPanel = pathname.startsWith('/pedidos');
+  // El panel vive en /panel (antes /pedidos, cambiado a pedido del dueño el
+  // 25/11/2026). La dirección vieja ya no abre nada.
+  const enElPanel = pathname.startsWith('/panel');
   // En la página del live, los dos botones flotantes (WhatsApp y chat) caían
   // justo encima del botón «Ver mi oferta» en el celular. Ahí la persona viene
   // a una sola cosa y tiene diez segundos: no se le pone nada delante.
@@ -120,7 +122,7 @@ export default function App() {
           <Route path="/carrito" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/gracias" element={<ThankYou />} />
-          <Route path="/pedidos" element={<Orders />} />
+          <Route path="/panel" element={<Orders />} />
           <Route path="/seguimiento" element={<Track />} />
           <Route path="/constancia" element={<ConstanciaPage />} />
           <Route path="/libro-de-reclamaciones" element={<ComplaintsBook />} />

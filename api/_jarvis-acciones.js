@@ -9,7 +9,7 @@
 // resultado real. Si algo no está en esta lista, JARVIS no puede hacerlo — y
 // las instrucciones le obligan a decirlo en vez de fingir.
 
-// Pestañas del panel principal (/pedidos).
+// Pestañas del panel principal (/panel).
 export const PESTANAS = {
   resumen: 'Resumen con las ventas y gráficas',
   pedidos: 'Lista de pedidos',

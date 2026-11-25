@@ -1,5 +1,5 @@
 // Catálogo editable: vive en Redis (Upstash) y se puede modificar desde el
-// panel /pedidos → "Editar página", sin tocar código ni hacer deploy.
+// panel /panel → "Editar página", sin tocar código ni hacer deploy.
 // Si Redis no tiene datos todavía (o no está conectado), se usa el catálogo
 // estático de src/data/catalog.js como respaldo — la tienda nunca se rompe.
 import { hasDB, redisCmd } from './_store.js';

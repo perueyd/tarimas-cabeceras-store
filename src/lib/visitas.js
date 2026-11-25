@@ -25,7 +25,7 @@ export function contarVisita(ruta) {
     // (CLAVE_STORAGE): con un nombre que no existiera, esta guarda no haría
     // nada y el dueño se contaría a sí mismo cada vez que revisa su tienda.
     if (sessionStorage.getItem('ed-orders-key')) return;
-    if (ruta.startsWith('/pedidos')) return;
+    if (ruta.startsWith('/panel')) return;
 
     const ahora = Date.now();
     if (ahora - (ULTIMA.get(ruta) || 0) < ESPERA_MS) return;
