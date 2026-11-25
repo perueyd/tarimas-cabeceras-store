@@ -27,3 +27,14 @@ test('documento: DNI corto, RUC sin razón social', () => {
   const ruc = primerCampoQueFalta({ ...completo, docTipo: 'factura', docNumero: '20616613074', razonSocial: '' });
   assert.equal(ruc.campo, 'razonSocial');
 });
+
+// El calendario del iPhone (Safari) no respeta el `min` del campo de fecha y
+// dejaba elegir días que ya pasaron (lo reportó el dueño, 25/11/2026). El pago
+// no puede seguir con una fecha que no se puede cumplir.
+test('fecha de entrega anterior a la primera posible: no deja pagar', () => {
+  const pasada = primerCampoQueFalta({ ...completo, entregaFecha: '2026-11-01' }, { fechaMinima: '2026-11-26' });
+  assert.equal(pasada.campo, 'entregaFecha');
+  assert.match(pasada.mensaje, /26 de noviembre/);
+  assert.equal(primerCampoQueFalta({ ...completo, entregaFecha: '2026-11-26' }, { fechaMinima: '2026-11-26' }), null);
+  assert.equal(primerCampoQueFalta({ ...completo, entregaFecha: '2026-12-03' }, { fechaMinima: '2026-11-26' }), null);
+});
