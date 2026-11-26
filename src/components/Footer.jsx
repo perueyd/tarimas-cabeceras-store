@@ -79,6 +79,15 @@ function NewsletterForm({ newsletter }) {
         </form>
       )}
       {estado === 'error' && <p className="mt-3 text-xs text-red-300">{msg}</p>}
+      {/* Consentimiento informado para publicidad (DS 016-2024-JUS, arts. 6 y
+          26): qué se recibe, que se puede dar de baja gratis y dónde leer más. */}
+      {estado !== 'ok' && (
+        <p className="mt-3 text-xs text-neutral-400">
+          Al suscribirte aceptas recibir ofertas y novedades por correo. Puedes darte de baja gratis cuando quieras con
+          el formulario de derechos de la <Link to="/politica-privacidad" className="underline">Política de privacidad</Link>{' '}
+          o escribiéndonos por WhatsApp.
+        </p>
+      )}
     </div>
   );
 }

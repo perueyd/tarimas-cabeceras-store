@@ -8,7 +8,9 @@ import { useState } from 'react';
 // límite de respuesta calculada, para que no se pase el plazo.
 
 const DERECHOS = [
+  { id: 'informacion', label: 'Información', ayuda: 'Quiero saber para qué y cómo usan mis datos.' },
   { id: 'acceso', label: 'Acceso', ayuda: 'Quiero saber qué datos míos tienen.' },
+  { id: 'portabilidad', label: 'Portabilidad', ayuda: 'Quiero una copia de mis datos en un archivo para llevarla a otra empresa.' },
   { id: 'rectificacion', label: 'Rectificación', ayuda: 'Quiero corregir un dato mío que está mal.' },
   { id: 'cancelacion', label: 'Cancelación', ayuda: 'Quiero que borren mis datos.' },
   { id: 'oposicion', label: 'Oposición', ayuda: 'Quiero que dejen de usarlos para algo concreto.' },
