@@ -1,8 +1,7 @@
 // Solicitudes de derechos ARCO (Acceso, Rectificación, Cancelación, Oposición).
 //
 // La Ley 29733 y su reglamento obligan a poner a disposición del titular un
-// canal para ejercer estos derechos, y a responder en plazo: 20 días hábiles
-// para el acceso y 10 días hábiles para los demás.
+// canal para ejercer estos derechos, y a responder en plazo (ver TIPOS).
 //
 // Antes no existía ningún canal: la política los mencionaba pero no había
 // forma de ejercerlos, que es justo lo que la ANPD sanciona.
@@ -17,8 +16,13 @@ import { clientIp, rateLimitRequest } from '../_ratelimit.js';
 
 const KEY = 'arco:solicitudes';
 
+// Plazos del reglamento vigente, DS 016-2024-JUS, art. 69 (texto oficial de
+// gob.pe revisado el 26/11/2026): información 8, acceso 20, los demás 10. La
+// portabilidad es una forma del acceso (art. 76), así que lleva su plazo.
 const TIPOS = {
+  informacion: { label: 'Información', diasHabiles: 8 },
   acceso: { label: 'Acceso', diasHabiles: 20 },
+  portabilidad: { label: 'Portabilidad', diasHabiles: 20 },
   rectificacion: { label: 'Rectificación', diasHabiles: 10 },
   cancelacion: { label: 'Cancelación', diasHabiles: 10 },
   oposicion: { label: 'Oposición', diasHabiles: 10 },

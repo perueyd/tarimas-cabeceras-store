@@ -5,7 +5,7 @@ import { diaLima } from '../lib/lima.js';
 import { MAX_OBSERVACIONES } from '../lib/observaciones.js';
 import { correoCorporativo, enlaceCorreoCorporativo } from '../lib/contacto.js';
 import { partirPago } from '../lib/pedidos.js';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import MapPicker from '../components/MapPicker.jsx';
 import LocationSearch from '../components/LocationSearch.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -1256,9 +1256,27 @@ export default function Checkout() {
                   : 'Ya pagué — registrar pedido y enviar comprobante'}
             </button>
           ) : null}
+          <AvisoLegalDelPago />
         </>
       )}
     </main>
+  );
+}
+
+// Antes de pagar el cliente tiene que poder leer las condiciones y saber qué
+// se hace con sus datos (Código del Consumidor, art. 47.a; reglamento de la
+// Ley 29733, DS 016-2024-JUS, art. 6). Faltaba en el pago (revisión legal del
+// 26/11/2026). Es un aviso, no una casilla: los datos del pedido se tratan por
+// el contrato (Ley 29733, art. 14.5) y no necesitan un consentimiento aparte.
+function AvisoLegalDelPago() {
+  return (
+    <p className="mt-4 text-center text-xs text-neutral-500">
+      Al confirmar tu pedido aceptas los{' '}
+      <Link to="/terminos-condiciones" target="_blank" className="underline">Términos y condiciones</Link> y la{' '}
+      <Link to="/cambios-y-devoluciones" target="_blank" className="underline">política de cambios y devoluciones</Link>.
+      Tus datos se usan para atender tu pedido según nuestra{' '}
+      <Link to="/politica-privacidad" target="_blank" className="underline">Política de privacidad</Link>.
+    </p>
   );
 }
 
