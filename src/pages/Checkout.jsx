@@ -21,6 +21,7 @@ import { conRecarga } from '../lib/cargarPieza.js';
 import { esLlaveDePrueba } from '../lib/culqiPrueba.js';
 import { mediosDeCulqi } from '../lib/mediosCulqi.js';
 import { fechaLegible, primerCampoQueFalta } from '../lib/camposCheckout.js';
+import { borrarParaCambiar, guardarParaCambiar, leerParaCambiar } from '../lib/cambiarPago.js';
 import { reportarError } from '../lib/reportarError.js';
 
 // El listado de distritos del Perú (1892 lugares) se carga aparte del bundle
@@ -107,7 +108,7 @@ export default function Checkout() {
     reglasDeEntrega(storeConfig),
     items.filter((i) => !esLineaDeServicio(i)).map((i) => tipoDeEntrega(getProductById(i.productId)))
   );
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     nombre: '',
     email: '',
     telefono: '',
@@ -124,8 +125,14 @@ export default function Checkout() {
     docTipo: 'boleta',
     docNumero: '',
     razonSocial: '',
-  });
-  const [ubicacion, setUbicacion] = useState(null); // {lat, lng} del mapa
+    // Volviendo de «Cambiar forma de pago»: el mismo formulario de antes.
+    ...(leerParaCambiar()?.volver ? leerParaCambiar().form : {}),
+  }));
+  const [ubicacion, setUbicacion] = useState(() => (leerParaCambiar()?.volver ? leerParaCambiar().ubicacion : null)); // {lat, lng} del mapa
+  // La copia ya se usó: se borra para que no vuelva a rellenar otro pedido.
+  useEffect(() => {
+    if (leerParaCambiar()?.volver) borrarParaCambiar();
+  }, []);
   const [metodoPago, setMetodoPago] = useState('culqi'); // 'culqi' | 'yape' | 'plin' | 'transferencia'
   const [status, setStatus] = useState('idle'); // idle | paying | error
 
@@ -589,9 +596,12 @@ export default function Checkout() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(mensajeParaElCliente(data?.error) + detalleDePrueba(`orden, ${res.status}`, data));
       const slot = storeConfig.deliverySlots.find((s) => s.id === form.entregaHorario);
+      // Copia para «Cambiar forma de pago» en /gracias (src/lib/cambiarPago.js).
+      guardarParaCambiar({ items, form, ubicacion, orderId, code: data.orderCode });
       clearCart();
       navigate('/gracias', {
         state: {
+          culqiOrderId: orderId,
           orderCode: data.orderCode,
           monto: data.monto ?? totalConDescuento,
           entregaFecha: form.entregaFecha,

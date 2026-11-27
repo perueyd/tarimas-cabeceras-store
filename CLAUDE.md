@@ -218,6 +218,12 @@ código (CIP) o un QR y paga después. Para eso (`api/_rutas/culqi-orden.js`):
    Webhooks): marca «Pagado» o, si venció, «Cancelado». **No se cree lo que
    dice el aviso**: el estado se consulta a Culqi con la llave privada
    (hay prueba en `pruebas/culqi-ordenes.test.js`).
+4. `cambiar` («Cambiar forma de pago» en /gracias, pedido del dueño
+   27/11/2026): ANULA la orden en Culqi (`DELETE`, queda «deleted») para que
+   nadie pague el CIP viejo y además con tarjeta, cancela el pedido y el
+   navegador vuelve al pago con el mismo carrito y formulario
+   (`src/lib/cambiarPago.js`, en `sessionStorage`). Exige el código del
+   pedido y nunca anula lo que Culqi ya cobró.
 
 Montos que acepta Culqi: billeteras con QR de S/ 6 a S/ 500, Cuotéalo desde
 S/ 100 (`src/lib/mediosCulqi.js`). Las cuotas con tarjeta de crédito viajan al

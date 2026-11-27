@@ -53,6 +53,7 @@ export default async function handler(req, res) {
 
   if (accion === 'crear') return crear(req, res, llave);
   if (accion === 'registrar') return registrar(req, res, llave);
+  if (accion === 'cambiar') return cambiar(req, res, llave);
   return res.status(400).json({ error: 'Acción desconocida.' });
 }
 
@@ -146,6 +147,52 @@ export function enlaceDeCuotealo(orden) {
   } catch {
     return null;
   }
+}
+
+/**
+ * El cliente quiere pagar de otra forma después de generar su código CIP o de
+ * elegir Cuotéalo. Se ANULA la orden en Culqi (así ese código ya no se puede
+ * pagar y nadie paga dos veces) y el pedido queda «Cancelado»; el navegador
+ * vuelve al pago con el mismo carrito y crea un pedido nuevo.
+ *
+ * Pide el código del pedido además del id de la orden: el código es la
+ * credencial del pedido (ver newOrderCode), así nadie anula órdenes ajenas.
+ * Si Culqi ya cobró, no se anula nada. Culqi responde 204 al anular y la orden
+ * pasa a «deleted» (comprobado con llaves de prueba el 27/11/2026).
+ */
+async function cambiar(req, res, llave) {
+  if (await rateLimitRequest(`culqi-orden:${clientIp(req)}`, 15, 600)) {
+    return res.status(429).json({ error: 'Demasiados intentos seguidos. Espera unos minutos.' });
+  }
+  const id = idDeOrden(req.body?.orderId);
+  const code = String(req.body?.code || '').trim();
+  if (!id || !code) return res.status(400).json({ error: 'Pedido inválido.' });
+  const guardado = (await redisCmd(['GET', PEDIDO_DE(id)])).result;
+  if (guardado !== code) return res.status(404).json({ error: 'No encontramos ese pedido.' });
+
+  const orden = await leerOrden(id, llave);
+  if (!orden) return res.status(502).json({ error: 'No pudimos consultar el pago. Intenta de nuevo en un momento.' });
+  if (orden.state === 'paid') {
+    return res.status(409).json({ error: 'Este pedido ya está pagado: no hace falta pagar de nuevo.' });
+  }
+  if (!['expired', 'deleted'].includes(orden.state)) {
+    const r = await fetch(`${API}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${llave}` } });
+    if (!r.ok) {
+      // Puede que el cliente acabe de pagar: se vuelve a mirar antes de rendirse.
+      const otraVez = await leerOrden(id, llave);
+      if (otraVez?.state === 'paid') {
+        return res.status(409).json({ error: 'Este pedido ya está pagado: no hace falta pagar de nuevo.' });
+      }
+      await avisarError('orden Culqi', `No se pudo anular la orden ${id} (HTTP ${r.status})`);
+      return res.status(502).json({ error: 'No pudimos anular el código de pago. Escríbenos por WhatsApp.' });
+    }
+  }
+  await actualizarPedido(code, (p) =>
+    p.estado === 'Pagado'
+      ? p
+      : { ...p, estado: 'Cancelado', nota: 'El cliente cambió la forma de pago: se anuló la orden de Culqi.' }
+  );
+  return res.status(200).json({ ok: true });
 }
 
 /** Solo ids con la forma de Culqi (ord_live_… / ord_test_…). */
