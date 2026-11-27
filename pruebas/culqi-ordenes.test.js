@@ -51,6 +51,12 @@ globalThis.fetch = async (url, opts = {}) => {
     return { ok: true, status: 201, json: async () => orden };
   }
   const m = u.match(/^https:\/\/api\.culqi\.com\/v2\/orders\/(.+)$/);
+  if (m && opts.method === 'DELETE') {
+    const orden = ordenes.get(m[1]);
+    if (!orden || orden.state === 'paid') return { ok: false, status: 400, json: async () => ({ object: 'error' }) };
+    orden.state = 'deleted';
+    return { ok: true, status: 204, json: async () => ({}) };
+  }
   if (m) {
     const orden = ordenes.get(m[1]);
     return orden ? { ok: true, status: 200, json: async () => orden } : { ok: false, status: 404, json: async () => ({ object: 'error' }) };
@@ -190,4 +196,39 @@ test('enlace de Cuotéalo: solo https', () => {
   assert.equal(enlaceDeCuotealo({ cuotealo: 'http://x.pe/a' }), null);
   assert.equal(enlaceDeCuotealo({ cuotealo: null }), null);
   assert.equal(enlaceDeCuotealo({}), null);
+});
+
+// «Cambiar forma de pago» desde /gracias (pedido del dueño, 27/11/2026). Lo que
+// evitan: que el cliente pague el CIP viejo Y además con tarjeta (la orden se
+// anula en Culqi), que alguien anule pedidos ajenos (exige el código), y que se
+// cancele un pedido que Culqi ya cobró.
+test('cambiar forma de pago: anula la orden en Culqi y cancela el pedido', async () => {
+  preparar();
+  const id = await crearYGenerarCodigo();
+  const reg = await llamar(rutaOrden, { query: { accion: 'registrar' }, body: { orderId: id } });
+  const r = await llamar(rutaOrden, { query: { accion: 'cambiar' }, body: { orderId: id, code: reg.cuerpo.orderCode } });
+  assert.equal(r.statusCode, 200, JSON.stringify(r.cuerpo));
+  assert.equal(ordenes.get(id).state, 'deleted', 'el código CIP ya no se puede pagar');
+  assert.equal(pedidos()[0].estado, 'Cancelado');
+});
+
+test('cambiar forma de pago: sin el código del pedido no se anula nada', async () => {
+  preparar();
+  const id = await crearYGenerarCodigo();
+  await llamar(rutaOrden, { query: { accion: 'registrar' }, body: { orderId: id } });
+  const r = await llamar(rutaOrden, { query: { accion: 'cambiar' }, body: { orderId: id, code: 'CA-OTRO' } });
+  assert.equal(r.statusCode, 404);
+  assert.equal(ordenes.get(id).state, 'pending');
+  assert.equal(pedidos()[0].estado, 'Pago por verificar');
+});
+
+test('cambiar forma de pago: si Culqi ya cobró, no se cancela', async () => {
+  preparar();
+  const id = await crearYGenerarCodigo();
+  const reg = await llamar(rutaOrden, { query: { accion: 'registrar' }, body: { orderId: id } });
+  ordenes.get(id).state = 'paid';
+  const r = await llamar(rutaOrden, { query: { accion: 'cambiar' }, body: { orderId: id, code: reg.cuerpo.orderCode } });
+  assert.equal(r.statusCode, 409);
+  assert.match(r.cuerpo.error, /ya está pagado/);
+  assert.notEqual(pedidos()[0].estado, 'Cancelado');
 });

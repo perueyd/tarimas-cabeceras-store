@@ -45,6 +45,9 @@ function reducer(state, action) {
       return state.filter((i) => lineKey(i) !== action.key);
     case 'CLEAR':
       return [];
+    // Devuelve un carrito guardado (al cambiar la forma de pago desde /gracias).
+    case 'RESTAURAR':
+      return Array.isArray(action.items) ? action.items : state;
     // Vuelve a poner el precio ACTUAL del catálogo en cada línea del carrito.
     case 'REFRESCAR_PRECIOS':
       return state.map((i) => {
@@ -93,13 +96,14 @@ export function CartProvider({ children }) {
   const updateQty = (item, qty) => dispatch({ type: 'UPDATE_QTY', key: lineKey(item), qty });
   const removeItem = (item) => dispatch({ type: 'REMOVE', key: lineKey(item) });
   const clearCart = () => dispatch({ type: 'CLEAR' });
+  const restaurarCarrito = (lista) => dispatch({ type: 'RESTAURAR', items: lista });
 
   const totalItems = items.reduce((sum, i) => sum + i.qty, 0);
   const totalAmount = items.reduce((sum, i) => sum + i.qty * i.unitPrice, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, updateQty, removeItem, clearCart, totalItems, totalAmount, lineKey }}
+      value={{ items, addItem, updateQty, removeItem, clearCart, restaurarCarrito, totalItems, totalAmount, lineKey }}
     >
       {children}
     </CartContext.Provider>

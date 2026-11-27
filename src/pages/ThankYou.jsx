@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useCart } from '../context/CartContext.jsx';
+import { borrarParaCambiar, guardarParaCambiar, leerParaCambiar } from '../lib/cambiarPago.js';
 import { rutaDeConstancia } from '../lib/constancia.js';
 import { NOMBRE_TIENDA, SITIO_URL } from '../data/sitio.js';
 import { useCatalog } from '../context/CatalogContext.jsx';
@@ -19,6 +21,60 @@ function buildCalendarUrl(state) {
     `Pedido: ${state.orderCode || ''}\nHorario: ${state.entregaHorario || 'por confirmar'}\nMonto: ${state.monto != null ? currencyFormatter.format(state.monto) : ''}`
   );
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${inicio}/${fin}&details=${details}`;
+}
+
+/**
+ * Volver al pago y elegir otra forma (pedido del dueño, 27/11/2026). Anula el
+ * código CIP o la orden de Cuotéalo en Culqi ANTES de volver: si no, el
+ * cliente podría pagar ese código y además pagar con tarjeta.
+ */
+function CambiarFormaDePago({ orderId, code, cip }) {
+  const navigate = useNavigate();
+  const { restaurarCarrito } = useCart();
+  const [estado, setEstado] = useState('idle'); // idle | anulando | error
+  const [mensaje, setMensaje] = useState('');
+  const copia = leerParaCambiar();
+  // Sin la copia del carrito (otra pestaña, o ya se usó) no se puede volver con lo mismo.
+  if (!copia || copia.orderId !== orderId) return null;
+
+  async function cambiar() {
+    const aviso = cip
+      ? `Se anulará el código ${cip} y ya no podrás pagarlo. ¿Quieres elegir otra forma de pago?`
+      : '¿Quieres elegir otra forma de pago? Se anulará la que elegiste.';
+    if (!window.confirm(aviso)) return;
+    setEstado('anulando');
+    setMensaje('');
+    try {
+      const res = await fetch('/api/culqi-orden?accion=cambiar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'No se pudo cambiar la forma de pago.');
+      restaurarCarrito(copia.items);
+      guardarParaCambiar({ ...copia, volver: true });
+      navigate('/checkout');
+    } catch (err) {
+      setEstado('error');
+      setMensaje(err.message);
+      if (/ya está pagado/.test(err.message)) borrarParaCambiar();
+    }
+  }
+
+  return (
+    <div className="mx-auto mt-3 max-w-md text-center">
+      <button
+        type="button"
+        onClick={cambiar}
+        disabled={estado === 'anulando'}
+        className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-700 hover:border-neutral-500 disabled:opacity-60"
+      >
+        {estado === 'anulando' ? 'Un momento…' : '↩︎ Cambiar forma de pago'}
+      </button>
+      {mensaje && <p className="mt-2 text-xs text-red-700">{mensaje}</p>}
+    </div>
+  );
 }
 
 export default function ThankYou() {
@@ -70,6 +126,9 @@ export default function ThankYou() {
           </p>
           <BotonCopiar texto={String(state.cip)} />
         </div>
+      )}
+      {state?.pagoCulqi && porVerificar && state?.culqiOrderId && (
+        <CambiarFormaDePago orderId={state.culqiOrderId} code={state.orderCode} cip={state.cuotealo ? null : state.cip} />
       )}
       {/* El cobro salió bien pero el pedido no llegó a guardarse. Se avisa de
           forma destacada: si no, el cliente se va con un código que no
