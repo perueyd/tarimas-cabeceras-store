@@ -346,13 +346,34 @@ export default function ProductDetail() {
     setTimeout(() => setAdded(false), 2000);
   }
 
+  // «Ver en mi pared» y «Compartir»: el mismo bloque en dos sitios según la
+  // pantalla (ver más abajo).
+  const extrasDeLaFoto = (
+    <>
+      {/* La duda que frena una compra de mueble es "¿me quedará bien?".
+          Esto la responde: la cámara del celular con el mueble encima. */}
+      <button
+        type="button"
+        onClick={() => setEnMiPared(true)}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-ink px-4 py-3 text-sm font-semibold transition hover:bg-neutral-50"
+      >
+        📷 Ver en mi pared
+        <span className="text-xs font-normal text-neutral-500">— con la cámara</span>
+      </button>
+      {/* Compartir va junto a la foto: es donde el cliente decide "esto se
+          lo mando a mi esposa", no al final de la página. */}
+      <BotonCompartir nombre={product.name} precio={currencyFormatter.format(unitPrice)} className="mt-2" />
+    </>
+  );
+
   function handleBuyNow() {
     handleAddToCart();
     navigate('/carrito');
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
+    // pb-28 en el celular: deja sitio a la barra fija de compra de abajo.
+    <main className="mx-auto max-w-6xl px-4 pb-28 pt-5 sm:pt-10 lg:pb-10">
       {product.oculto && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
           👁️ Vista previa — este producto está <strong>oculto</strong> y no aparece en la tienda. Para publicarlo, ponlo en «Mostrar» desde el panel.
@@ -367,7 +388,7 @@ export default function ProductDetail() {
         ← Volver al catálogo
       </Link>
 
-      <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-6 sm:mt-6 lg:grid-cols-2 lg:gap-10">
         <div>
           {/* El botón "Ver en grande" existe siempre, tiña la foto o no —
               solo cambia lo que hay ADENTRO (repintable o tal cual). */}
@@ -401,12 +422,14 @@ export default function ProductDetail() {
               />
             )}
             {medidaActual && (
-              <span className="pointer-events-none absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
+              // Con tope de ancho: en el celular la medida larga se montaba
+              // sobre «Ver en grande» y no se leía ninguna de las dos.
+              <span className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-4rem)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm sm:max-w-[calc(100%-10rem)]">
                 📐 {medidaActual}
               </span>
             )}
             <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
-              🔍 Ver en grande
+              🔍<span className="hidden sm:inline"> Ver en grande</span>
             </span>
           </button>
 
@@ -430,24 +453,11 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* La duda que frena una compra de mueble es "¿me quedará bien?".
-              Esto la responde: la cámara del celular con el mueble encima. */}
-          <button
-            type="button"
-            onClick={() => setEnMiPared(true)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-ink px-4 py-3 text-sm font-semibold transition hover:bg-neutral-50"
-          >
-            📷 Ver en mi pared
-            <span className="text-xs font-normal text-neutral-500">— con la cámara</span>
-          </button>
-
-          {/* Compartir va justo debajo de la foto: es donde el cliente decide
-              "esto se lo mando a mi esposa", no al final de la página. */}
-          <BotonCompartir
-            nombre={product.name}
-            precio={currencyFormatter.format(unitPrice)}
-            className="mt-2"
-          />
+          {/* En la computadora van bajo la foto. En el celular empujaban el
+              nombre y el precio dos pantallas hacia abajo (revisión de
+              experiencia, 27/11/2026): allí salen después de los botones de
+              compra, en la otra columna. */}
+          <div className="hidden lg:block">{extrasDeLaFoto}</div>
 
           {/* Miniaturas: la principal (cambia de color) + las fotos de galería
               (algunas también cambian de color, otras se ven tal cual). */}
@@ -665,6 +675,31 @@ export default function ProductDetail() {
             🚚 {product.enStock ? 'En stock: entrega inmediata.' : 'Fabricado a pedido.'} {textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), [tipoDeEntrega(product)]))} Al
             pagar eliges la fecha y el rango de horario que te acomode.
           </p>
+
+          <div className="lg:hidden">{extrasDeLaFoto}</div>
+
+          {/* Barra fija de compra en el celular (revisión de experiencia,
+              27/11/2026): el botón de comprar quedaba a cuatro pantallas de la
+              foto. Enseña el precio de lo elegido y añade al carrito sin
+              tener que bajar. En la computadora no hace falta. */}
+          <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
+            <div className="mx-auto flex max-w-6xl items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs text-neutral-500">
+                  {product.name}
+                  {tamanoElegido?.label ? ` · ${tamanoElegido.label}` : ''}
+                </p>
+                <p className="text-base font-semibold">{currencyFormatter.format(unitPrice * qty)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="rounded-lg bg-ink px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+              >
+                {added ? 'Añadido ✓' : 'Añadir al carrito'}
+              </button>
+            </div>
+          </div>
 
           {specs.length > 0 && (
             <div className="mt-10">

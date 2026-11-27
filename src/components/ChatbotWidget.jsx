@@ -264,11 +264,11 @@ export default function ChatbotWidget() {
           // Justo ENCIMA del botón de WhatsApp. Antes los dos estaban en la
           // esquina inferior derecha casi en la misma posición, así que el
           // chat tapaba el de WhatsApp y no se podía tocar.
-          className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl"
+          className="fixed bottom-[4.5rem] right-3 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all hover:scale-110 hover:shadow-xl sm:bottom-24 sm:right-5 sm:h-14 sm:w-14"
           title="Abrir chat (IA responde al instante)"
           aria-label="Chat support"
         >
-          <span className="text-2xl">💬</span>
+          <span className="text-xl sm:text-2xl">💬</span>
           {/* Aviso de que la charla sigue ahí donde se dejó. */}
           {messages.length > 1 && (
             <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-amber-400" />

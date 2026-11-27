@@ -39,15 +39,17 @@ export default function ProductCard({ product, sizeId = null }) {
           mostrarColor={false}
         />
         {discountPercent > 0 && (
-          <span className="absolute top-3 right-3 rounded-full bg-red-500 text-white px-2.5 py-1 text-[11px] font-bold shadow-md">
+          <span className="absolute right-2 top-2 rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-md sm:right-3 sm:top-3 sm:px-2.5 sm:py-1">
             -{discountPercent}%
           </span>
         )}
       </div>
-      <div className="p-5">
-        <h3 className="text-base font-semibold text-neutral-900 line-clamp-2">{product.name}</h3>
-        <p className="mt-2 text-xs text-neutral-500 line-clamp-2 leading-relaxed">{product.shortDescription}</p>
-        <div className="mt-4 flex items-baseline gap-2">
+      {/* En el celular van dos tarjetas por fila: sin la descripción y con
+          menos relleno, para que el nombre y el precio se lean enteros. */}
+      <div className="p-3 sm:p-5">
+        <h3 className="text-sm font-semibold text-neutral-900 line-clamp-2 sm:text-base">{product.name}</h3>
+        <p className="mt-2 hidden text-xs leading-relaxed text-neutral-500 line-clamp-2 sm:block">{product.shortDescription}</p>
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 sm:mt-4">
           <p className="text-sm font-bold text-neutral-900">
             {priceInfo
               ? tamanoConPrecio
