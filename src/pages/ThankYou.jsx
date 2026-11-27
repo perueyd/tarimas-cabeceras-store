@@ -105,6 +105,12 @@ export default function ThankYou() {
             Ahí pones tus datos y el BCP te dice al instante si te aprueba las cuotas. Cuando aceptes, tu pedido se
             confirma solo.
           </p>
+          {/* Si el BCP no aprueba, su página manda al cliente a PagoEfectivo y
+              se quedaba ahí sin saber cómo volver (lo vio el dueño, 27/11/2026). */}
+          <p className="mt-2 text-xs text-sky-900">
+            Si el BCP no te aprueba, vuelve a esta página y pulsa «Cambiar forma de pago» para pagar con tarjeta, Yape u
+            otro medio.
+          </p>
           <a
             href={state.cuotealo}
             target="_blank"
