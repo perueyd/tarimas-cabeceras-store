@@ -108,6 +108,31 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
     };
   }, [abierto]);
 
+  const nombreArchivo = `${(nombre || 'mueble').replace(/\s+/g, '-').toLowerCase()}-en-mi-pared.jpg`;
+
+  // Compartir la foto directo a WhatsApp, Instagram, etc. (pedido del dueño,
+  // 27/11/2026: solo se podía guardar). Usa el menú de compartir del celular;
+  // donde el navegador no sabe compartir archivos, el botón no aparece.
+  async function archivoDeLaCaptura() {
+    const blob = await (await fetch(captura)).blob();
+    return new File([blob], nombreArchivo, { type: 'image/jpeg' });
+  }
+  const [puedeCompartir, setPuedeCompartir] = useState(false);
+  useEffect(() => {
+    let vigente = true;
+    if (!captura || !navigator.canShare) {
+      setPuedeCompartir(false);
+      return undefined;
+    }
+    archivoDeLaCaptura()
+      .then((f) => vigente && setPuedeCompartir(navigator.canShare({ files: [f] })))
+      .catch(() => vigente && setPuedeCompartir(false));
+    return () => {
+      vigente = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captura]);
+
   if (!abierto) return null;
 
   // ---- mover y escalar con el dedo ----
@@ -267,12 +292,26 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
     setCaptura(lienzo.toDataURL('image/jpeg', 0.9));
   }
 
-  function compartir() {
+  function guardar() {
     if (!captura) return;
     const a = document.createElement('a');
     a.href = captura;
-    a.download = `${(nombre || 'mueble').replace(/\s+/g, '-').toLowerCase()}-en-mi-pared.jpg`;
+    a.download = nombreArchivo;
     a.click();
+  }
+
+  async function compartir() {
+    try {
+      const archivo = await archivoDeLaCaptura();
+      await navigator.share({
+        files: [archivo],
+        title: nombre,
+        text: `Así se vería ${nombre} en mi pared 👉 ${window.location.href}`,
+      });
+    } catch (err) {
+      // Si el cliente cierra el menú no es un error; si falla de verdad, se guarda.
+      if (err?.name !== 'AbortError') guardar();
+    }
   }
 
   return (
@@ -373,9 +412,21 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
               <button onClick={() => setCaptura(null)} className="rounded-lg border border-white/40 px-5 py-2.5 text-sm text-white">
                 Repetir
               </button>
-              <button onClick={compartir} className="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-black">
-                Guardar foto
+              <button
+                onClick={guardar}
+                className={
+                  puedeCompartir
+                    ? 'rounded-lg border border-white/40 px-5 py-2.5 text-sm text-white'
+                    : 'rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-black'
+                }
+              >
+                Guardar
               </button>
+              {puedeCompartir && (
+                <button onClick={compartir} className="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-black">
+                  Compartir
+                </button>
+              )}
             </>
           ) : (
             <>
