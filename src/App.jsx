@@ -98,11 +98,11 @@ export default function App() {
   // En la constancia los botones flotantes (WhatsApp y chat) tapaban la tabla
   // en el celular y salían al imprimirla o guardarla en PDF.
   const enLaConstancia = pathname === '/constancia';
-  // En la ficha y en el pago el chat tapaba la barra y los botones de compra
-  // en el celular (revisión de experiencia, 27/11/2026). Ahí se queda solo el
-  // WhatsApp, más chico; en la ficha, por encima de la barra de compra.
+  // En la ficha, el carrito y el pago el chat tapaba la barra y los botones de
+  // compra en el celular (revisión de experiencia, 27/11/2026). Ahí se queda
+  // solo el WhatsApp, más chico; en la ficha, por encima de la barra.
   const enLaFicha = pathname.startsWith('/producto/');
-  const sinChat = enLaFicha || pathname === '/checkout';
+  const sinChat = enLaFicha || pathname === '/checkout' || pathname === '/carrito';
 
   return (
     <div className="flex min-h-screen flex-col">

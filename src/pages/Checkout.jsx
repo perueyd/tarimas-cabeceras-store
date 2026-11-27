@@ -824,7 +824,11 @@ export default function Checkout() {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="mb-4 text-2xl font-semibold tracking-tight">
+      {/* Para volver sin el botón del navegador (pedido del dueño, 27/11/2026). */}
+      <Link to="/carrito" className="text-sm text-neutral-500 hover:text-ink">
+        ← Volver al carrito
+      </Link>
+      <h1 className="mb-4 mt-3 text-2xl font-semibold tracking-tight">
         {soloServicios ? 'Datos del servicio y pago' : 'Datos de envío y pago'}
       </h1>
 
