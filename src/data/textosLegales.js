@@ -45,13 +45,13 @@ Para funcionar usamos proveedores que actúan como encargados de tratamiento. Ca
 · Vercel Inc. (Estados Unidos) — alojamiento de la web y de las fotos.
 · Upstash (Estados Unidos) — base de datos donde se guardan los pedidos.
 · Groq Inc. (Estados Unidos) — asistente de chat, SOLO si lo usas. Recibe el texto de la conversación.
-· Google LLC (Estados Unidos) — estadísticas de visitas, SOLO si aceptas las cookies analíticas.
+· Google LLC (Estados Unidos) — copia de los pedidos en Google Sheets y correos de confirmación y seguimiento del pedido enviados desde Gmail; y estadísticas de visitas, SOLO si aceptas las cookies analíticas.
 · Meta Platforms Inc. (Estados Unidos) — publicidad, SOLO si aceptas las cookies de publicidad; y WhatsApp, cuando nos escribes por ese medio.
 Si pagas con Cuotéalo, el Banco de Crédito del Perú (BCP) evalúa tu solicitud de crédito en su propia página y trata esos datos como responsable, bajo su propia política de privacidad.
 No vendemos ni cedemos tus datos a nadie para que te haga publicidad.
 
 5. TUS DATOS SALEN DEL PERÚ
-Varios de esos proveedores están en Estados Unidos, así que hay flujo transfronterizo de datos personales. Lo que es necesario para atender tu compra (alojamiento de la web y base de datos de pedidos) se ampara en el artículo 15, numeral 4, de la Ley 29733: la ejecución del contrato del que eres parte. El resto (chat, estadísticas, publicidad) solo ocurre si usas el chat o aceptas esas cookies. Elegimos proveedores que ofrecen compromisos contractuales de protección de datos.
+Varios de esos proveedores están en Estados Unidos, así que hay flujo transfronterizo de datos personales. Lo que es necesario para atender tu compra (alojamiento de la web, base de datos de pedidos, su copia en Google Sheets y los correos del pedido) se ampara en el artículo 15, numeral 4, de la Ley 29733: la ejecución del contrato del que eres parte. El resto (chat, estadísticas, publicidad) solo ocurre si usas el chat o aceptas esas cookies. Elegimos proveedores que ofrecen compromisos contractuales de protección de datos.
 
 6. CUÁNTO TIEMPO LOS GUARDAMOS
 · Datos de pedidos y comprobantes: 5 años, por las obligaciones tributarias.

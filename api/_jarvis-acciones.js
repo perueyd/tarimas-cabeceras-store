@@ -114,7 +114,7 @@ export const HERRAMIENTAS = [
     function: {
       name: 'buscar_pedido',
       description:
-        'Busca un pedido por su código (formato ED-XXXXXXXXXX) o por el nombre o teléfono del cliente, y devuelve su estado real.',
+        'Busca un pedido por su código (formato CA-XXXXXXXXXX; los pedidos antiguos empiezan por ED-) o por el nombre o teléfono del cliente, y devuelve su estado real.',
       parameters: {
         type: 'object',
         properties: {

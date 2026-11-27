@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { useCatalog } from '../context/CatalogContext.jsx';
-import { logoEsImagen } from '../data/sitio.js';
+import { LOGO_DE_FABRICA, logoEsImagen } from '../data/sitio.js';
 import { hayServicios, textosDeServicios } from '../lib/servicios.js';
 
 export default function Header() {
@@ -25,17 +25,17 @@ export default function Header() {
         {/* Logo — Editable desde panel */}
         <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
           {/* El logotipo del panel puede ser un dibujo ("/logo.svg") o unas
-              letras (el antiguo "E|D"): se dibuja el que toque, así el campo
+              letras: se dibuja el que toque, así el campo
               del panel sigue mandando sobre el logotipo.
 
               El `alt` va vacío a propósito: el nombre está escrito al lado,
               y describir también el dibujo haría que un lector de pantalla
               dijera la marca dos veces seguidas. */}
-          {logoEsImagen(branding.logo) ? (
-            <img src={branding.logo} alt="" width="40" height="36" className="h-9 w-auto" />
+          {logoEsImagen(branding.logo || LOGO_DE_FABRICA) ? (
+            <img src={branding.logo || LOGO_DE_FABRICA} alt="" width="40" height="36" className="h-9 w-auto" />
           ) : (
             <span className="text-2xl font-bold leading-none tracking-tighter sm:text-3xl">
-              {branding.logo || 'E|D'}
+              {branding.logo}
             </span>
           )}
           <span className="hidden flex-col justify-center leading-tight sm:flex">

@@ -1,4 +1,8 @@
-# E|D Espacios y Diseño — tienda de muebles a medida
+# Corporación Agamenón — tienda de muebles a medida
+
+La marca anterior, «E|D Espacios y Diseño», **ya no se usa** (decisión del
+dueño, 27/11/2026): no la pongas en nada que vea el cliente. Los códigos de
+pedido nuevos empiezan por `CA-`; los antiguos `ED-` siguen funcionando.
 
 Tienda peruana (Lima): tarimas, cabeceras y sofás cama hechos a medida.
 **El dueño no es programador.** Escribe en español y necesita explicaciones sin

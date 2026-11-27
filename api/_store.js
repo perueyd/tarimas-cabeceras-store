@@ -46,14 +46,17 @@ export async function redisCmd(command) {
 // predecible y 2 caracteres son ~1300 combinaciones, así que alguien podía
 // probar códigos hasta encontrar pedidos ajenos. Ahora los 10 caracteres
 // aleatorios salen de crypto (≈50 bits), lo que vuelve inviable adivinarlos.
-// Se mantiene el prefijo ED- y el formato corto para que sea fácil de dictar.
+// Formato corto para que sea fácil de dictar. El prefijo es CA- (Corporación
+// Agamenón) desde el 27/11/2026: la tienda ya no usa la marca «Espacios y
+// Diseño». Los pedidos anteriores conservan su código ED- y se siguen
+// encontrando igual (nada valida el prefijo).
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin O/0/I/1 (se confunden)
 
 export function newOrderCode() {
   const bytes = randomBytes(10);
   let code = '';
   for (const b of bytes) code += ALFABETO[b % ALFABETO.length];
-  return `ED-${code}`;
+  return `CA-${code}`;
 }
 
 // Notifica al Apps Script de Google: agrega/actualiza la fila en la hoja y
