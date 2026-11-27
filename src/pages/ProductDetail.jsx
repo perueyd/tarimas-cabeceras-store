@@ -4,6 +4,7 @@ import { lazyConRecarga } from '../lib/cargarPieza.js';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
+import { fotoChica } from '../lib/fotoChica.js';
 import ColorPicker from '../components/ColorPicker.jsx';
 import ProductZoomModal from '../components/ProductZoomModal.jsx';
 import BotonCompartir from '../components/BotonCompartir.jsx';
@@ -684,11 +685,40 @@ export default function ProductDetail() {
               tener que bajar. En la computadora no hace falta. */}
           <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
             <div className="mx-auto flex max-w-6xl items-center gap-3">
+              {/* Foto chica que cambia de color al momento: al elegir el color
+                  la foto grande queda muy arriba y el cliente no veía el
+                  cambio (lo reportó el dueño, 27/11/2026). Al tocarla se sube
+                  a la foto grande. */}
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                aria-label="Ver la foto grande"
+                className="shrink-0 overflow-hidden rounded-md border border-neutral-200"
+              >
+                {img.tintable ? (
+                  <ProductImage
+                    baseImage={fotoChica(img.src)}
+                    colorHex={selectedColor?.hex}
+                    colorHex2={dosTelas ? selectedColor2?.hex : undefined}
+                    alt=""
+                    className="h-14 w-[4.5rem]"
+                    tintable
+                    mostrarColor={colorElegido}
+                    zonasManual={product?.zonasFoto?.[img.src]}
+                    invertirTelas={product.invertirTelas}
+                  />
+                ) : (
+                  <img src={fotoChica(img.src)} alt="" className="h-14 w-[4.5rem] object-cover" />
+                )}
+              </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-neutral-500">
                   {product.name}
                   {tamanoElegido?.label ? ` · ${tamanoElegido.label}` : ''}
                 </p>
+                {colorElegido && selectedColor?.label && (
+                  <p className="truncate text-xs text-neutral-500">Color: {selectedColor.label}</p>
+                )}
                 <p className="text-base font-semibold">{currencyFormatter.format(unitPrice * qty)}</p>
               </div>
               <button

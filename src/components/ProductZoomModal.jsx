@@ -84,25 +84,31 @@ export default function ProductZoomModal({
           </div>
         ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Imagen grande del modelo */}
+          {/* Imagen grande del modelo. En el celular se queda pegada arriba
+              mientras se baja a los colores: antes se iba fuera de la
+              pantalla y el cliente no veía el cambio (dueño, 27/11/2026). */}
+          <div className="sticky -top-4 z-[5] -mx-4 bg-white px-4 pb-2 pt-1 md:static md:mx-0 md:p-0">
           <ProductImage
             baseImage={img.src}
             colorHex={selectedColor?.hex}
             colorHex2={selectedColor2?.hex}
             onDosTelas={setDosTelas}
             alt={productName}
-            className="aspect-square w-full rounded-xl"
+            className="mx-auto aspect-square max-h-[40vh] w-full rounded-xl md:max-h-none"
             tintable={img.tintable}
             mostrarColor={mostrarColor}
             zonasManual={zonasManual}
             invertirTelas={invertirTelas}
           />
+          </div>
 
           {/* Cuadro grande del color/tela + selector */}
           <div>
             <p className="text-lg font-semibold tracking-tight">{productName}</p>
 
-            <div className="mt-4 flex items-center gap-4">
+            {/* En el celular sobra: la foto de arriba ya enseña el color y el
+                nombre sale junto a «Color:». */}
+            <div className="mt-4 hidden items-center gap-4 md:flex">
               <Cuadro color={selectedColor} label={dosTelas ? 'Color principal' : 'Color elegido'} />
               {dosTelas && <Cuadro color={selectedColor2} label="Color del detalle" />}
             </div>
