@@ -49,7 +49,7 @@ export function descargarHoja(orders) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `pedidos-ED-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `pedidos-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -62,7 +62,7 @@ export function descargarSuscriptores(suscriptores) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `suscriptores-ED-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `suscriptores-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
 }

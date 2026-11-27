@@ -288,11 +288,17 @@ Vercel detecta el cambio y publica la web actualizada sola en ~1 minuto.
 
 ## Registro de pedidos en Google Sheets + correo automático al cliente
 
+> **Si ya lo tenías instalado antes del 27/11/2026:** tus correos a clientes
+> todavía firman «E|D Espacios y Diseño» y enlazan a la dirección antigua.
+> Abre tu hoja → Extensiones → Apps Script, cambia esas líneas por las de abajo
+> y vuelve a implementar (Implementar → Gestionar implementaciones → editar →
+> Nueva versión). La dirección del webhook no cambia.
+
 Cada pedido puede guardarse automáticamente en una hoja de Google tuya, Y
 enviarle un correo de confirmación (y de actualización de estado) al cliente
 — usando tu propia cuenta de Gmail, gratis, sin ningún servicio de pago.
 
-1. Entra a https://sheets.new y crea una hoja llamada "Pedidos ED".
+1. Entra a https://sheets.new y crea una hoja llamada "Pedidos".
 2. En la primera fila escribe estos encabezados:
    `Fecha | Código | Estado | Método | Monto | Nombre | Teléfono | Email | Zona | Dirección | Ubicación | Entrega | Productos`
 3. Menú **Extensiones → Apps Script**. Borra lo que haya y pega esto:
@@ -326,19 +332,19 @@ function doPost(e) {
 
 function enviarCorreo(o, items) {
   var monto = 'S/ ' + Number(o.monto || 0).toFixed(2);
-  var link = 'https://tarimas-cabeceras-store.vercel.app/seguimiento?codigo=' + encodeURIComponent(o.code);
+  var link = 'https://www.corporacionagamenon.com/seguimiento?codigo=' + encodeURIComponent(o.code);
   var asunto, cuerpo;
 
   if (o.evento === 'actualizado') {
-    asunto = 'Tu pedido ' + o.code + ' cambió de estado — E|D Espacios y Diseño';
+    asunto = 'Tu pedido ' + o.code + ' cambió de estado — Corporación Agamenón';
     cuerpo = 'Hola ' + o.nombre + ',\n\nTu pedido ' + o.code + ' ahora está: ' + o.estado + '.\n\n' +
-      'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nE|D Espacios y Diseño';
+      'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nCorporación Agamenón';
   } else {
-    asunto = 'Confirmación de tu pedido ' + o.code + ' — E|D Espacios y Diseño';
+    asunto = 'Confirmación de tu pedido ' + o.code + ' — Corporación Agamenón';
     cuerpo = 'Hola ' + o.nombre + ',\n\nRecibimos tu pedido ' + o.code + ' por ' + monto + '.\n' +
       'Estado actual: ' + o.estado + '\nEntrega: ' + (o.entrega || 'por confirmar') + '\n\n' +
       (items ? 'Productos:\n' + items + '\n\n' : '') +
-      'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nE|D Espacios y Diseño';
+      'Rastrea tu pedido aquí: ' + link + '\n\nGracias por tu compra.\nCorporación Agamenón';
   }
   if (o.email) MailApp.sendEmail(o.email, asunto, cuerpo);
 
@@ -749,7 +755,7 @@ en qué paso del embudo se van los visitantes que no terminan comprando.
 ## Vista previa al compartir el link
 
 Ya está configurada: al pegar el link de tu tienda en WhatsApp, Facebook o
-donde sea, se muestra una tarjeta con el logo E|D y el nombre de la tienda
+donde sea, se muestra una tarjeta con el logo y el nombre de la tienda
 (`public/og-image.png`). Cuando tengas fotos reales de tus muebles, puedes
 reemplazar esa imagen por una foto de tu mejor producto — se ve mucho más
 atractivo que un texto en fondo plano.

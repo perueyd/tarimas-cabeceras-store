@@ -53,7 +53,7 @@ export default function Track() {
     <main className="mx-auto max-w-lg px-4 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Rastrea tu pedido</h1>
       <p className="mt-2 text-sm text-neutral-500">
-        Ingresa el código que recibiste al comprar (ej. <span className="font-mono">ED-XXXXXXXX</span>).
+        Ingresa el código que recibiste al comprar (ej. <span className="font-mono">CA-XXXXXXXX</span>).
       </p>
 
       <form
@@ -66,7 +66,7 @@ export default function Track() {
         <input
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="ED-XXXXXXXX"
+          placeholder="CA-XXXXXXXX"
           className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm font-mono uppercase outline-none focus:border-ink"
         />
         <button className="rounded-lg bg-ink px-5 py-2 text-sm font-medium text-white hover:bg-neutral-800">

@@ -44,9 +44,13 @@ export function urlOpinion(productId) {
 // nombre comercial, el que ve el cliente.
 export const NOMBRE_TIENDA = 'Corporación Agamenón';
 
+// Logotipo si el panel no tiene ninguno guardado: el de las dos cumbres. Antes
+// el respaldo eran las letras «E|D» de la marca anterior (27/11/2026).
+export const LOGO_DE_FABRICA = '/logo.svg';
+
 /**
  * Si el logotipo guardado en el panel es la dirección de una imagen (como
- * "/logo.svg") en vez de unas letras (como el antiguo "E|D").
+ * "/logo.svg") en vez de unas letras (como unas iniciales).
  *
  * Existe para que el panel siga mandando sobre el logotipo: el campo acepta
  * las dos cosas y la cabecera dibuja la que toque. Sin esto habría que elegir

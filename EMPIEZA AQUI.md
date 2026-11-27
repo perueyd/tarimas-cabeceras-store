@@ -1,6 +1,6 @@
 # Tu tienda, en una hoja
 
-Para Enmanuel — E|D Espacios y Diseño · https://www.corporacionagamenon.com
+Para Enmanuel — Corporación Agamenón · https://www.corporacionagamenon.com
 Panel: https://www.corporacionagamenon.com/panel
 
 ---

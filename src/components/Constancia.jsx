@@ -1,4 +1,4 @@
-import { NOMBRE_TIENDA, SITIO_URL, logoEsImagen, urlSeguimiento } from '../data/sitio.js';
+import { LOGO_DE_FABRICA, NOMBRE_TIENDA, SITIO_URL, logoEsImagen, urlSeguimiento } from '../data/sitio.js';
 import { useCatalog } from '../context/CatalogContext.jsx';
 import { separarIGV } from '../lib/igv.js';
 import { esLineaDeServicio } from '../lib/servicios.js';
@@ -67,10 +67,10 @@ export default function Constancia({ pedido }) {
     <article className="constancia mx-auto max-w-2xl bg-white p-6 text-neutral-900 sm:p-10">
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-neutral-200 pb-5">
         <div className="flex items-center gap-3">
-          {logoEsImagen(marca.logo) ? (
-            <img src={marca.logo} alt="" className="h-10 w-auto" />
+          {logoEsImagen(marca.logo || LOGO_DE_FABRICA) ? (
+            <img src={marca.logo || LOGO_DE_FABRICA} alt="" className="h-10 w-auto" />
           ) : (
-            <span className="text-2xl font-bold tracking-tighter">{marca.logo || 'E|D'}</span>
+            <span className="text-2xl font-bold tracking-tighter">{marca.logo}</span>
           )}
           <div>
             <p className="text-sm font-semibold tracking-wide">{marca.nombre || NOMBRE_TIENDA}</p>

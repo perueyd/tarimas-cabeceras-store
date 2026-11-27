@@ -180,7 +180,7 @@ export default function ComplaintsBook() {
             label="¿Cuál? (opcional)"
             value={form.bienDescripcion}
             onChange={(v) => set('bienDescripcion', v)}
-            placeholder="Ej. Tarima Clásica Tapizada, o código de pedido ED-XXXX"
+            placeholder="Ej. Tarima Clásica Tapizada, o código de pedido CA-XXXX"
           />
           <Campo
             label="Monto reclamado en S/ (opcional)"
