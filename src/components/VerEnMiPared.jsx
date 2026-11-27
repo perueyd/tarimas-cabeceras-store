@@ -111,26 +111,19 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
   const nombreArchivo = `${(nombre || 'mueble').replace(/\s+/g, '-').toLowerCase()}-en-mi-pared.jpg`;
 
   // Compartir la foto directo a WhatsApp, Instagram, etc. (pedido del dueño,
-  // 27/11/2026: solo se podía guardar). Usa el menú de compartir del celular;
-  // donde el navegador no sabe compartir archivos, el botón no aparece.
-  async function archivoDeLaCaptura() {
-    const blob = await (await fetch(captura)).blob();
-    return new File([blob], nombreArchivo, { type: 'image/jpeg' });
-  }
-  const [puedeCompartir, setPuedeCompartir] = useState(false);
+  // 27/11/2026: solo se podía guardar). El archivo se prepara AL TOMAR la foto
+  // (lienzo.toBlob) y no al pulsar «Compartir», por dos razones:
+  //  · el iPhone solo abre el menú de compartir si se llama justo al tocar el
+  //    botón, sin esperas de por medio;
+  //  · leer la foto con fetch(data:…) lo bloquea la política de seguridad de
+  //    vercel.json (connect-src), y el botón no aparecía nunca.
+  // Donde el navegador no sabe compartir archivos, el botón no aparece.
+  const [archivo, setArchivo] = useState(null);
+  const puedeCompartir = Boolean(
+    archivo && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [archivo] })
+  );
   useEffect(() => {
-    let vigente = true;
-    if (!captura || !navigator.canShare) {
-      setPuedeCompartir(false);
-      return undefined;
-    }
-    archivoDeLaCaptura()
-      .then((f) => vigente && setPuedeCompartir(navigator.canShare({ files: [f] })))
-      .catch(() => vigente && setPuedeCompartir(false));
-    return () => {
-      vigente = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!captura) setArchivo(null);
   }, [captura]);
 
   if (!abierto) return null;
@@ -290,6 +283,11 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
     });
 
     setCaptura(lienzo.toDataURL('image/jpeg', 0.9));
+    lienzo.toBlob(
+      (blob) => blob && setArchivo(new File([blob], nombreArchivo, { type: 'image/jpeg' })),
+      'image/jpeg',
+      0.9
+    );
   }
 
   function guardar() {
@@ -300,18 +298,19 @@ export default function VerEnMiPared({ abierto, onCerrar, imagenSrc, colorHex, n
     a.click();
   }
 
-  async function compartir() {
-    try {
-      const archivo = await archivoDeLaCaptura();
-      await navigator.share({
+  function compartir() {
+    if (!archivo) return;
+    // Sin await antes de share(): el iPhone lo exige (ver arriba).
+    navigator
+      .share({
         files: [archivo],
         title: nombre,
         text: `Así se vería ${nombre} en mi pared 👉 ${window.location.href}`,
+      })
+      .catch((err) => {
+        // Si el cliente cierra el menú no es un error; si falla de verdad, se guarda.
+        if (err?.name !== 'AbortError') guardar();
       });
-    } catch (err) {
-      // Si el cliente cierra el menú no es un error; si falla de verdad, se guarda.
-      if (err?.name !== 'AbortError') guardar();
-    }
   }
 
   return (
