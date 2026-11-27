@@ -146,8 +146,11 @@ export default function Home() {
         </div>
       )}
 
+      {/* Dos por fila también en el celular (revisión de experiencia, 27/11/2026):
+          con uno por fila y la foto a todo el ancho, ver los 49 productos era
+          bajar decenas de pantallas sin poder comparar. */}
       {visibleProducts.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {visibleProducts.map((p) => (
             <ProductCard key={p.id} product={p} sizeId={plaza === 'todas' ? null : plaza} />
           ))}
