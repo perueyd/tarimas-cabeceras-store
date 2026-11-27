@@ -3,7 +3,9 @@
 // Normas que se tuvieron en cuenta:
 //  · Ley 29733 — Protección de Datos Personales (arts. 14.5 y 15.4) y su reglamento,
 //    DS 016-2024-JUS (vigente desde el 30/03/2025; textos oficiales de gob.pe
-//    revisados el 26/11/2026: arts. 6, 18, 21.2, 26, 42, 69 y 76)
+//    revisados el 26/11/2026: arts. 6, 18, 21.2, 26, 42, 69 y 76). El banco
+//    «Clientes» quedó inscrito el 27/11/2026: código PJ-2026-6605 (constancia
+//    INS-2026-7604). Faltan «Libro de reclamaciones» y «Publicidad».
 //  · Ley 29571 — Código de Protección y Defensa del Consumidor
 //  · DS 011-2011-PCM — Reglamento del Libro de Reclamaciones, modificado por el
 //    DS 101-2022-PCM (respuesta en 15 días hábiles; El Peruano, revisado el 23/11/2026)
@@ -19,6 +21,7 @@ export const PRIVACIDAD = `En {{proveedor}} tratamos tus datos personales confor
 
 1. QUIÉN RESPONDE POR TUS DATOS
 El responsable del tratamiento es {{proveedor}}. Para cualquier asunto relacionado con tus datos personales puedes escribirnos por WhatsApp al {{whatsapp}} o usar el formulario de derechos disponible en esta misma página.
+Los datos de tus compras se guardan en el banco de datos «Clientes», inscrito en el Registro Nacional de Protección de Datos Personales con el código PJ-2026-6605.
 
 2. QUÉ DATOS RECOGEMOS Y PARA QUÉ
 Solo pedimos lo necesario para venderte y entregarte tu mueble:
