@@ -44,7 +44,12 @@ export default function Cart() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Tu carrito</h1>
+      {/* Faltaba cómo volver a la tienda sin usar el botón del navegador
+          (lo pidió el dueño, 27/11/2026). */}
+      <Link to="/tienda" className="text-sm text-neutral-500 hover:text-ink">
+        ← Seguir comprando
+      </Link>
+      <h1 className="mb-6 mt-3 text-2xl font-semibold tracking-tight">Tu carrito</h1>
 
       <div className="divide-y divide-neutral-200 rounded-lg border border-neutral-200">
         {items.map((item) => {
@@ -169,12 +174,20 @@ export default function Cart() {
         </div>
       )}
 
-      <button
-        onClick={() => navigate('/checkout')}
-        className="mt-6 w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 sm:w-auto"
-      >
-        Proceder al pago
-      </button>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <button
+          onClick={() => navigate('/checkout')}
+          className="w-full rounded-lg bg-ink px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 sm:w-auto"
+        >
+          Proceder al pago
+        </button>
+        <Link
+          to="/tienda"
+          className="w-full rounded-lg border border-neutral-300 px-6 py-3 text-center text-sm font-medium transition hover:border-neutral-500 sm:w-auto"
+        >
+          Seguir comprando
+        </Link>
+      </div>
 
       <RecommendedProducts
         excludeIds={items.map((i) => i.productId)}
