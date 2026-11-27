@@ -40,7 +40,8 @@ export function urlOpinion(productId) {
 //
 // El nombre LEGAL es otra cosa y no se toca aquí: la razón social y el RUC que
 // exige la Ley 29571 salen de lo que esté guardado en el panel, tal como
-// figura en SUNAT (CORPORACIÓN AGAMENON S.A.C., sin tilde). Este de aquí es el
+// figura en SUNAT (CORPORACION AGAMENON S.A.C., sin ninguna tilde: así sale en
+// la consulta RUC, revisada por el dueño el 27/11/2026). Este de aquí es el
 // nombre comercial, el que ve el cliente.
 export const NOMBRE_TIENDA = 'Corporación Agamenón';
 
