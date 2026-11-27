@@ -84,6 +84,13 @@ export default function ProductDetail() {
   // color, sin desaturar). Recién al tocar un color se aplica el teñido — así
   // la primera impresión nunca sale "plomo" por el filtro de desaturado.
   const [colorElegido, setColorElegido] = useState(false);
+  // Altura de la cabecera fija de la tienda: la foto se pega justo debajo.
+  const [alturaCabecera, setAlturaCabecera] = useState(64);
+  useEffect(() => {
+    const h = document.querySelector('header')?.offsetHeight;
+    if (h) setAlturaCabecera(h);
+  }, []);
+
 
   // Al entrar a OTRO producto (ej. desde "También te puede interesar") sin que
   // el componente se remonte, se reinicia la vista para no arrastrar el estado
@@ -389,8 +396,17 @@ export default function ProductDetail() {
         ← Volver al catálogo
       </Link>
 
-      <div className="mt-3 grid grid-cols-1 gap-6 sm:mt-6 lg:grid-cols-2 lg:gap-10">
-        <div>
+      {/* En el celular la foto grande se queda fija arriba mientras se baja a
+          elegir tamaño, color y tela (pedido del dueño, 27/11/2026: el cambio
+          de color no se veía). Para que pueda quedarse pegada toda la página,
+          la columna de la foto se «deshace» en el celular (contents) y la foto
+          pasa a ser hija directa de la rejilla. En la computadora, como antes. */}
+      <div className="mt-3 grid grid-cols-1 sm:mt-6 lg:grid-cols-2 lg:gap-10">
+        <div className="contents lg:block">
+          <div
+            className="sticky z-10 self-start bg-white pb-2 lg:static lg:pb-0"
+            style={{ top: alturaCabecera }}
+          >
           {/* El botón "Ver en grande" existe siempre, tiña la foto o no —
               solo cambia lo que hay ADENTRO (repintable o tal cual). */}
           <button
@@ -433,6 +449,7 @@ export default function ProductDetail() {
               🔍<span className="hidden sm:inline"> Ver en grande</span>
             </span>
           </button>
+          </div>
 
           {/* No hay foto de cada modelo en cada medida (son 34 modelos por 4
               medidas). Cuando falta la de la medida elegida se muestra la que
@@ -482,7 +499,7 @@ export default function ProductDetail() {
           )}
         </div>
 
-        <div>
+        <div className="mt-6 lg:mt-0">
           <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
           <p className="mt-2 text-neutral-500">{product.shortDescription}</p>
           <div className="mt-4 flex items-baseline gap-2">
@@ -685,32 +702,6 @@ export default function ProductDetail() {
               tener que bajar. En la computadora no hace falta. */}
           <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
             <div className="mx-auto flex max-w-6xl items-center gap-3">
-              {/* Foto chica que cambia de color al momento: al elegir el color
-                  la foto grande queda muy arriba y el cliente no veía el
-                  cambio (lo reportó el dueño, 27/11/2026). Al tocarla se sube
-                  a la foto grande. */}
-              <button
-                type="button"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                aria-label="Ver la foto grande"
-                className="shrink-0 overflow-hidden rounded-md border border-neutral-200"
-              >
-                {img.tintable ? (
-                  <ProductImage
-                    baseImage={fotoChica(img.src)}
-                    colorHex={selectedColor?.hex}
-                    colorHex2={dosTelas ? selectedColor2?.hex : undefined}
-                    alt=""
-                    className="h-14 w-[4.5rem]"
-                    tintable
-                    mostrarColor={colorElegido}
-                    zonasManual={product?.zonasFoto?.[img.src]}
-                    invertirTelas={product.invertirTelas}
-                  />
-                ) : (
-                  <img src={fotoChica(img.src)} alt="" className="h-14 w-[4.5rem] object-cover" />
-                )}
-              </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-neutral-500">
                   {product.name}
