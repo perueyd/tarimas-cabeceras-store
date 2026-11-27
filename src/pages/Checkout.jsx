@@ -317,6 +317,7 @@ export default function Checkout() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Código no válido.');
       setPromo({ code: data.code, descuento: data.descuento, tipo: data.tipo, valor: data.valor });
+      totalDelCupon.current = totalAmount;
       setPromoMsg(`✓ Código "${data.code}" aplicado: -${currencyFormatter.format(data.descuento)}`);
     } catch (err) {
       setPromo(null);
@@ -325,6 +326,34 @@ export default function Checkout() {
       setPromoLoading(false);
     }
   }
+
+  // El descuento del cupón se calcula con el total del momento en que se
+  // aplicó. Si el cliente cambia la cantidad desde «Tu pedido», se vuelve a
+  // pedir al servidor: si no, la pantalla enseñaría un descuento viejo y el
+  // cobro no cuadraría con lo mostrado.
+  const totalDelCupon = useRef(totalAmount);
+  useEffect(() => {
+    if (!promo || totalDelCupon.current === totalAmount) return;
+    totalDelCupon.current = totalAmount;
+    let vigente = true;
+    fetch(`/api/promo?validar=${encodeURIComponent(promo.code)}&total=${totalAmount}`)
+      .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (!vigente) return;
+        if (ok) {
+          setPromo({ code: data.code, descuento: data.descuento, tipo: data.tipo, valor: data.valor });
+          setPromoMsg(`✓ Código "${data.code}" aplicado: -${currencyFormatter.format(data.descuento)}`);
+        } else {
+          setPromo(null);
+          setPromoMsg(data?.error || 'El código ya no aplica a este pedido.');
+        }
+      })
+      .catch(() => {});
+    return () => {
+      vigente = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalAmount]);
 
   function quitarPromo() {
     setPromo(null);
