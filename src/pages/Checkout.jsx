@@ -6,6 +6,7 @@ import { MAX_OBSERVACIONES } from '../lib/observaciones.js';
 import { correoCorporativo, enlaceCorreoCorporativo } from '../lib/contacto.js';
 import { partirPago } from '../lib/pedidos.js';
 import { Link, useNavigate } from 'react-router-dom';
+import ResumenDelPedido from '../components/ResumenDelPedido.jsx';
 import MapPicker from '../components/MapPicker.jsx';
 import LocationSearch from '../components/LocationSearch.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -810,6 +811,8 @@ export default function Checkout() {
           ))}
         </div>
       )}
+
+      <ResumenDelPedido items={items} totalProductos={totalAmount} />
 
       <p className="mb-2 text-sm font-medium text-neutral-700">
         {soloServicios ? '¿Dónde será el servicio?' : '¿Dónde entregamos?'}
