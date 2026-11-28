@@ -14,6 +14,17 @@
 //
 // 3. No cuenta al dueño. Cuando está dentro del panel, sus propias vueltas por
 //    la tienda ensuciarían los números justo cuando más los mira.
+//    Antes solo se le reconocía en la MISMA pestaña del panel: desde otra
+//    pestaña o desde su celular sí contaba, y en noviembre de 2026 sus pruebas
+//    inflaron la gráfica (lo preguntó él, 28/11/2026). Ahora el aparato donde
+//    entró al panel queda marcado para siempre (NO_CONTAR, en localStorage).
+//    La marca es solo un «1»: no es la clave ni sirve para entrar.
+//
+// 4. No cuenta navegadores automáticos (navigator.webdriver): las revisiones
+//    automáticas de la tienda recorren decenas de páginas cada vez.
+
+/** Marca de «este aparato es del dueño». La pone src/pages/panel/sesion.js. */
+export const NO_CONTAR = 'ed-no-contar';
 
 const ULTIMA = new Map(); // ruta -> cuándo se avisó por última vez
 const ESPERA_MS = 30_000; // la misma ruta no se cuenta dos veces en 30 segundos
@@ -24,7 +35,13 @@ export function contarVisita(ruta) {
     // La clave tiene que ser EXACTAMENTE la que usa src/pages/Orders.jsx
     // (CLAVE_STORAGE): con un nombre que no existiera, esta guarda no haría
     // nada y el dueño se contaría a sí mismo cada vez que revisa su tienda.
-    if (sessionStorage.getItem('ed-orders-key')) return;
+    if (sessionStorage.getItem('ed-orders-key')) {
+      // Ya tenía el panel abierto antes de existir la marca: se pone ahora.
+      localStorage.setItem(NO_CONTAR, '1');
+      return;
+    }
+    if (localStorage.getItem(NO_CONTAR)) return;
+    if (navigator.webdriver) return;
     if (ruta.startsWith('/panel')) return;
 
     const ahora = Date.now();

@@ -9,6 +9,8 @@
 // En localStorage quedaba guardada para siempre, así que en una computadora
 // compartida o prestada el siguiente que abriera /panel entraba directo. En
 // sessionStorage se borra al cerrar la pestaña, y además caduca a las 8 horas.
+import { NO_CONTAR } from '../../lib/visitas.js';
+
 export const CLAVE_STORAGE = 'ed-orders-key';
 const CLAVE_HORAS = 8;
 
@@ -35,6 +37,9 @@ export function guardarClave(key) {
       CLAVE_STORAGE,
       JSON.stringify({ key, exp: Date.now() + CLAVE_HORAS * 3600 * 1000 })
     );
+    // Este aparato es del dueño: sus vueltas por la tienda ya no cuentan como
+    // visitas, tampoco desde otras pestañas (ver src/lib/visitas.js).
+    localStorage.setItem(NO_CONTAR, '1');
   } catch {
     // Si el navegador bloquea el almacenamiento, el panel sigue funcionando
     // en esta pantalla; solo habrá que reingresar la clave al recargar.
