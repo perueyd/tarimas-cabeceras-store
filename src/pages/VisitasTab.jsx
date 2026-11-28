@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCatalog } from '../context/CatalogContext.jsx';
+import { SITIO_URL } from '../data/sitio.js';
 
 // Cuánta gente entra a la tienda y qué mira.
 //
@@ -20,7 +21,56 @@ const ORIGENES = {
   whatsapp: 'Les pasaron el enlace por WhatsApp',
   'otro buscador': 'Llegaron desde otro buscador',
   interno: 'Navegaron dentro de la tienda',
+  youtube: 'Vinieron de YouTube',
+  qr: 'Escanearon un código QR',
+  vercel: 'Desde Vercel (pruebas tuyas, no clientes)',
 };
+
+// Las apps de Instagram, TikTok y WhatsApp no dicen de dónde viene la visita
+// y casi todo salía como «Escribieron la dirección». Con la marca ?origen= en
+// el enlace compartido sí se sabe (api/_rutas/visitas.js, ORIGENES_MARCADOS).
+const REDES = [
+  ['instagram', 'Instagram'],
+  ['facebook', 'Facebook'],
+  ['tiktok', 'TikTok'],
+  ['whatsapp', 'WhatsApp'],
+  ['qr', 'Código QR (volantes, tarjetas)'],
+];
+
+function EnlacesPorRed() {
+  const [copiado, setCopiado] = useState('');
+  return (
+    <div className="mt-5 rounded-lg bg-neutral-50 p-4 text-sm">
+      <p className="font-medium text-neutral-700">Para saber de qué red vienen</p>
+      <p className="mt-1 text-xs text-neutral-500">
+        Las apps casi nunca lo dicen. Usa en cada red su propio enlace (en tu biografía, en las historias o en tus
+        mensajes) y aquí verás cuántos llegaron por cada una.
+      </p>
+      <ul className="mt-3 space-y-2">
+        {REDES.map(([clave, nombre]) => {
+          const enlace = `${SITIO_URL}/?origen=${clave}`;
+          return (
+            <li key={clave} className="flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block text-xs text-neutral-500">{nombre}</span>
+                <span className="block truncate font-mono text-xs">{enlace}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(enlace).then(() => setCopiado(clave)).catch(() => {});
+                }}
+                className="shrink-0 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs"
+              >
+                {copiado === clave ? 'Copiado ✓' : 'Copiar'}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 function Barras({ datos, total, vacio, etiquetaDe }) {
   if (!datos.length) return <p className="text-sm text-neutral-400">{vacio}</p>;
@@ -169,6 +219,7 @@ export default function VisitasTab({ adminKey }) {
                 etiquetaDe={(n) => ORIGENES[n] || n}
                 vacio="Sin datos todavía."
               />
+              <EnlacesPorRed />
             </div>
           </div>
         </>

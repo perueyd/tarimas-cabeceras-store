@@ -40,22 +40,57 @@ const claveDia = (dia) => `visitas:${dia}`;
 // De dónde llegó la visita, en una palabra. No se guarda la dirección completa
 // de origen: con el dominio basta para saber si el esfuerzo en Instagram sirve,
 // y guardar menos es siempre mejor.
-function origenDe(referrer, propioHost) {
+//
+// Revisado el 28/11/2026 (el dueño preguntó qué era «l.wl.co»):
+//  · l.wl.co es el enlace de salida de WhatsApp: cuenta como WhatsApp.
+//  · La tienda se reconocía a sí misma solo con «www»: la navegación interna
+//    salía como «corporacionagamenon.com». Ahora se comparan sin «www», y las
+//    direcciones antiguas (*.vercel.app de la tienda) también son internas.
+//  · vercel.com son el dueño o las pruebas abriendo la tienda desde Vercel.
+const DOMINIOS_PROPIOS = [
+  'corporacionagamenon.com',
+  'corporacionagamenon.vercel.app',
+  'eydperu.vercel.app',
+  'tarimas-cabeceras-store.vercel.app',
+];
+
+// Las apps de Instagram, TikTok y WhatsApp casi nunca dicen de dónde viene la
+// visita, así que salen como «directo». Para saberlo, el dueño comparte la
+// dirección con ?origen=instagram (o facebook, tiktok, whatsapp...). Solo se
+// aceptan estos valores: nada que escriba un tercero llega al panel.
+export const ORIGENES_MARCADOS = ['instagram', 'facebook', 'tiktok', 'whatsapp', 'google', 'youtube', 'qr'];
+
+export function origenDe(referrer, propioHost, marcado = '') {
+  const m = String(marcado || '').toLowerCase().trim();
+  if (ORIGENES_MARCADOS.includes(m)) return m;
   if (!referrer) return 'directo';
   try {
     const host = new URL(referrer).hostname.replace(/^www\./, '');
-    if (!host || host === propioHost) return 'interno';
-    if (/google\./.test(host)) return 'google';
-    if (/facebook\.|fb\.me|fb\.com/.test(host)) return 'facebook';
-    if (/instagram\./.test(host)) return 'instagram';
-    if (/tiktok\./.test(host)) return 'tiktok';
-    if (/whatsapp|wa\.me/.test(host)) return 'whatsapp';
-    if (/bing\.|duckduckgo\.|yahoo\./.test(host)) return 'otro buscador';
-    return host.slice(0, 40);
+    return origenDeDominio(host, String(propioHost || '').replace(/^www\./, ''));
   } catch {
     return 'directo';
   }
 }
+
+/** Un dominio, en la palabra con que se guarda. También ordena lo guardado antes. */
+export function origenDeDominio(dominio, propio = 'corporacionagamenon.com') {
+  const host = String(dominio || '').replace(/^www\./, '');
+  if (!host || host === propio || DOMINIOS_PROPIOS.includes(host)) return 'interno';
+  if (/google\./.test(host)) return 'google';
+  if (/facebook\.|fb\.me|fb\.com/.test(host)) return 'facebook';
+  if (/instagram\./.test(host)) return 'instagram';
+  if (/tiktok\./.test(host)) return 'tiktok';
+  if (/whatsapp|wa\.me|(^|\.)wl\.co$/.test(host)) return 'whatsapp';
+  if (/youtube\.|youtu\.be/.test(host)) return 'youtube';
+  if (/bing\.|duckduckgo\.|yahoo\./.test(host)) return 'otro buscador';
+  if (host === 'vercel.com') return 'vercel';
+  return host.slice(0, 40);
+}
+
+// Lo que ya estaba guardado con el nombre del dominio se ordena al leerlo con
+// las mismas reglas (l.wl.co → whatsapp, el propio dominio → interno...).
+const PALABRAS = new Set(['directo', 'interno', 'otro buscador', 'vercel', ...ORIGENES_MARCADOS]);
+const reordenarOrigen = (k) => (PALABRAS.has(k) ? k : origenDeDominio(k));
 
 // La ruta se recorta a algo contable: una ficha de producto se guarda como
 // "/producto/milan", pero cualquier cosa rara se descarta. Sin esto, un bot
@@ -81,7 +116,7 @@ export default async function handler(req, res) {
     const ruta = rutaLimpia(req.body?.ruta);
     if (!ruta) return res.status(200).json({ ok: false });
 
-    const origen = origenDe(s(req.body?.desde, 300), new URL(SITIO).host);
+    const origen = origenDe(s(req.body?.desde, 300), new URL(SITIO).host, s(req.body?.origen, 20));
     const clave = claveDia(diaLima());
 
     try {
@@ -130,7 +165,10 @@ export default async function handler(req, res) {
       for (const [campo, valor] of Object.entries(campos)) {
         const n = Number(valor) || 0;
         if (campo.startsWith('ruta:')) rutas[campo.slice(5)] = (rutas[campo.slice(5)] || 0) + n;
-        else if (campo.startsWith('desde:')) origenes[campo.slice(6)] = (origenes[campo.slice(6)] || 0) + n;
+        else if (campo.startsWith('desde:')) {
+          const o = reordenarOrigen(campo.slice(6));
+          origenes[o] = (origenes[o] || 0) + n;
+        }
       }
     }
 

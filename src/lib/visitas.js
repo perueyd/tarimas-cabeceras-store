@@ -48,7 +48,15 @@ export function contarVisita(ruta) {
     if (ahora - (ULTIMA.get(ruta) || 0) < ESPERA_MS) return;
     ULTIMA.set(ruta, ahora);
 
-    const cuerpo = JSON.stringify({ ruta, desde: document.referrer || '' });
+    // ?origen=instagram en la dirección compartida dice de qué red vino (las
+    // apps no lo dicen solas). Solo es una palabra; el servidor la valida.
+    let origen = '';
+    try {
+      origen = new URLSearchParams(location.search).get('origen') || '';
+    } catch {
+      origen = '';
+    }
+    const cuerpo = JSON.stringify({ ruta, desde: document.referrer || '', origen });
 
     // sendBeacon sigue funcionando aunque la persona cierre la pestaña justo
     // después, y no retrasa nada de lo que está cargando. Si el navegador no
