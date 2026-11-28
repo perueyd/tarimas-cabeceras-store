@@ -51,6 +51,10 @@ export default function Header() {
             390 px la letra baja un punto y, en los de menos de 360, «Rastrear»
             se esconde: sigue en el pie de página. Sin eso, «En vivo» se partía
             en dos renglones o el menú se salía de la pantalla. */}
+        {/* Cada enlace es flex + items-center: en los celulares todo enlace mide
+            44 px de alto (src/index.css, para tocarlo fácil) y el texto de
+            «Tienda» y «Rastrear» quedaba arriba mientras «En vivo» y el
+            carrito iban centrados: el menú se veía desalineado (28/11/2026). */}
         <nav
           className={`flex items-center whitespace-nowrap text-sm sm:gap-8 ${
             ['gap-6', 'gap-4', 'gap-2.5 max-[389px]:text-[13px]'][extras]
@@ -62,7 +66,7 @@ export default function Header() {
               className={
                 enVivo
                   ? 'flex items-center gap-1.5 font-semibold text-red-600 transition-colors hover:text-red-700'
-                  : 'text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4'
+                  : 'flex items-center text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4'
               }
             >
               {enVivo && (
@@ -76,21 +80,21 @@ export default function Header() {
           )}
           <Link
             to="/tienda"
-            className="text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"
+            className="flex items-center text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"
           >
             Tienda
           </Link>
           {conServicios && (
             <Link
               to="/servicios"
-              className="text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"
+              className="flex items-center text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4"
             >
               {textosDeServicios(storeConfig).menu}
             </Link>
           )}
           <Link
             to="/seguimiento"
-            className={`text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4 ${
+            className={`flex items-center text-neutral-600 font-medium transition-colors hover:text-neutral-900 hover:underline underline-offset-4 ${
               extras === 2 ? 'max-[359px]:hidden' : ''
             }`}
           >
