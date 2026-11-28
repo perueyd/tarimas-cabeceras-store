@@ -280,7 +280,11 @@ export default function ProductDetail() {
   if (availableSizes.length) pasos.push('tamano');
   if (availableColors.length) pasos.push('color');
   if (dosTelas && availableColors2.length) pasos.push('color2');
-  gruposOpciones.forEach((g) => pasos.push(`op:${g.id}`));
+  // Un grupo con UNA sola opción (hoy la tela: solo terciopelo) no es una
+  // decisión: no se enseña como paso (dueño, 28/11/2026). Igual viaja en el
+  // pedido, porque arranca elegido (opcionesTocadas). Con dos o más, vuelve.
+  const gruposVisibles = gruposOpciones.filter((g) => (g.valores || []).length > 1);
+  gruposVisibles.forEach((g) => pasos.push(`op:${g.id}`));
   const numeroDe = (clave) => pasos.indexOf(clave) + 1;
   // Corrección manual de "qué parte cambia de color", si el dueño la hizo para
   // ESTA foto (se guarda por dirección de foto, así cada ángulo tiene la suya).
@@ -507,12 +511,12 @@ export default function ProductDetail() {
 
         <div className="mt-6 lg:mt-0">
           <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
-          {/* Dos líneas y «Ver más»: en el celular la descripción ocupaba media
+          {/* Una línea y «Ver más»: en el celular la descripción ocupaba media
               pantalla antes del precio (pedido del dueño, 28/11/2026). */}
           {product.shortDescription && (
             <div className="mt-2 text-neutral-500">
-              <p className={descripcionAbierta ? '' : 'line-clamp-2'}>{product.shortDescription}</p>
-              {product.shortDescription.length > 110 && (
+              <p className={descripcionAbierta ? '' : 'line-clamp-1'}>{product.shortDescription}</p>
+              {product.shortDescription.length > 45 && (
                 <button
                   type="button"
                   onClick={() => setDescripcionAbierta((v) => !v)}
@@ -601,7 +605,7 @@ export default function ProductDetail() {
           )}
 
           {/* Opciones del producto: brazos, tipo de patas, tipo de botón... */}
-          {gruposOpciones.map((g) => {
+          {gruposVisibles.map((g) => {
             // Grupo impuesto por otra elección (ej. al pedirla aérea, "sin
             // laterales" deja de ser una decisión). Se muestra igual, pero
             // bloqueado y diciendo por qué: esconderlo daría la sensación de
@@ -710,6 +714,10 @@ export default function ProductDetail() {
             </button>
           </div>
 
+          {/* En el celular, «Ver en mi pared» justo bajo los botones de compra:
+              es la última duda antes de comprar (dueño, 28/11/2026). */}
+          <div className="lg:hidden">{extrasDeLaFoto}</div>
+
           {/* Una línea a la vista y el detalle en un desplegable: el texto
               entero eran siete líneas en el celular (dueño, 28/11/2026). Las
               dos salen de la MISMA regla (src/lib/entrega.js). */}
@@ -727,7 +735,6 @@ export default function ProductDetail() {
             </p>
           </details>
 
-          <div className="lg:hidden">{extrasDeLaFoto}</div>
 
           {/* Barra fija de compra en el celular (revisión de experiencia,
               27/11/2026): el botón de comprar quedaba a cuatro pantallas de la
