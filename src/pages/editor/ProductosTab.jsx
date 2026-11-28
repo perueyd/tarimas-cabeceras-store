@@ -292,7 +292,10 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
             <div
               key={p.id}
               {...orden.props(i)}
-              className={`flex cursor-move select-none items-center justify-between gap-3 rounded-lg border p-4 transition ${
+              // En el celular, foto + nombre + precio arriba y los botones debajo:
+              // en una sola fila los botones ocupaban todo el ancho y el nombre
+              // del producto desaparecía (dueño, 28/11/2026).
+              className={`flex cursor-move select-none flex-col gap-3 rounded-lg border p-3 transition sm:flex-row sm:items-center sm:justify-between sm:p-4 ${
                 orden.arrastrando === i ? 'opacity-40' : ''
               } ${orden.encima === i && orden.arrastrando !== i ? 'ring-2 ring-sky-400' : ''} ${
                 sel ? 'border-ink bg-neutral-100 ring-2 ring-ink' : 'border-neutral-200 bg-white'
@@ -314,6 +317,11 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
                   className="shrink-0 cursor-pointer"
                   title="Seleccionar (Shift = rango)"
                 />
+                {p.baseImage ? (
+                  <img src={p.baseImage} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-md bg-neutral-100 object-cover" />
+                ) : (
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-neutral-100 text-neutral-300">🖼️</span>
+                )}
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
                     <span className="truncate">{p.name}</span>
@@ -325,8 +333,8 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
                   </p>
                 </div>
               </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-xs">
-                <span className="flex flex-col">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs sm:shrink-0 sm:justify-end sm:gap-2">
+                <span className="flex gap-2 sm:flex-col sm:gap-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); mover(p.id, -1); }}
                     className="leading-none text-neutral-400 hover:text-ink"
@@ -343,7 +351,7 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink"
+                  className="rounded-lg border border-neutral-300 px-2.5 py-1 hover:border-ink sm:px-3 sm:py-1.5"
                 >
                   Ver
                 </a>
@@ -355,17 +363,17 @@ export function ProductosTab({ catalog, api, flash, adminKey }) {
                       specs: Object.entries(p.specs || {}).map(([label, value]) => ({ label, value })),
                     });
                   }}
-                  className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink"
+                  className="rounded-lg border border-neutral-300 px-2.5 py-1 hover:border-ink sm:px-3 sm:py-1.5"
                 >
                   Editar
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); duplicar(p); }} className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink">
+                <button onClick={(e) => { e.stopPropagation(); duplicar(p); }} className="rounded-lg border border-neutral-300 px-2.5 py-1 hover:border-ink sm:px-3 sm:py-1.5">
                   Duplicar
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); toggleOculto(p); }} className="rounded-lg border border-neutral-300 px-3 py-1.5 hover:border-ink">
+                <button onClick={(e) => { e.stopPropagation(); toggleOculto(p); }} className="rounded-lg border border-neutral-300 px-2.5 py-1 hover:border-ink sm:px-3 sm:py-1.5">
                   {p.oculto ? 'Mostrar' : 'Ocultar'}
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); eliminar(p); }} className="rounded-lg border border-red-200 px-3 py-1.5 text-red-600 hover:bg-red-50">
+                <button onClick={(e) => { e.stopPropagation(); eliminar(p); }} className="rounded-lg border border-red-200 px-2.5 py-1 text-red-600 hover:bg-red-50 sm:px-3 sm:py-1.5">
                   Eliminar
                 </button>
               </div>
