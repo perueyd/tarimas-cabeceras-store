@@ -19,6 +19,7 @@ import {
   reglaDelPedido,
   reglasDeEntrega,
   respuestaDeEntrega,
+  resumenDePlazo,
   textoDePlazo,
   tipoDeEntrega,
 } from '../src/lib/entrega.js';
@@ -180,4 +181,16 @@ test('la pregunta frecuente se arma con las mismas reglas, una línea por tipo q
   assert.match(texto, /Tarimas: Pídelo hasta las 8 a\. m\./);
   assert.match(texto, /Colchones: Te lo entregamos a los 2 días/);
   assert.match(texto, /provincias/);
+});
+
+// La ficha enseña el plazo en una línea y el detalle plegado (28/11/2026). La
+// línea corta no puede prometer otra cosa que el texto completo: sale de la
+// misma regla, y aquí se comprueba con las de fábrica.
+test('resumen de plazo en una línea, coherente con la regla', () => {
+  const reglas = reglasDeEntrega({});
+  const cabecera = reglaDelPedido(reglas, ['cabeceras']);
+  assert.match(resumenDePlazo(cabecera), /antes de las 8.*hoy desde las 5/);
+  assert.match(textoDePlazo(cabecera), /hasta las 8.*hoy mismo desde las 5/);
+  assert.doesNotMatch(resumenDePlazo(cabecera), /\.\.$/, 'sin punto doble tras «p. m.»');
+  assert.equal(resumenDePlazo(reglaDelPedido(reglas, ['colchones'])), 'Entrega a los 2 días.');
 });

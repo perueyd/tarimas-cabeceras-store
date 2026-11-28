@@ -202,6 +202,24 @@ export function textoDePlazo(regla = REGLA_GENERAL) {
   return partes.join(' ');
 }
 
+/**
+ * El plazo en UNA línea, para la ficha del producto: el texto entero
+ * (textoDePlazo) ocupaba siete líneas en el celular y queda en un
+ * desplegable debajo (pedido del dueño, 28/11/2026). Sale de la MISMA regla.
+ */
+export function resumenDePlazo(regla = REGLA_GENERAL) {
+  if (regla.corte === null) {
+    const d = regla.dias || 1;
+    return d === 1 ? 'Entrega desde el día siguiente.' : `Entrega a los ${d} días.`;
+  }
+  const hoy = regla.desde ? `hoy desde las ${horaLegible(regla.desde)}` : 'hoy mismo';
+  const frase = regla.seguro
+    ? `Pídelo antes de las ${horaLegible(regla.corte)} y te llega ${hoy}`
+    : `Pídelo antes de las ${horaLegible(regla.corte)} y puede salir ${hoy}`;
+  // «5 p. m.» ya termina en punto: sin esto salía «5 p. m..».
+  return frase.endsWith('.') ? frase : `${frase}.`;
+}
+
 /** «al día siguiente» o «a los 2 días». */
 function cuandoSiNoEsHoy(regla) {
   const d = regla.dias || 1;

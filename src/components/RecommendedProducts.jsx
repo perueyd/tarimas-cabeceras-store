@@ -24,7 +24,7 @@ export default function RecommendedProducts({ excludeIds = [], excludeCategories
   return (
     <section className="mt-12 border-t border-neutral-200 pt-10">
       <h2 className="mb-4 text-lg font-semibold tracking-tight">{title}</h2>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
         {picks.map((p) => (
           <ProductCard key={p.id} product={p} />
         ))}

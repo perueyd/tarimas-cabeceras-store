@@ -1,8 +1,8 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { reglaDelPedido, reglasDeEntrega, textoDePlazo, tipoDeEntrega } from '../lib/entrega.js';
+import { reglaDelPedido, reglasDeEntrega, textoDePlazo, tipoDeEntrega, resumenDePlazo } from '../lib/entrega.js';
 import { lazyConRecarga } from '../lib/cargarPieza.js';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ProductImage from '../components/ProductImage.jsx';
 import { fotoChica } from '../lib/fotoChica.js';
 import ColorPicker from '../components/ColorPicker.jsx';
@@ -84,6 +84,7 @@ export default function ProductDetail() {
   // color, sin desaturar). Recién al tocar un color se aplica el teñido — así
   // la primera impresión nunca sale "plomo" por el filtro de desaturado.
   const [colorElegido, setColorElegido] = useState(false);
+  const [descripcionAbierta, setDescripcionAbierta] = useState(false);
   // Altura de la cabecera fija de la tienda: la foto se pega justo debajo.
   const [alturaCabecera, setAlturaCabecera] = useState(64);
   useEffect(() => {
@@ -354,6 +355,8 @@ export default function ProductDetail() {
     setTimeout(() => setAdded(false), 2000);
   }
 
+  const reglaDeEsteProducto = reglaDelPedido(reglasDeEntrega(storeConfig), [tipoDeEntrega(product)]);
+
   // «Ver en mi pared» y «Compartir»: el mismo bloque en dos sitios según la
   // pantalla (ver más abajo).
   const extrasDeLaFoto = (
@@ -441,12 +444,15 @@ export default function ProductDetail() {
             {medidaActual && (
               // Con tope de ancho: en el celular la medida larga se montaba
               // sobre «Ver en grande» y no se leía ninguna de las dos.
-              <span className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-4rem)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm sm:max-w-[calc(100%-10rem)]">
+              <span className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm sm:max-w-[calc(100%-10rem)]">
                 📐 {medidaActual}
               </span>
             )}
-            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm">
-              🔍<span className="hidden sm:inline"> Ver en grande</span>
+            {/* En el celular sobra el icono (el dueño lo veía innecesario): al
+                tocar la foto se sigue abriendo en grande, que hace falta para
+                leer las fichas de medidas. */}
+            <span className="pointer-events-none absolute bottom-3 right-3 hidden rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm sm:inline">
+              🔍 Ver en grande
             </span>
           </button>
           </div>
@@ -501,7 +507,22 @@ export default function ProductDetail() {
 
         <div className="mt-6 lg:mt-0">
           <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
-          <p className="mt-2 text-neutral-500">{product.shortDescription}</p>
+          {/* Dos líneas y «Ver más»: en el celular la descripción ocupaba media
+              pantalla antes del precio (pedido del dueño, 28/11/2026). */}
+          {product.shortDescription && (
+            <div className="mt-2 text-neutral-500">
+              <p className={descripcionAbierta ? '' : 'line-clamp-2'}>{product.shortDescription}</p>
+              {product.shortDescription.length > 110 && (
+                <button
+                  type="button"
+                  onClick={() => setDescripcionAbierta((v) => !v)}
+                  className="mt-1 text-sm font-medium text-neutral-700 underline"
+                >
+                  {descripcionAbierta ? 'Ver menos' : 'Ver más'}
+                </button>
+              )}
+            </div>
+          )}
           <div className="mt-4 flex items-baseline gap-2">
             <p className="text-xl font-semibold">{currencyFormatter.format(unitPrice)}</p>
             {priceInfo?.discountPercent > 0 && (
@@ -689,10 +710,22 @@ export default function ProductDetail() {
             </button>
           </div>
 
-          <p className="mt-4 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
-            🚚 {product.enStock ? 'En stock: entrega inmediata.' : 'Fabricado a pedido.'} {textoDePlazo(reglaDelPedido(reglasDeEntrega(storeConfig), [tipoDeEntrega(product)]))} Al
-            pagar eliges la fecha y el rango de horario que te acomode.
-          </p>
+          {/* Una línea a la vista y el detalle en un desplegable: el texto
+              entero eran siete líneas en el celular (dueño, 28/11/2026). Las
+              dos salen de la MISMA regla (src/lib/entrega.js). */}
+          <details className="group mt-4 rounded-lg bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
+            <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
+              <span>
+                🚚 {product.enStock ? 'En stock: entrega inmediata.' : resumenDePlazo(reglaDeEsteProducto)}
+              </span>
+              <span className="shrink-0 text-xs font-medium text-neutral-700 underline group-open:hidden">Ver detalles</span>
+              <span className="hidden shrink-0 text-xs font-medium text-neutral-700 underline group-open:inline">Ocultar</span>
+            </summary>
+            <p className="mt-2">
+              {product.enStock ? 'En stock: entrega inmediata.' : 'Fabricado a pedido.'} {textoDePlazo(reglaDeEsteProducto)} Al
+              pagar eliges la fecha y el rango de horario que te acomode.
+            </p>
+          </details>
 
           <div className="lg:hidden">{extrasDeLaFoto}</div>
 
@@ -723,8 +756,12 @@ export default function ProductDetail() {
           </div>
 
           {specs.length > 0 && (
-            <div className="mt-10">
-              <h2 className="mb-3 text-sm font-medium text-neutral-700">Especificaciones</h2>
+            // Plegadas: son datos de consulta, no hacen falta para comprar.
+            <details className="group mt-10">
+              <summary className="mb-3 flex cursor-pointer list-none items-center justify-between rounded-lg border border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-700">
+                <h2>Especificaciones</h2>
+                <span className="text-neutral-400 transition group-open:rotate-180">▾</span>
+              </summary>
               <dl className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 text-sm">
                 {specs.map((s) => (
                   <div key={s.label} className="flex justify-between gap-4 px-4 py-2.5">
@@ -733,7 +770,7 @@ export default function ProductDetail() {
                   </div>
                 ))}
               </dl>
-            </div>
+            </details>
           )}
         </div>
       </div>
@@ -812,6 +849,9 @@ export function Stars({ n, size = 'text-base' }) {
 
 // Reseñas del producto: promedio, lista de comentarios y formulario con estrellas.
 function ReviewsSection({ productId }) {
+  const location = useLocation();
+  // Plegadas, salvo si se llega con el enlace #opiniones (para pedir una opinión).
+  const [abrirOpiniones, setAbrirOpiniones] = useState(() => typeof window !== 'undefined' && window.location.hash === '#opiniones');
   // Si se llegó con "#opiniones", bajar hasta aquí.
   //
   // POR QUÉ HACE FALTA ESCRIBIRLO: normalmente el navegador salta solo al
@@ -825,6 +865,7 @@ function ReviewsSection({ productId }) {
   // y por el camino se pierde la mitad.
   useEffect(() => {
     if (window.location.hash !== '#opiniones') return;
+    setAbrirOpiniones(true);
     // Un respiro para que termine de dibujarse lo de arriba; si no, se calcula
     // la posición con media página montada y el salto se queda corto.
     const t = setTimeout(() => {
@@ -835,7 +876,7 @@ function ReviewsSection({ productId }) {
       document.getElementById('opiniones')?.scrollIntoView({ behavior: 'instant', block: 'start' });
     }, 300);
     return () => clearTimeout(t);
-  }, []);
+  }, [location.hash]);
 
   const [reviews, setReviews] = useState([]);
   const [form, setForm] = useState({ nombre: '', estrellas: 5, comentario: '', foto: '' });
@@ -930,6 +971,15 @@ function ReviewsSection({ productId }) {
         )}
       </div>
 
+      {/* La lista y el formulario, plegados (dueño, 28/11/2026): las estrellas
+          y cuántas hay siguen a la vista arriba. Se abre solo si se llega con
+          el enlace #opiniones que el dueño manda para pedir una opinión. */}
+      <details open={abrirOpiniones} className="group mt-4">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium">
+          <span className="group-open:hidden">{reviews.length ? 'Ver opiniones y opinar' : 'Dejar mi opinión'}</span>
+          <span className="hidden group-open:inline">Ocultar opiniones</span>
+          <span className="text-neutral-400 transition group-open:rotate-180">▾</span>
+        </summary>
       <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-2">
         <div className="space-y-4">
           {reviews.length === 0 && (
@@ -1017,6 +1067,7 @@ function ReviewsSection({ productId }) {
           </button>
         </form>
       </div>
+      </details>
     </section>
   );
 }
